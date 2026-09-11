@@ -24,6 +24,17 @@
 hs_err_pid*
 replay_pid*
 
+<<<<<<< HEAD
+=======
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project/
+.classpath/
+
+>>>>>>> origin/main
 # Maven
 target/
 pom.xml.tag
@@ -36,6 +47,7 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+<<<<<<< HEAD
 # Spring Boot
 HELP.md
 
@@ -68,6 +80,9 @@ build/
 .vscode/
 
 # System files
+=======
+# System
+>>>>>>> origin/main
 .DS_Store
 Thumbs.db
 
