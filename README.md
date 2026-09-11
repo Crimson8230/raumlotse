@@ -2,12 +2,13 @@
 
 Raumlotse is a web application for intelligent seminar and classroom reservation.
 
-<<<<<<< HEAD
 The system is designed to integrate with university infrastructure and suggest suitable rooms based on information such as course, number of participants, date, time, and additional requirements.
 
 ## Current Status
 
-The project currently contains a Spring Boot backend, Docker-based PostgreSQL setup, and pgAdmin for local database inspection. A frontend is planned but not part of the repository yet.
+The project currently contains a Spring Boot backend, a Docker-based PostgreSQL setup, and pgAdmin for local database inspection.
+
+A frontend is planned, but it is not part of the repository yet.
 
 Available backend endpoint:
 
@@ -22,15 +23,11 @@ Expected response:
   "status": "ok"
 }
 ```
-=======
-The system is designed to integrate seamlessly with existing university infrastructure and suggest suitable rooms based on information such as course, number of participants, date, time, and additional requirements.
->>>>>>> origin/main
 
 ## Tech Stack
 
 ### Backend
 
-<<<<<<< HEAD
 - Java 21
 - Spring Boot
 - Spring Web MVC
@@ -143,27 +140,11 @@ On Windows:
 cd backend
 mvnw.cmd test
 ```
-=======
-* Java
-* Spring Boot
-* REST API
-
-### Frontend
-
-* React
-* TypeScript
-* Vite
-
-### Database
-
-* TBD
->>>>>>> origin/main
 
 ## Project Structure
 
 ```text
 raumlotse/
-<<<<<<< HEAD
 +-- backend/                         # Spring Boot backend
 |   +-- src/main/java/                # Application source code
 |   +-- src/main/resources/           # Spring configuration
@@ -187,14 +168,7 @@ backend  Spring Boot REST API
 ```
 
 The database container includes a health check, and both pgAdmin and the backend wait until PostgreSQL is ready.
-=======
-├── backend/      # Spring Boot backend
-├── frontend/     # React frontend
-├── docs/         # Architecture and project documentation
-└── docker-compose.yml
-```
 
 ## Goal
 
 For the project presentation, the application should be publicly accessible so that students can try the room reservation workflow themselves.
->>>>>>> origin/main
