@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: raumlotse-postgres
+    environment:
+      POSTGRES_DB: raumlotse
+      POSTGRES_USER: raumlotse
+      POSTGRES_PASSWORD: raumlotse
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raumlotse -d raumlotse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: raumlotse-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "8081:80"
+    volumes:
+      - ./docker-config/pgadmin_servers.json:/pgadmin4/servers.json
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+    container_name: raumlotse-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/raumlotse
+      SPRING_DATASOURCE_USERNAME: raumlotse
+      SPRING_DATASOURCE_PASSWORD: raumlotse
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
