@@ -1,42 +1,15 @@
-# Compiled class files
+# =========================
+# Java / Maven
+# =========================
+
 *.class
-
-# Logs
-*.log
-*.lst
-
-# BlueJ
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package files
 *.jar
 *.war
 *.nar
 *.ear
-*.zip
-*.tar.gz
-*.rar
 
-# JVM crash logs
-hs_err_pid*
-replay_pid*
-
-<<<<<<< HEAD
-=======
-# IDEs
-.idea/
-*.iml
-.vscode/
-.settings/
-.project/
-.classpath/
-
->>>>>>> origin/main
-# Maven
 target/
+
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -44,53 +17,71 @@ pom.xml.nextSnapshot
 release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
+
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-<<<<<<< HEAD
-# Spring Boot
-HELP.md
+hs_err_pid*
+replay_pid*
 
-# Spring Tool Suite (STS)
-.apt_generated/
-.factorypath
-.springBeans
-.sts4-cache/
+# =========================
+# Logs
+# =========================
 
-# IntelliJ IDEA
-.idea/
-*.iws
-*.iml
-*.ipr
+logs/
+*.log
+*.lst
 
-# Eclipse
-.settings/
-.project
-.classpath
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# NetBeans
-nbproject/private/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-build/
-
-# VS Code
-.vscode/
-
-# System files
-=======
-# System
->>>>>>> origin/main
-.DS_Store
-Thumbs.db
-
-# Docker
-.docker/
-
+# =========================
 # Frontend
+# =========================
+
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
+
+# =========================
+# IDEs / Editors
+# =========================
+
+.idea/
+*.iml
+
+.vscode/
+.settings/
+.project
+.classpath
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# =========================
+# System
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Docker
+# =========================
+
+.docker/
+
+# =========================
+# Archives
+# =========================
+
+*.zip
+*.tar.gz
+*.rar
