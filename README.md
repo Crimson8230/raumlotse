@@ -6,9 +6,7 @@ The system is designed to integrate with university infrastructure and suggest s
 
 ## Current Status
 
-The project currently contains a Spring Boot backend, a Docker-based PostgreSQL setup, and pgAdmin for local database inspection.
-
-A frontend is planned, but it is not part of the repository yet.
+The project currently contains a Spring Boot backend, a React frontend, a Docker-based PostgreSQL setup, and pgAdmin for local database inspection.
 
 Available backend endpoint:
 
@@ -34,6 +32,15 @@ Expected response:
 - Bean Validation
 - Maven
 
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- React Router
+- lucide-react
+- ESLint
+
 ### Database
 
 - PostgreSQL 17
@@ -46,9 +53,6 @@ Expected response:
 
 ### Planned
 
-- React frontend
-- TypeScript
-- Vite
 - Room search and reservation workflow
 
 ## Requirements
@@ -63,9 +67,14 @@ For local backend development without Docker:
 - Java 21
 - Maven or the included Maven Wrapper
 
+For local frontend development:
+
+- Node.js
+- npm
+
 ## Quick Start
 
-Start the full local development setup:
+Start the backend services:
 
 ```bash
 docker compose up --build
@@ -73,14 +82,25 @@ docker compose up --build
 
 This starts PostgreSQL, pgAdmin, and the Spring Boot backend.
 
+Start the frontend in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ## Local URLs
 
 ```text
+Frontend:     http://localhost:5173
 Backend:      http://localhost:8080
 Health check: http://localhost:8080/api/health
 pgAdmin:      http://localhost:8081
 PostgreSQL:   localhost:5432
 ```
+
+During local frontend development, Vite proxies requests from `/api` to `http://localhost:8080`.
 
 ## pgAdmin Login
 
@@ -141,6 +161,30 @@ cd backend
 mvnw.cmd test
 ```
 
+## Frontend Development
+
+Run the frontend locally from the `frontend` directory.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Build the frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+Run frontend linting:
+
+```bash
+cd frontend
+npm run lint
+```
+
 ## Project Structure
 
 ```text
@@ -151,6 +195,14 @@ raumlotse/
 |   +-- src/test/java/                # Backend tests
 |   +-- dockerfile                    # Backend Docker image
 |   +-- pom.xml                       # Maven project configuration
++-- frontend/                        # React frontend
+|   +-- src/
+|   |   +-- API/                      # Frontend API clients
+|   |   +-- pages/                    # Route-level pages
+|   |   +-- App.tsx                   # Frontend route setup
+|   |   +-- main.tsx                  # React entrypoint
+|   +-- package.json                  # Frontend dependencies and scripts
+|   +-- vite.config.ts                # Vite configuration
 +-- docker-config/
 |   +-- pgadmin_servers.json          # pgAdmin server preset
 +-- docker-compose.yml                # Local development services
@@ -168,6 +220,8 @@ backend  Spring Boot REST API
 ```
 
 The database container includes a health check, and both pgAdmin and the backend wait until PostgreSQL is ready.
+
+The frontend is currently started separately with Vite during local development.
 
 ## Goal
 
