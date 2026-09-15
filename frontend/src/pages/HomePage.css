@@ -1,0 +1,8 @@
+.status-loading {
+  color: var(--color-info);
+}
+
+.status-unreachable {
+  color: var(--color-error);
+  font-weight: 600;
+}

@@ -4,7 +4,26 @@
   --color-text: #172033;
   --color-muted: #647084;
   --color-border: #d9dee8;
+
+  /* Accent tokens (FR-004): reserved for interactive/emphasis purposes. 1 of max 3 in use. */
   --color-primary: #256f8f;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+
+  --font-size-heading: 40px;
+  --font-size-body: 16px;
+  --font-size-small: 13px;
+
+  /* Semantic tokens (FR-005): one fixed meaning each, verified WCAG 2.1 AA (>=4.5:1) against
+     --color-background and --color-surface. Never reused for decoration. */
+  --color-success: #1a7f37;
+  --color-error: #d1242f;
+  --color-warning: #9a6700;
+  --color-info: #8250df;
 
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -38,6 +57,44 @@ a {
   color: inherit;
 }
 
+label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+}
+
+input,
+select {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 #root {
   min-height: 100vh;
 }
@@ -50,13 +107,80 @@ main {
 
 h1 {
   margin: 0 0 12px;
-  font-size: 48px;
+  font-size: var(--font-size-heading);
   line-height: 1.1;
 }
 
 p {
   margin: 0;
+  font-size: var(--font-size-body);
   color: var(--color-muted);
+}
+
+/* Shared semantic state classes (FR-005/FR-009): reused wherever an ACTIVE/DEACTIVATED-style
+   status is shown (rooms, buildings, floors, equipment types) instead of one-off per-page rules. */
+.status-active {
+  color: var(--color-success);
+}
+
+.status-deactivated {
+  color: var(--color-muted);
+}
+
+.feedback-error {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.feedback-conflict {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.status-empty {
+  padding: var(--space-4) 0;
+  color: var(--color-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+/* Shared layout utility classes (FR-003/FR-006): reused across pages/components instead of
+   duplicating identical block/list/form layout rules per file. Each exists to serve a specific
+   grouping or structural function, not decoration. */
+.panel {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+}
+
+.list-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.inline-form label {
+  margin-bottom: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 @media (max-width: 720px) {
@@ -65,6 +189,6 @@ p {
   }
 
   h1 {
-    font-size: 36px;
+    font-size: 32px;
   }
 }

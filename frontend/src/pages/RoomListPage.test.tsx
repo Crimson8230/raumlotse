@@ -48,6 +48,25 @@ describe('RoomListPage', () => {
     expect(screen.getByText('ACTIVE')).toBeInTheDocument()
   })
 
+  it('renders the room status with a semantic status class', async () => {
+    rooms.listRooms.mockResolvedValue([room(), room({ id: 'r2', name: 'Room 102', status: 'DEACTIVATED' })])
+
+    renderPage()
+
+    await screen.findByText('Room 101')
+    expect(screen.getByText('ACTIVE')).toHaveClass('status-active')
+    expect(screen.getByText('DEACTIVATED')).toHaveClass('status-deactivated')
+  })
+
+  it('renders a styled empty state instead of a blank list when there are no rooms', async () => {
+    rooms.listRooms.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText(/no rooms match/i)).toHaveClass('status-empty')
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
   it('reloads with the deactivated filter when selected', async () => {
     const user = userEvent.setup()
     rooms.listRooms.mockResolvedValue([])

@@ -3,8 +3,9 @@ import { createBuilding, listBuildings } from '../../API/buildings'
 import { createFloor, listFloors } from '../../API/floors'
 import { listEquipmentTypes } from '../../API/equipmentTypes'
 import { createRoom, updateRoom } from '../../API/rooms'
-import { formatApiError } from '../../API/client'
+import { ApiError, formatApiError } from '../../API/client'
 import type { Building, EquipmentType, Floor, Room, SeatingArrangement } from '../../types/room'
+import './RoomForm.css'
 
 export interface RoomFormProps {
   /** Provide an existing room to edit it; omit to create a new one. */
@@ -28,6 +29,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   const [showNewFloorForm, setShowNewFloorForm] = useState(false)
   const [newFloorName, setNewFloorName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [errorKind, setErrorKind] = useState<'error' | 'conflict'>('error')
   const [submitting, setSubmitting] = useState(false)
 
   const loadBuildings = useCallback(() => listBuildings('active'), [])
@@ -40,7 +42,10 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         if (!ignore) setBuildings(loaded)
       },
       (err) => {
-        if (!ignore) setError(formatApiError(err))
+        if (!ignore) {
+          setErrorKind('error')
+          setError(formatApiError(err))
+        }
       },
     )
     return () => {
@@ -55,7 +60,10 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         if (!ignore) setEquipmentTypes(loaded)
       },
       (err) => {
-        if (!ignore) setError(formatApiError(err))
+        if (!ignore) {
+          setErrorKind('error')
+          setError(formatApiError(err))
+        }
       },
     )
     return () => {
@@ -73,7 +81,10 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         if (!ignore) setFloors(loaded)
       },
       (err) => {
-        if (!ignore) setError(formatApiError(err))
+        if (!ignore) {
+          setErrorKind('error')
+          setError(formatApiError(err))
+        }
       },
     )
     return () => {
@@ -100,6 +111,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setErrorKind('error')
 
     if (seatingArrangements.length === 0) {
       setError('A room must have at least one seating arrangement.')
@@ -120,6 +132,9 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         : await createRoom(payload)
       onSaved(saved)
     } catch (err) {
+      // A 409 means someone else saved this room since it was loaded (optimistic-locking
+      // conflict) — a distinct, recoverable state from a hard validation failure (FR-009).
+      setErrorKind(err instanceof ApiError && err.status === 409 ? 'conflict' : 'error')
       setError(formatApiError(err))
     } finally {
       setSubmitting(false)
@@ -128,6 +143,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
 
   async function handleCreateBuilding() {
     setError(null)
+    setErrorKind('error')
     try {
       const created = await createBuilding(newBuildingName)
       setNewBuildingName('')
@@ -141,6 +157,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
 
   async function handleCreateFloor() {
     setError(null)
+    setErrorKind('error')
     try {
       await createFloor(selectedBuildingId, newFloorName)
       setNewFloorName('')
@@ -152,82 +169,100 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && <p role="alert">{error}</p>}
-
-      <label htmlFor="room-name">Room name</label>
-      <input id="room-name" value={name} onChange={(e) => setName(e.target.value)} required />
-
-      <label htmlFor="room-building">Building</label>
-      <select
-        id="room-building"
-        value={selectedBuildingId}
-        onChange={(e) => {
-          setSelectedBuildingId(e.target.value)
-          setSelectedFloorId('')
-          setFloors([])
-        }}
-        required
-      >
-        <option value="" disabled>
-          Select a building
-        </option>
-        {buildings.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
-      {showNewBuildingForm ? (
-        <span>
-          <label htmlFor="new-building-name">New building name</label>
-          <input id="new-building-name" value={newBuildingName} onChange={(e) => setNewBuildingName(e.target.value)} />
-          <button type="button" onClick={handleCreateBuilding}>
-            Create building
-          </button>
-        </span>
-      ) : (
-        <button type="button" onClick={() => setShowNewBuildingForm(true)}>
-          Add new building
-        </button>
+    <form onSubmit={handleSubmit} className="panel room-form">
+      {error && (
+        <p role="alert" className={errorKind === 'conflict' ? 'feedback-conflict' : 'feedback-error'}>
+          {error}
+        </p>
       )}
 
-      <label htmlFor="room-floor">Floor</label>
-      <select
-        id="room-floor"
-        value={selectedFloorId}
-        onChange={(e) => setSelectedFloorId(e.target.value)}
-        disabled={!selectedBuildingId}
-        required
-      >
-        <option value="" disabled>
-          Select a floor
-        </option>
-        {floors.map((f) => (
-          <option key={f.id} value={f.id}>
-            {f.name}
+      <div>
+        <label htmlFor="room-name">Room name</label>
+        <input id="room-name" value={name} onChange={(e) => setName(e.target.value)} required />
+      </div>
+
+      <div>
+        <label htmlFor="room-building">Building</label>
+        <select
+          id="room-building"
+          value={selectedBuildingId}
+          onChange={(e) => {
+            setSelectedBuildingId(e.target.value)
+            setSelectedFloorId('')
+            setFloors([])
+          }}
+          required
+        >
+          <option value="" disabled>
+            Select a building
           </option>
-        ))}
-      </select>
-      {selectedBuildingId &&
-        (showNewFloorForm ? (
-          <span>
-            <label htmlFor="new-floor-name">New floor name</label>
-            <input id="new-floor-name" value={newFloorName} onChange={(e) => setNewFloorName(e.target.value)} />
-            <button type="button" onClick={handleCreateFloor}>
-              Create floor
+          {buildings.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+        {showNewBuildingForm ? (
+          <div className="inline-form">
+            <div>
+              <label htmlFor="new-building-name">New building name</label>
+              <input
+                id="new-building-name"
+                value={newBuildingName}
+                onChange={(e) => setNewBuildingName(e.target.value)}
+              />
+            </div>
+            <button type="button" onClick={handleCreateBuilding}>
+              Create building
             </button>
-          </span>
+          </div>
         ) : (
-          <button type="button" onClick={() => setShowNewFloorForm(true)}>
-            Add new floor
+          <button type="button" onClick={() => setShowNewBuildingForm(true)}>
+            Add new building
           </button>
-        ))}
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="room-floor">Floor</label>
+        <select
+          id="room-floor"
+          value={selectedFloorId}
+          onChange={(e) => setSelectedFloorId(e.target.value)}
+          disabled={!selectedBuildingId}
+          required
+        >
+          <option value="" disabled>
+            Select a floor
+          </option>
+          {floors.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+        {selectedBuildingId &&
+          (showNewFloorForm ? (
+            <div className="inline-form">
+              <div>
+                <label htmlFor="new-floor-name">New floor name</label>
+                <input id="new-floor-name" value={newFloorName} onChange={(e) => setNewFloorName(e.target.value)} />
+              </div>
+              <button type="button" onClick={handleCreateFloor}>
+                Create floor
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowNewFloorForm(true)}>
+              Add new floor
+            </button>
+          ))}
+      </div>
 
       <fieldset>
         <legend>Equipment</legend>
         {equipmentTypes.map((type) => (
-          <label key={type.id}>
+          <label key={type.id} className="checkbox-label">
             <input
               type="checkbox"
               checked={selectedEquipmentIds.includes(type.id)}
@@ -241,23 +276,27 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       <fieldset>
         <legend>Seating arrangements</legend>
         {seatingArrangements.map((row, index) => (
-          <div key={index}>
-            <label htmlFor={`seating-name-${index}`}>{`Seating arrangement name (${index + 1})`}</label>
-            <input
-              id={`seating-name-${index}`}
-              value={row.name}
-              onChange={(e) => updateSeatingArrangement(index, { name: e.target.value })}
-              required
-            />
-            <label htmlFor={`seating-capacity-${index}`}>{`Max capacity (${index + 1})`}</label>
-            <input
-              id={`seating-capacity-${index}`}
-              type="number"
-              min={1}
-              value={row.maxCapacity}
-              onChange={(e) => updateSeatingArrangement(index, { maxCapacity: Number(e.target.value) })}
-              required
-            />
+          <div key={index} className="inline-form">
+            <div>
+              <label htmlFor={`seating-name-${index}`}>{`Seating arrangement name (${index + 1})`}</label>
+              <input
+                id={`seating-name-${index}`}
+                value={row.name}
+                onChange={(e) => updateSeatingArrangement(index, { name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor={`seating-capacity-${index}`}>{`Max capacity (${index + 1})`}</label>
+              <input
+                id={`seating-capacity-${index}`}
+                type="number"
+                min={1}
+                value={row.maxCapacity}
+                onChange={(e) => updateSeatingArrangement(index, { maxCapacity: Number(e.target.value) })}
+                required
+              />
+            </div>
             <button type="button" onClick={() => removeSeatingArrangement(index)}>
               {`Remove seating arrangement (${index + 1})`}
             </button>
@@ -268,9 +307,11 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         </button>
       </fieldset>
 
-      <button type="submit" disabled={submitting}>
-        {room ? 'Save room' : 'Create room'}
-      </button>
+      <div className="actions">
+        <button type="submit" disabled={submitting}>
+          {room ? 'Save room' : 'Create room'}
+        </button>
+      </div>
     </form>
   )
 }
