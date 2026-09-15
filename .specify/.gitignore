@@ -5,5 +5,10 @@
 # switch features, so it is per-checkout state rather than something to share.
 feature.json
 
+# Which AI tool's Spec Kit integration is "active" on this checkout. Rewritten by each
+# tool's own installer/updater (Claude Code, Codex, ...) whenever it runs, so on a team
+# using multiple tools this repeatedly flips and churns PR diffs for no functional reason.
+integration.json
+
 # Per-machine extension config overrides.
 extensions/*/local-config.yml
