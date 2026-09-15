@@ -91,6 +91,7 @@ describe('RoomForm (create mode)', () => {
 
     await screen.findByText(/at least one seating arrangement/i)
     expect(rooms.createRoom).not.toHaveBeenCalled()
+    expect(screen.getByText(/at least one seating arrangement/i)).toHaveClass('feedback-error')
   })
 
   it('lets the administrator create a building and floor inline when none exist yet', async () => {
@@ -159,6 +160,8 @@ describe('RoomForm (edit mode)', () => {
 
     await user.click(screen.getByRole('button', { name: /save room/i }))
 
-    await screen.findByText(/modified by someone else/i)
+    const conflictMessage = await screen.findByText(/modified by someone else/i)
+    expect(conflictMessage).toHaveClass('feedback-conflict')
+    expect(conflictMessage).not.toHaveClass('feedback-error')
   })
 })

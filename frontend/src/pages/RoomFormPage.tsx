@@ -36,27 +36,37 @@ export default function RoomFormPage() {
   }, [roomId])
 
   if (loading) {
-    return <p>Loading…</p>
+    return (
+      <main>
+        <p className="status-loading">Loading…</p>
+      </main>
+    )
   }
 
   if (loadError) {
-    return <p role="alert">{loadError}</p>
+    return (
+      <main>
+        <p role="alert" className="feedback-error">
+          {loadError}
+        </p>
+      </main>
+    )
   }
 
   return (
-    <div>
+    <main>
       <h1>{room ? `Edit ${room.name}` : 'New Room'}</h1>
       {room && (
-        <dl>
+        <dl className="panel">
           <dt>Building</dt>
           <dd>{room.building.name}</dd>
           <dt>Floor</dt>
           <dd>{room.floor.name}</dd>
           <dt>Status</dt>
-          <dd>{room.status}</dd>
+          <dd className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>{room.status}</dd>
         </dl>
       )}
       <RoomForm room={room} onSaved={(saved) => navigate(`/rooms/${saved.id}`)} />
-    </div>
+    </main>
   )
 }

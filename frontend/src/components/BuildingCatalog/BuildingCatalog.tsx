@@ -76,10 +76,16 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
   }
 
   return (
-    <section aria-label="Building and floor catalog">
-      {error && <p role="alert">{error}</p>}
+    <section aria-label="Building and floor catalog" className="panel">
+      <h2>Gebäude</h2>
+      {error && (
+        <p role="alert" className="feedback-error">
+          {error}
+        </p>
+      )}
 
       <form
+        className="inline-form"
         onSubmit={(e) => {
           e.preventDefault()
           guarded(async () => {
@@ -88,34 +94,43 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
           })
         }}
       >
-        <label htmlFor="new-building-name">New building name</label>
-        <input
-          id="new-building-name"
-          value={newBuildingName}
-          onChange={(e) => setNewBuildingName(e.target.value)}
-        />
+        <div>
+          <label htmlFor="new-building-name">New building name</label>
+          <input
+            id="new-building-name"
+            value={newBuildingName}
+            onChange={(e) => setNewBuildingName(e.target.value)}
+          />
+        </div>
         <button type="submit">Add building</button>
       </form>
 
-      <ul>
+      {buildings.length === 0 ? (
+        <p className="status-empty">No buildings yet.</p>
+      ) : (
+        <ul className="list-plain">
         {buildings.map((building) => {
           const floors = floorsByBuilding[building.id] ?? []
           const renameId = `rename-building-${building.id}`
           const newFloorId = `new-floor-${building.id}`
           return (
-            <li key={building.id}>
-              <span>{building.name}</span>
-              <span> ({building.status})</span>
+            <li key={building.id} className="panel">
+              <span>{building.name}</span>{' '}
+              <span className={building.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
+                ({building.status})
+              </span>
 
-              <div>
-                <label htmlFor={renameId}>{`Rename building ${building.name}`}</label>
-                <input
-                  id={renameId}
-                  value={renameDrafts[building.id] ?? building.name}
-                  onChange={(e) =>
-                    setRenameDrafts((prev) => ({ ...prev, [building.id]: e.target.value }))
-                  }
-                />
+              <div className="inline-form">
+                <div>
+                  <label htmlFor={renameId}>{`Rename building ${building.name}`}</label>
+                  <input
+                    id={renameId}
+                    value={renameDrafts[building.id] ?? building.name}
+                    onChange={(e) =>
+                      setRenameDrafts((prev) => ({ ...prev, [building.id]: e.target.value }))
+                    }
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() =>
@@ -126,20 +141,23 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                 </button>
               </div>
 
-              {building.status === 'ACTIVE' ? (
-                <button type="button" onClick={() => guarded(() => deactivateBuilding(building.id))}>
-                  {`Deactivate building ${building.name}`}
+              <div className="actions">
+                {building.status === 'ACTIVE' ? (
+                  <button type="button" onClick={() => guarded(() => deactivateBuilding(building.id))}>
+                    {`Deactivate building ${building.name}`}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => guarded(() => reactivateBuilding(building.id))}>
+                    {`Reactivate building ${building.name}`}
+                  </button>
+                )}
+                <button type="button" onClick={() => guarded(() => deleteBuilding(building.id))}>
+                  {`Delete building ${building.name}`}
                 </button>
-              ) : (
-                <button type="button" onClick={() => guarded(() => reactivateBuilding(building.id))}>
-                  {`Reactivate building ${building.name}`}
-                </button>
-              )}
-              <button type="button" onClick={() => guarded(() => deleteBuilding(building.id))}>
-                {`Delete building ${building.name}`}
-              </button>
+              </div>
 
               <form
+                className="inline-form"
                 onSubmit={(e) => {
                   e.preventDefault()
                   guarded(async () => {
@@ -148,62 +166,77 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                   })
                 }}
               >
-                <label htmlFor={newFloorId}>{`New floor name for ${building.name}`}</label>
-                <input
-                  id={newFloorId}
-                  value={newFloorNames[building.id] ?? ''}
-                  onChange={(e) =>
-                    setNewFloorNames((prev) => ({ ...prev, [building.id]: e.target.value }))
-                  }
-                />
+                <div>
+                  <label htmlFor={newFloorId}>{`New floor name for ${building.name}`}</label>
+                  <input
+                    id={newFloorId}
+                    value={newFloorNames[building.id] ?? ''}
+                    onChange={(e) =>
+                      setNewFloorNames((prev) => ({ ...prev, [building.id]: e.target.value }))
+                    }
+                  />
+                </div>
                 <button type="submit">{`Add floor to ${building.name}`}</button>
               </form>
 
-              <ul>
+              {floors.length === 0 ? (
+                <p className="status-empty">No floors yet.</p>
+              ) : (
+                <ul className="list-plain">
                 {floors.map((floor) => {
                   const floorRenameId = `rename-floor-${floor.id}`
                   return (
                     <li key={floor.id}>
-                      <span>{floor.name}</span>
-                      <span> ({floor.status})</span>
+                      <span>{floor.name}</span>{' '}
+                      <span className={floor.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
+                        ({floor.status})
+                      </span>
 
-                      <label htmlFor={floorRenameId}>{`Rename floor ${floor.name}`}</label>
-                      <input
-                        id={floorRenameId}
-                        value={floorRenameDrafts[floor.id] ?? floor.name}
-                        onChange={(e) =>
-                          setFloorRenameDrafts((prev) => ({ ...prev, [floor.id]: e.target.value }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          guarded(() => renameFloor(floor.id, floorRenameDrafts[floor.id] ?? floor.name))
-                        }
-                      >
-                        {`Save floor name for ${floor.name}`}
-                      </button>
+                      <div className="inline-form">
+                        <div>
+                          <label htmlFor={floorRenameId}>{`Rename floor ${floor.name}`}</label>
+                          <input
+                            id={floorRenameId}
+                            value={floorRenameDrafts[floor.id] ?? floor.name}
+                            onChange={(e) =>
+                              setFloorRenameDrafts((prev) => ({ ...prev, [floor.id]: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            guarded(() => renameFloor(floor.id, floorRenameDrafts[floor.id] ?? floor.name))
+                          }
+                        >
+                          {`Save floor name for ${floor.name}`}
+                        </button>
+                      </div>
 
-                      {floor.status === 'ACTIVE' ? (
-                        <button type="button" onClick={() => guarded(() => deactivateFloor(floor.id))}>
-                          {`Deactivate floor ${floor.name}`}
+                      <div className="actions">
+                        {floor.status === 'ACTIVE' ? (
+                          <button type="button" onClick={() => guarded(() => deactivateFloor(floor.id))}>
+                            {`Deactivate floor ${floor.name}`}
+                          </button>
+                        ) : (
+                          <button type="button" onClick={() => guarded(() => reactivateFloor(floor.id))}>
+                            {`Reactivate floor ${floor.name}`}
+                          </button>
+                        )}
+                        <button type="button" onClick={() => guarded(() => deleteFloor(floor.id))}>
+                          {`Delete floor ${floor.name}`}
                         </button>
-                      ) : (
-                        <button type="button" onClick={() => guarded(() => reactivateFloor(floor.id))}>
-                          {`Reactivate floor ${floor.name}`}
-                        </button>
-                      )}
-                      <button type="button" onClick={() => guarded(() => deleteFloor(floor.id))}>
-                        {`Delete floor ${floor.name}`}
-                      </button>
+                      </div>
                     </li>
                   )
                 })}
-              </ul>
+                </ul>
+              )}
             </li>
           )
         })}
-      </ul>
+        </ul>
+      )}
     </section>
   )
 }

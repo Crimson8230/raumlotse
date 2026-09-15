@@ -3,10 +3,11 @@ import { EquipmentCatalog } from '../components/EquipmentCatalog/EquipmentCatalo
 
 export default function LocationCatalogPage() {
   return (
-    <div>
-      <h1>Buildings, Floors &amp; Equipment</h1>
+    <main>
+      <h1>Standorte</h1>
+      <p>Gebäude, Stockwerke &amp; Ausstattung verwalten</p>
       <BuildingCatalog />
       <EquipmentCatalog />
-    </div>
+    </main>
   )
 }
