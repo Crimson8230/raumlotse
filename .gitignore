@@ -46,6 +46,15 @@ frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
+frontend/coverage/
+
+# =========================
+# Environment secrets
+# =========================
+
+.env
+.env.local
+.env.*.local
 
 # =========================
 # IDEs / Editors

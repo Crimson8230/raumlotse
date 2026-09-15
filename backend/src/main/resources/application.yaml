@@ -1,3 +1,7 @@
 spring:
   application:
     name: raumlotse
+  datasource:
+    url: jdbc:postgresql://localhost:5432/raumlotse
+    username: raumlotse
+    password: raumlotse

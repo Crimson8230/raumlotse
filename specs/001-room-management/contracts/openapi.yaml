@@ -1,0 +1,833 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Room Management API
+  version: "1.0.0"
+  description: >
+    Endpoints for managing meeting rooms and the equipment-type catalog.
+    No authentication is enforced yet (see spec.md Clarifications, 2026-09-15);
+    all endpoints are usable by a single implicit administrator for now.
+servers:
+  - url: /api
+
+paths:
+  /rooms:
+    get:
+      summary: List rooms
+      parameters:
+        - name: status
+          in: query
+          description: Filter by room status. Defaults to "active" if omitted.
+          schema:
+            type: string
+            enum: [active, deactivated, all]
+      responses:
+        "200":
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomSummary"
+    post:
+      summary: Create a room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomCreateRequest"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Validation error (missing/invalid fields, zero seating arrangements)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: A room with the same name already exists in this building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /rooms/{roomId}:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get a room's full configuration
+      responses:
+        "200":
+          description: Room detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      summary: Update a room (name, building, floor, seating arrangements, equipment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomUpdateRequest"
+      responses:
+        "200":
+          description: Updated room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: >
+            Conflict — either the submitted `version` is stale (FR-017, concurrent edit)
+            or the new name/building pair collides with another room (FR-013).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      summary: Permanently delete a room
+      description: Only allowed when the room has no dependent history (FR-010).
+      responses:
+        "204":
+          description: Room deleted
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Room has dependent history; deactivate instead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /rooms/{roomId}/deactivate:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Deactivate an active room (FR-008)
+      responses:
+        "200":
+          description: Deactivated room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /rooms/{roomId}/reactivate:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Reactivate a deactivated room (FR-009)
+      responses:
+        "200":
+          description: Reactivated room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /buildings:
+    get:
+      summary: List the building catalog
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, deactivated, all]
+      responses:
+        "200":
+          description: List of buildings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Building"
+    post:
+      summary: Add a new building to the catalog (FR-018)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildingRequest"
+      responses:
+        "201":
+          description: Building created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Building"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: A building with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /buildings/{buildingId}:
+    parameters:
+      - name: buildingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Rename a building (FR-018)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildingRequest"
+      responses:
+        "200":
+          description: Updated building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Building"
+        "404":
+          description: Building not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: A building with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      summary: Permanently remove a building from the catalog
+      description: Only allowed when the building has zero floors, active or deactivated (FR-022).
+      responses:
+        "204":
+          description: Building deleted
+        "404":
+          description: Building not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Building still has one or more floors; remove them first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /buildings/{buildingId}/deactivate:
+    parameters:
+      - name: buildingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Deactivate a building (FR-018)
+      description: Cascades to deactivate all of this building's floors (FR-021).
+      responses:
+        "200":
+          description: Deactivated building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Building"
+        "404":
+          description: Building not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /buildings/{buildingId}/reactivate:
+    parameters:
+      - name: buildingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Reactivate a building (FR-018)
+      description: Does not reactivate its floors — each must be reactivated individually (FR-021).
+      responses:
+        "200":
+          description: Reactivated building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Building"
+        "404":
+          description: Building not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /buildings/{buildingId}/floors:
+    parameters:
+      - name: buildingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: List the floors belonging to a building
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, deactivated, all]
+      responses:
+        "200":
+          description: List of floors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Floor"
+        "404":
+          description: Building not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      summary: Add a new floor under this building (FR-019)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FloorRequest"
+      responses:
+        "201":
+          description: Floor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Floor"
+        "400":
+          description: Validation error, or the building is not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Building not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: A floor with this name already exists in this building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /floors/{floorId}:
+    parameters:
+      - name: floorId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Rename a floor (FR-019)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FloorRequest"
+      responses:
+        "200":
+          description: Updated floor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Floor"
+        "404":
+          description: Floor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: A floor with this name already exists in this building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      summary: Permanently remove a floor from the catalog
+      description: Only allowed when no room currently references it (FR-022).
+      responses:
+        "204":
+          description: Floor deleted
+        "404":
+          description: Floor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Floor is referenced by one or more rooms; deactivate instead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /floors/{floorId}/deactivate:
+    parameters:
+      - name: floorId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Deactivate a floor (FR-019, FR-022)
+      responses:
+        "200":
+          description: Deactivated floor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Floor"
+        "404":
+          description: Floor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /floors/{floorId}/reactivate:
+    parameters:
+      - name: floorId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Reactivate a floor (FR-019)
+      description: >
+        Rejected with 409 if the parent building is still deactivated — reactivate the
+        building first.
+      responses:
+        "200":
+          description: Reactivated floor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Floor"
+        "404":
+          description: Floor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Parent building is deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /equipment-types:
+    get:
+      summary: List the equipment catalog
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, deactivated, all]
+      responses:
+        "200":
+          description: List of equipment types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EquipmentType"
+    post:
+      summary: Add a new equipment type to the catalog (FR-014)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentTypeRequest"
+      responses:
+        "201":
+          description: Equipment type created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentType"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: An equipment type with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /equipment-types/{equipmentTypeId}:
+    parameters:
+      - name: equipmentTypeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Rename an equipment type (FR-014)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentTypeRequest"
+      responses:
+        "200":
+          description: Updated equipment type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentType"
+        "404":
+          description: Equipment type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: An equipment type with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      summary: Permanently remove an equipment type from the catalog
+      description: Only allowed when no room currently references it (FR-016).
+      responses:
+        "204":
+          description: Equipment type deleted
+        "404":
+          description: Equipment type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Equipment type is assigned to one or more rooms; deactivate instead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /equipment-types/{equipmentTypeId}/deactivate:
+    parameters:
+      - name: equipmentTypeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Deactivate an equipment type (FR-014, FR-016)
+      description: >
+        Existing room assignments are preserved; the type can no longer be newly
+        assigned to a room.
+      responses:
+        "200":
+          description: Deactivated equipment type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentType"
+        "404":
+          description: Equipment type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /equipment-types/{equipmentTypeId}/reactivate:
+    parameters:
+      - name: equipmentTypeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Reactivate an equipment type (FR-014)
+      responses:
+        "200":
+          description: Reactivated equipment type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentType"
+        "404":
+          description: Equipment type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+components:
+  schemas:
+    SeatingArrangement:
+      type: object
+      required: [name, maxCapacity]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+        maxCapacity:
+          type: integer
+          minimum: 1
+
+    Building:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, DEACTIVATED]
+
+    BuildingRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    Floor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        buildingId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, DEACTIVATED]
+
+    FloorRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    RoomSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        building:
+          allOf:
+            - $ref: "#/components/schemas/Building"
+          readOnly: true
+          description: Denormalized for display; the room only stores `floorId` (see RoomCreateRequest).
+        floor:
+          allOf:
+            - $ref: "#/components/schemas/Floor"
+          readOnly: true
+        status:
+          type: string
+          enum: [ACTIVE, DEACTIVATED]
+
+    Room:
+      allOf:
+        - $ref: "#/components/schemas/RoomSummary"
+        - type: object
+          properties:
+            version:
+              type: integer
+              description: Optimistic-locking version; must be echoed back on update (FR-017).
+            seatingArrangements:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/SeatingArrangement"
+            equipmentTypeIds:
+              type: array
+              items:
+                type: string
+                format: uuid
+
+    RoomCreateRequest:
+      type: object
+      required: [name, floorId, seatingArrangements]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        floorId:
+          type: string
+          format: uuid
+          description: Must reference an ACTIVE floor whose building is also ACTIVE (FR-020).
+        seatingArrangements:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SeatingArrangement"
+        equipmentTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    RoomUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/RoomCreateRequest"
+        - type: object
+          required: [version]
+          properties:
+            version:
+              type: integer
+              description: Version read by the client; used to detect concurrent edits (FR-017).
+
+    EquipmentType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, DEACTIVATED]
+
+    EquipmentTypeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    Problem:
+      type: object
+      description: Structured error response (RFC 7807-style).
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        errors:
+          type: array
+          description: Optional per-field validation errors.
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
