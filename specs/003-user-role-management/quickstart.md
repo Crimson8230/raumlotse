@@ -94,3 +94,7 @@ Payloads/statuses: [api.md](contracts/api.md). Invariants: [data-model.md](data-
 ## Release evidence
 
 Backend tests plus frontend tests/lint/build pass, with red/green evidence and manual outcomes. Verify real authentication, credential/CSRF integration, sanitized logs, zero roleless accounts and at least one usable Admin. If authentication is absent, the release gate stays closed even when isolated role tests pass.
+<<<<<<< HEAD
+=======
+
+>>>>>>> 985110f (Add user role managment specification)
