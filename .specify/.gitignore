@@ -9,6 +9,7 @@ feature.json
 # tool's own installer/updater (Claude Code, Codex, ...) whenever it runs, so on a team
 # using multiple tools this repeatedly flips and churns PR diffs for no functional reason.
 integration.json
+init-options.json
 
 # Per-machine extension config overrides.
 extensions/*/local-config.yml
