@@ -1,0 +1,100 @@
+.reservation-list-container {
+  margin-top: 1rem;
+}
+
+.reservation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reservation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reservation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reservation-time {
+  font-weight: bold;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-reserved {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-active {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-completed {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.status-expired {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.reservation-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.reservation-details p {
+  margin: 0;
+}
+
+.reservation-created-at {
+  color: #64748b;
+}
+
+.reservation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.reservation-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-danger {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.btn-danger:hover {
+  background-color: #fee2e2;
+}

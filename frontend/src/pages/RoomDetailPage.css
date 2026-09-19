@@ -1,0 +1,30 @@
+.room-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.room-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.room-detail-metadata {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.room-reservations-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.room-reservations-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
