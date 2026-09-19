@@ -8,7 +8,7 @@
 Use pessimistic write locking (`SELECT FOR UPDATE` via `@Lock(LockModeType.PESSIMISTIC_WRITE)`) on the target `Room` row during reservation creation and rescheduling checks, combined with a SQL overlap query:
 ```sql
 WHERE room_id = :roomId
-  AND status = 'RESERVED'
+  AND status IN ('RESERVED', 'ACTIVE')
   AND start_time < :requestedEndTime
   AND end_time > :requestedStartTime
 ```
@@ -24,22 +24,25 @@ WHERE room_id = :roomId
 
 ---
 
-## 2. Reservation Lifecycle & Status Computation
+## 2. Reservation Lifecycle & Persisted Status Model
 
 ### Decision
-Store the persistent state in the database as either `RESERVED` or `CANCELLED`. Dynamically compute the temporal lifecycle state (`ACTIVE` or `EXPIRED`) at runtime upon querying or DTO mapping:
-- If stored status is `CANCELLED` → `CANCELLED`
-- Else if `Instant.now() < startTime` → `RESERVED`
-- Else if `startTime <= Instant.now() < endTime` → `ACTIVE`
-- Else (`Instant.now() >= endTime`) → `EXPIRED`
+Persist all five lifecycle states directly in the database `status` column (`RESERVED`, `ACTIVE`, `COMPLETED`, `EXPIRED`, `CANCELLED`). Drive status transitions via explicit operational endpoints and manual UI buttons:
+- **`RESERVED`**: Default initial state upon creation.
+- **`ACTIVE`**: Triggered via `POST /api/reservations/{id}/activate` ("Activate / Check-In") from `RESERVED`.
+- **`COMPLETED`**: Triggered via `POST /api/reservations/{id}/complete` ("Complete / Check-Out") from `ACTIVE`.
+- **`EXPIRED`**: Triggered via `POST /api/reservations/{id}/expire` ("Expire / Mark No-Show") on an unattended `RESERVED` booking whose scheduled window elapsed.
+- **`CANCELLED`**: Triggered via `POST /api/reservations/{id}/cancel` on `RESERVED` or `ACTIVE` bookings.
 
 ### Rationale
-- **Zero Background Drift**: Avoids running a scheduled background daemon or cron job every minute to flip database rows between `RESERVED`, `ACTIVE`, and `EXPIRED`.
-- **Absolute Precision**: The status is guaranteed to be 100% accurate at the exact millisecond of the query without polling latency.
-- **Audit Preservation**: Explicit cancellations are persisted permanently as `CANCELLED`.
+- **Explicit Domain Audit**: Concluded meetings (`COMPLETED`) are clearly distinguished from unattended reservations (`EXPIRED` no-shows), improving utilization reporting.
+- **Persistence Clarity**: All states are directly queryable in PostgreSQL without in-memory state derivation discrepancies.
+- **Operational Control**: Provides manual buttons immediately while deferring automatic background scheduler daemons (`@Scheduled`) to a future enhancement.
+- **Terminal State Safety**: `COMPLETED`, `EXPIRED`, and `CANCELLED` are immutable terminal states; modifications and reactivations are rejected with HTTP 400 / 409.
 
 ### Alternatives Considered
-- *Scheduled Spring `@Scheduled` worker*: Requires polling the database every minute, introduces database write load, and creates temporal lag where reservations remain `RESERVED` minutes after their start time has elapsed.
+- *Dynamic runtime calculation*: Computes status on read, but cannot distinguish between a completed meeting and an unattended no-show without check-in timestamps.
+- *Automated `@Scheduled` worker daemon*: Periodically flips statuses automatically; deferred to future iterations per user requirements.
 
 ---
 

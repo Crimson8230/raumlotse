@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement end-to-end room reservation capabilities in Raumlotse. From the room view, users can book an active room for a given time window and duration. The system guarantees conflict-free bookings via serialized overlap detection, enforces seating arrangement capacity limits, allows requesting additional equipment not permanently present in the room, records notes, and stores administrative audit data (`createdBy`, `createdAt`). Stored persistent states (`RESERVED`, `CANCELLED`) combined with dynamic runtime evaluation provide temporal lifecycle states (`RESERVED`, `ACTIVE`, `EXPIRED`, `CANCELLED`).
+Implement end-to-end room reservation capabilities in Raumlotse. From the room view, users can book an active room for a given time window and duration. The system guarantees conflict-free bookings via serialized overlap detection, enforces seating arrangement capacity limits, allows requesting additional equipment not permanently present in the room, records notes, and stores administrative audit data (`createdBy`, `createdAt`). Persisted lifecycle states (`RESERVED`, `ACTIVE`, `COMPLETED`, `EXPIRED`, `CANCELLED`) with manual operational action triggers ("Activate", "Complete", "Expire", "Cancel") provide deterministic room occupancy management.
 
 ## Technical Context
 
@@ -34,7 +34,7 @@ Implement end-to-end room reservation capabilities in Raumlotse. From the room v
 **Constraints**:
 - Half-open interval conflict check `[start, end)` (adjacent back-to-back bookings allowed)
 - Concurrency control via pessimistic write lock on target `Room` record during reservation creation
-- YAGNI runtime calculation of `ACTIVE` / `EXPIRED` states without background cron daemons
+- 5-state persisted lifecycle (`RESERVED`, `ACTIVE`, `COMPLETED`, `EXPIRED`, `CANCELLED`) operated via manual action endpoints and buttons
 - Room deletion blocked when reservation history exists (via `RoomDependentHistoryChecker`)
 - Room deactivation blocked when upcoming `RESERVED` or `ACTIVE` bookings exist
 
@@ -50,7 +50,7 @@ Implement end-to-end room reservation capabilities in Raumlotse. From the room v
 | **II. Modern, Typed, and Consistent Codebases** | PASS | Java 21 records, constructor injection, layered controller → service → repository; strict TypeScript types and functional React components with ESLint compliance. |
 | **III. Contract-First API Design** | PASS | REST endpoints, request/response models, and status codes formalized in `contracts/reservations-api.yaml` prior to implementation. |
 | **IV. Secure & Data-Respecting by Default** | PASS | Parameterized JPA queries, Bean Validation annotations on inputs, form validation, no sensitive personal data or secrets logged. |
-| **V. Simplicity & Observability** | PASS | Dynamic lifecycle status evaluation avoids background scheduler overhead; standardized Problem JSON error payloads; clear log messages. |
+| **V. Simplicity & Observability** | PASS | Persisted status with manual operational endpoints keeps transitions explicit and auditable without background worker daemons; standardized Problem JSON error payloads; clear log messages. |
 | **Tech Stack Constraints** | PASS | Java 21, Spring Boot, PostgreSQL 17, React, TypeScript, Docker. No unapproved dependencies introduced. |
 
 ## Project Structure

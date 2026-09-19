@@ -11,14 +11,14 @@
 ## Scheduling & Conflict Detection Requirements
 
 - [x] CHK001 Are time interval boundary rules for overlapping reservations explicitly defined as half-open intervals `[start, end)`? [Clarity, Spec §FR-006]
-- [ ] CHK002 Are requirements specified for allowing adjacent back-to-back bookings where one reservation's start time equals the preceding reservation's end time? [Completeness, Spec §FR-006]
+- [x] CHK002 Are requirements specified for allowing adjacent back-to-back bookings where one reservation's start time equals the preceding reservation's end time? [Completeness, Spec §FR-006]
 - [x] CHK003 Are conflict detection exclusion requirements unambiguous regarding `CANCELLED` bookings? [Consistency, Spec §FR-007]
-- [ ] CHK004 Are handling requirements defined for concurrent reservation requests submitted simultaneously for overlapping intervals on the same room? [Coverage, Spec §Edge Cases]
+- [x] CHK004 Are handling requirements defined for concurrent reservation requests submitted simultaneously for overlapping intervals on the same room? [Coverage, Spec §Edge Cases]
 
 ## Capacity & Seating Layout Requirements
 
 - [x] CHK005 Is exactly one seating arrangement selection mandatory for every reservation? [Completeness, Spec §FR-008]
-- [ ] CHK006 Are validation requirements explicitly stated for when expected attendees exceed the seating arrangement's `maxCapacity`? [Clarity, Spec §FR-010]
+- [x] CHK006 Are validation requirements explicitly stated for when expected attendees exceed the seating arrangement's `maxCapacity`? [Clarity, Spec §FR-010]
 - [x] CHK007 Are requirements clear that expected attendee count must be a positive integer greater than zero? [Clarity, Spec §FR-009]
 
 ## Additional Equipment Requirements
@@ -30,19 +30,19 @@
 ## Lifecycle & Modification Requirements
 
 - [x] CHK011 Are criteria for all five lifecycle states (`RESERVED`, `ACTIVE`, `COMPLETED`, `EXPIRED`, `CANCELLED`) objectively measurable and mutually exclusive? [Clarity, Spec §FR-014]
-- [ ] CHK012 Are modification boundaries clearly specified, distinguishing permitted metadata updates (attendees, notes) from prohibited schedule/room changes? [Completeness, Spec §FR-017, §FR-018]
-- [ ] CHK013 Are restriction requirements defined for attempts to edit reservations that are in `ACTIVE`, `EXPIRED`, or `CANCELLED` status? [Coverage, Spec §FR-019, §Edge Cases]
-- [ ] CHK014 Does the specification define whether an active in-progress reservation can be cancelled early? [Clarity, Spec §FR-015]
+- [x] CHK012 Are modification boundaries clearly specified, distinguishing permitted metadata updates (attendees, notes) from prohibited schedule/room changes? [Completeness, Spec §FR-017, §FR-018]
+- [x] CHK013 Are restriction requirements defined for attempts to edit reservations that are in `ACTIVE`, `COMPLETED`, `EXPIRED`, or `CANCELLED` status? [Coverage, Spec §FR-019, §Edge Cases]
+- [x] CHK014 Does the specification define whether an active in-progress reservation can be cancelled early? [Clarity, Spec §FR-015]
 
 ## Administrative & Audit Trail Requirements
 
-- [ ] CHK015 Are required creator identity fields (`createdBy`) and non-blank validation rules documented? [Clarity, Spec §FR-013, §Edge Cases]
-- [ ] CHK016 Is the migration strategy from manual user entry to session-based authentication documented in assumptions? [Assumption, Spec §Assumptions]
+- [x] CHK015 Are required creator identity fields (`createdBy`) and non-blank validation rules documented? [Clarity, Spec §FR-013, §Edge Cases]
+- [x] CHK016 Is the migration strategy from manual user entry to session-based authentication documented in assumptions? [Assumption, Spec §Assumptions]
 
 ## Room Deactivation & Deletion Governance Requirements
 
-- [ ] CHK017 Are blocking rules explicitly defined for attempting to deactivate a room with existing `RESERVED` or `ACTIVE` bookings? [Completeness, Spec §FR-020, §Edge Cases]
-- [ ] CHK018 Does the specification explicitly define how room deletion interacts with existing reservation records via dependent history checks? [Consistency, Spec §FR-021, Plan §Research]
+- [x] CHK017 Are blocking rules explicitly defined for attempting to deactivate a room with existing `RESERVED` or `ACTIVE` bookings? [Completeness, Spec §FR-020, §Edge Cases]
+- [x] CHK018 Does the specification explicitly define how room deletion interacts with existing reservation records via dependent history checks? [Consistency, Spec §FR-021, Plan §Research]
 
 ## Notes
 

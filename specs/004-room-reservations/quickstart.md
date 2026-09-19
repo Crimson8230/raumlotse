@@ -34,8 +34,8 @@ cd backend
 ```
 Expected outcome:
 - Flyway migration `V4__create_reservation_tables.sql` applies successfully.
-- WebMvc controller tests for `ReservationController` pass (201, 400, 404, 409 conflict).
-- `ReservationService` tests confirm conflict detection, capacity validation, and dynamic lifecycle computation.
+- WebMvc controller tests for `ReservationController` pass (201, 200, 400, 404, 409 conflict, including `/activate`, `/complete`, `/expire`, `/cancel`).
+- `ReservationService` tests confirm conflict detection, capacity validation, and 5-state lifecycle persistence.
 - `RoomDependentHistoryChecker` confirms deletion blocks when reservations exist.
 
 ### Frontend Component & Integration Tests
@@ -45,7 +45,8 @@ npm test
 ```
 Expected outcome:
 - Reservation form unit tests pass (input validation, capacity warnings, equipment filtering).
-- Room view schedule display tests pass (correct status badges: `RESERVED`, `ACTIVE`, `EXPIRED`, `CANCELLED`).
+- Room view schedule display tests pass (correct status badges: `RESERVED`, `ACTIVE`, `COMPLETED`, `EXPIRED`, `CANCELLED`).
+- Operational action buttons ("Activate", "Complete", "Expire", "Cancel") render and trigger correctly according to lifecycle state.
 
 ---
 
@@ -89,16 +90,24 @@ Expected outcome:
 3. Click **Save Changes**.
 4. **Expected Outcome**: Changes persist immediately with HTTP 200 without changing the scheduled time window.
 
-### Scenario 6: Cancel Reservation & Reclaim Slot
-1. Locate the reservation from Scenario 1.
-2. Click **Cancel Reservation** and confirm prompt.
-3. **Expected Outcome**: Status updates to `CANCELLED`.
-4. Now book tomorrow from 10:00 AM to 11:30 AM:
-5. **Expected Outcome**: Booking succeeds because cancelled reservations are ignored by conflict detection.
+### Scenario 6: Operational Lifecycle Transitions (Activate, Complete, Expire)
+1. On a `RESERVED` booking, click **Check-In / Activate**:
+   - **Expected Outcome**: Status updates to `ACTIVE` (HTTP 200 via `POST /api/reservations/{id}/activate`). Action buttons change to allow Check-Out or Cancel.
+2. Click **Check-Out / Complete**:
+   - **Expected Outcome**: Status updates to `COMPLETED` (HTTP 200 via `POST /api/reservations/{id}/complete`). Action buttons are disabled as this is a terminal state.
+3. On another unattended `RESERVED` booking whose scheduled window elapsed, click **Expire / No-Show**:
+   - **Expected Outcome**: Status updates to `EXPIRED` (HTTP 200 via `POST /api/reservations/{id}/expire`).
 
-### Scenario 7: Protection Against Deactivating/Deleting Reserved Rooms
+### Scenario 7: Cancel Reservation & Reclaim Slot
+1. Locate an upcoming `RESERVED` or ongoing `ACTIVE` reservation.
+2. Click **Cancel Reservation** and confirm prompt.
+3. **Expected Outcome**: Status updates to `CANCELLED` (HTTP 200 via `POST /api/reservations/{id}/cancel`).
+4. Now book the same room during that time window:
+5. **Expected Outcome**: Booking succeeds immediately because cancelled reservations are ignored by conflict detection.
+
+### Scenario 8: Protection Against Deactivating/Deleting Reserved Rooms
 1. Create an upcoming reservation for a room.
 2. Attempt to deactivate the room in the room settings.
-3. **Expected Outcome**: Deactivation fails with an error: `"Room has active or upcoming reservations; cancel them first."`
+3. **Expected Outcome**: Deactivation fails with an error: `"Room has active or upcoming reservations; cancel them first."` (HTTP 409).
 4. Attempt to delete the room.
-5. **Expected Outcome**: Deletion fails with `"Room has dependent history; deactivate it instead."`
+5. **Expected Outcome**: Deletion fails with `"Room has dependent history; deactivate it instead."` (HTTP 409).

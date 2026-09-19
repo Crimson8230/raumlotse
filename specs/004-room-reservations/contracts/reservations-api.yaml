@@ -174,7 +174,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '409':
-          description: Reservation is not in RESERVED status (ACTIVE, EXPIRED, CANCELLED cannot be edited)
+          description: Reservation is not in RESERVED status (ACTIVE, COMPLETED, EXPIRED, CANCELLED cannot be edited)
           content:
             application/json:
               schema:
@@ -205,7 +205,100 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '409':
-          description: Reservation is already CANCELLED or EXPIRED
+          description: Reservation is already in a terminal status (COMPLETED, EXPIRED, or CANCELLED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/reservations/{reservationId}/activate:
+    post:
+      summary: Activate reservation (Check-In)
+      description: Manually transitions a reservation from RESERVED to ACTIVE status.
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reservation activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '404':
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Reservation is not in RESERVED status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/reservations/{reservationId}/complete:
+    post:
+      summary: Complete reservation (Check-Out)
+      description: Manually transitions a reservation from ACTIVE to COMPLETED status.
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reservation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '404':
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Reservation is not in ACTIVE status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/reservations/{reservationId}/expire:
+    post:
+      summary: Expire reservation (Mark No-Show)
+      description: Manually transitions an unattended RESERVED reservation whose time slot elapsed to EXPIRED status.
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reservation expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '404':
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Reservation is not in RESERVED status
           content:
             application/json:
               schema:
@@ -301,7 +394,7 @@ components:
           format: date-time
         status:
           type: string
-          enum: [RESERVED, ACTIVE, EXPIRED, CANCELLED]
+          enum: [RESERVED, ACTIVE, COMPLETED, EXPIRED, CANCELLED]
         seatingArrangement:
           $ref: '#/components/schemas/SeatingArrangementSummary'
         expectedAttendees:
