@@ -119,4 +119,21 @@ describe('RoomListPage', () => {
     await waitFor(() => expect(rooms.deleteRoom).toHaveBeenCalledWith('r1'))
     await waitFor(() => expect(rooms.listRooms).toHaveBeenCalledTimes(2))
   })
+
+  it('displays error when deactivating a room blocked by active reservations', async () => {
+    const user = userEvent.setup()
+    rooms.listRooms.mockResolvedValue([room()])
+    rooms.deactivateRoom.mockRejectedValue(
+      new Error('Room has active or upcoming reservations; cancel them first.'),
+    )
+
+    renderPage()
+    await screen.findByText('Room 101')
+
+    await user.click(screen.getByRole('button', { name: /deactivate room 101/i }))
+
+    expect(
+      await screen.findByText(/Room has active or upcoming reservations/i),
+    ).toBeInTheDocument()
+  })
 })
