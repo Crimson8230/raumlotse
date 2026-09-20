@@ -29,13 +29,16 @@ public class SecurityConfig {
 
     @Bean
     UserDetailsService noImplicitAccounts() {
-        return username -> { throw new UsernameNotFoundException("No local username/password accounts are configured."); };
+        return username -> {
+            throw new UsernameNotFoundException("No local username/password accounts are configured.");
+        };
     }
 
     @Bean
     SecurityFilterChain applicationSecurity(HttpSecurity http, ObjectMapper objectMapper,
             org.springframework.beans.factory.ObjectProvider<UserAccountRepository> accounts,
-            org.springframework.beans.factory.ObjectProvider<at.mci.igp.raumlotse.service.UserRoleSafety> roleSafety) throws Exception {
+            org.springframework.beans.factory.ObjectProvider<at.mci.igp.raumlotse.service.UserRoleSafety> roleSafety)
+            throws Exception {
         var accountFilter = new CurrentAccountFilter(accounts.getIfAvailable(), objectMapper);
         return http
                 .csrf(Customizer.withDefaults())
@@ -45,7 +48,8 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .requestCache(cache -> cache.disable())
                 .addFilterAfter(accountFilter, SecurityContextHolderFilter.class)
-                .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(roleSafety, objectMapper), CurrentAccountFilter.class)
+                .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(roleSafety, objectMapper),
+                        CurrentAccountFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
