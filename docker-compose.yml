@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: raumlotse
       POSTGRES_USER: raumlotse
-      POSTGRES_PASSWORD: raumlotse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
@@ -20,8 +20,8 @@ services:
     image: dpage/pgadmin4
     container_name: raumlotse-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?Set PGADMIN_DEFAULT_EMAIL in .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Set PGADMIN_DEFAULT_PASSWORD in .env}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "8081:80"
@@ -40,7 +40,13 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/raumlotse
       SPRING_DATASOURCE_USERNAME: raumlotse
-      SPRING_DATASOURCE_PASSWORD: raumlotse
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      AUTH_ATTEMPT_HMAC_KEY: ${AUTH_ATTEMPT_HMAC_KEY:?Set AUTH_ATTEMPT_HMAC_KEY in .env}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
+      AUTH_FIXTURE_EMAIL: ${AUTH_FIXTURE_EMAIL:-}
+      AUTH_FIXTURE_DISPLAY_NAME: ${AUTH_FIXTURE_DISPLAY_NAME:-}
+      AUTH_FIXTURE_PASSWORD: ${AUTH_FIXTURE_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

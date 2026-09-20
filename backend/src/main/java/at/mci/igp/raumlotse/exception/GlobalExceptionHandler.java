@@ -8,6 +8,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -51,8 +54,21 @@ public class GlobalExceptionHandler {
                 .map(fe -> new Problem.FieldError(fe.getField(), fe.getDefaultMessage()))
                 .toList();
         log.warn("validation_failed errors={}", errors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Problem.of(400, "Validation Failed", "One or more fields are invalid.", errors));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).cacheControl(CacheControl.noStore())
+                .body(Problem.of(400, "Validation Failed", "One or more fields are invalid.", errors,
+                        "VALIDATION_FAILED", null));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Problem> handleUnreadableRequest(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).body(
+                Problem.of(400, "Validation Failed", "The request body is invalid.", "VALIDATION_FAILED"));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Problem> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).cacheControl(CacheControl.noStore()).body(
+                Problem.of(415, "Unsupported Media Type", "Use application/json for this request.", "UNSUPPORTED_MEDIA_TYPE"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

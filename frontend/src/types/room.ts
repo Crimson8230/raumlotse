@@ -60,6 +60,8 @@ export interface Problem {
   status: number
   detail: string
   errors?: ProblemFieldError[]
+  code?: string
+  retryAfterSeconds?: number
 }
 
 export type StatusFilter = 'active' | 'deactivated' | 'all'
