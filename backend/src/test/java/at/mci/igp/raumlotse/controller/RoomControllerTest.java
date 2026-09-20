@@ -1,5 +1,10 @@
 package at.mci.igp.raumlotse.controller;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import at.mci.igp.raumlotse.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -30,6 +35,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RoomController.class)
+@WithMockUser
+@Import(SecurityConfig.class)
 class RoomControllerTest {
 
     @Autowired
@@ -50,7 +57,7 @@ class RoomControllerTest {
     void createReturns201() throws Exception {
         when(roomService.create(any())).thenReturn(roomWithOneSeatingArrangement());
 
-        mockMvc.perform(post("/api/rooms")
+        mockMvc.perform(post("/api/rooms").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -67,7 +74,7 @@ class RoomControllerTest {
 
     @Test
     void createWithZeroSeatingArrangementsReturns400() throws Exception {
-        mockMvc.perform(post("/api/rooms")
+        mockMvc.perform(post("/api/rooms").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "seatingArrangements": []}
@@ -77,7 +84,7 @@ class RoomControllerTest {
 
     @Test
     void createWithMissingNameReturns400() throws Exception {
-        mockMvc.perform(post("/api/rooms")
+        mockMvc.perform(post("/api/rooms").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"floorId": "%s", "seatingArrangements": [{"name": "Theater", "maxCapacity": 40}]}
@@ -90,7 +97,7 @@ class RoomControllerTest {
         when(roomService.create(any()))
                 .thenThrow(new ConflictException("A room named 'Room 101' already exists in this building."));
 
-        mockMvc.perform(post("/api/rooms")
+        mockMvc.perform(post("/api/rooms").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "seatingArrangements": [{"name": "Theater", "maxCapacity": 40}]}
@@ -103,7 +110,7 @@ class RoomControllerTest {
         when(roomService.create(any()))
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate seating arrangement name"));
 
-        mockMvc.perform(post("/api/rooms")
+        mockMvc.perform(post("/api/rooms").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "seatingArrangements": [
@@ -146,7 +153,7 @@ class RoomControllerTest {
         UUID id = UUID.randomUUID();
         when(roomService.update(eq(id), any())).thenReturn(roomWithOneSeatingArrangement());
 
-        mockMvc.perform(put("/api/rooms/" + id)
+        mockMvc.perform(put("/api/rooms/" + id).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "version": 0,
@@ -159,7 +166,7 @@ class RoomControllerTest {
     void updateWithEmptySeatingArrangementsReturns400() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(put("/api/rooms/" + id)
+        mockMvc.perform(put("/api/rooms/" + id).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "version": 0, "seatingArrangements": []}
@@ -173,7 +180,7 @@ class RoomControllerTest {
         when(roomService.update(eq(id), any()))
                 .thenThrow(new OptimisticLockingFailureException("stale"));
 
-        mockMvc.perform(put("/api/rooms/" + id)
+        mockMvc.perform(put("/api/rooms/" + id).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "version": 0,
@@ -188,7 +195,7 @@ class RoomControllerTest {
         when(roomService.update(eq(id), any()))
                 .thenThrow(new ConflictException("A room named 'Room 101' already exists in this building."));
 
-        mockMvc.perform(put("/api/rooms/" + id)
+        mockMvc.perform(put("/api/rooms/" + id).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Room 101", "floorId": "%s", "version": 0,
@@ -204,7 +211,7 @@ class RoomControllerTest {
         deactivated.setStatus(EntityStatus.DEACTIVATED);
         when(roomService.deactivate(id)).thenReturn(deactivated);
 
-        mockMvc.perform(post("/api/rooms/" + id + "/deactivate"))
+        mockMvc.perform(post("/api/rooms/" + id + "/deactivate").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DEACTIVATED"));
     }
@@ -214,7 +221,7 @@ class RoomControllerTest {
         UUID id = UUID.randomUUID();
         when(roomService.reactivate(id)).thenReturn(roomWithOneSeatingArrangement());
 
-        mockMvc.perform(post("/api/rooms/" + id + "/reactivate"))
+        mockMvc.perform(post("/api/rooms/" + id + "/reactivate").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
@@ -223,7 +230,7 @@ class RoomControllerTest {
     void deleteReturns204WhenNoDependentHistory() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(delete("/api/rooms/" + id))
+        mockMvc.perform(delete("/api/rooms/" + id).with(csrf()))
                 .andExpect(status().isNoContent());
     }
 
@@ -233,7 +240,7 @@ class RoomControllerTest {
         Mockito.doThrow(new ConflictException("Room has dependent history; deactivate instead."))
                 .when(roomService).delete(id);
 
-        mockMvc.perform(delete("/api/rooms/" + id))
+        mockMvc.perform(delete("/api/rooms/" + id).with(csrf()))
                 .andExpect(status().isConflict());
     }
 }

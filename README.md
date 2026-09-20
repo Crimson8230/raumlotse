@@ -8,6 +8,10 @@ The system is designed to integrate with university infrastructure and suggest s
 
 The project contains a Spring Boot backend with a real persistence layer, a React frontend, a Docker-based PostgreSQL setup, and pgAdmin for local database inspection.
 
+Email/password sign-in is available at `/login`. All application API routes require an authenticated session except `GET /api/health` and the CSRF/login bootstrap endpoints. Sessions expire after 30 minutes of inactivity; the browser stores the session in an HttpOnly, same-site cookie. Production must run over HTTPS and set `SESSION_COOKIE_SECURE=true`.
+
+For local Compose use, copy `.env.example` to `.env`, replace every placeholder, and keep `.env` untracked. `AUTH_ATTEMPT_HMAC_KEY` must be a stable base64-encoded secret containing at least 32 random bytes; do not regenerate it on application restart. Local fixture account creation is opt-in through the `local-auth-fixture` Spring profile and requires `AUTH_FIXTURE_EMAIL`, `AUTH_FIXTURE_DISPLAY_NAME`, and `AUTH_FIXTURE_PASSWORD`. It never resets an existing account password. Never enable that profile against production data.
+
 The first feature, **room management**, is implemented: administrators can maintain a catalog of buildings and their floors, an equipment catalog (projector, whiteboard, ...), and rooms (name, floor, seating arrangements with capacities, assigned equipment). Rooms, buildings, floors, and equipment types can each be created, renamed, deactivated/reactivated, and deleted. See [`specs/001-room-management/`](specs/001-room-management/) for the full specification, data model, and API contract.
 
 Available backend endpoints:

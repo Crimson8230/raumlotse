@@ -1,5 +1,10 @@
 package at.mci.igp.raumlotse.controller;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import at.mci.igp.raumlotse.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,6 +30,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(EquipmentTypeController.class)
+@WithMockUser
+@Import(SecurityConfig.class)
 class EquipmentTypeControllerTest {
 
     @Autowired
@@ -38,7 +45,7 @@ class EquipmentTypeControllerTest {
         EquipmentType created = new EquipmentType("Projector");
         when(equipmentTypeService.create("Projector")).thenReturn(created);
 
-        mockMvc.perform(post("/api/equipment-types")
+        mockMvc.perform(post("/api/equipment-types").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Projector\"}"))
                 .andExpect(status().isCreated())
@@ -51,7 +58,7 @@ class EquipmentTypeControllerTest {
         when(equipmentTypeService.create(eq("Projector")))
                 .thenThrow(new ConflictException("An equipment type named 'Projector' already exists."));
 
-        mockMvc.perform(post("/api/equipment-types")
+        mockMvc.perform(post("/api/equipment-types").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Projector\"}"))
                 .andExpect(status().isConflict());
@@ -72,7 +79,7 @@ class EquipmentTypeControllerTest {
         EquipmentType renamed = new EquipmentType("Beamer");
         when(equipmentTypeService.rename(eq(id), eq("Beamer"))).thenReturn(renamed);
 
-        mockMvc.perform(put("/api/equipment-types/" + id)
+        mockMvc.perform(put("/api/equipment-types/" + id).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Beamer\"}"))
                 .andExpect(status().isOk())
@@ -86,7 +93,7 @@ class EquipmentTypeControllerTest {
         deactivated.setStatus(EntityStatus.DEACTIVATED);
         when(equipmentTypeService.deactivate(id)).thenReturn(deactivated);
 
-        mockMvc.perform(post("/api/equipment-types/" + id + "/deactivate"))
+        mockMvc.perform(post("/api/equipment-types/" + id + "/deactivate").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DEACTIVATED"));
     }
@@ -97,7 +104,7 @@ class EquipmentTypeControllerTest {
         EquipmentType reactivated = new EquipmentType("Projector");
         when(equipmentTypeService.reactivate(id)).thenReturn(reactivated);
 
-        mockMvc.perform(post("/api/equipment-types/" + id + "/reactivate"))
+        mockMvc.perform(post("/api/equipment-types/" + id + "/reactivate").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
@@ -108,7 +115,7 @@ class EquipmentTypeControllerTest {
         org.mockito.Mockito.doThrow(new ConflictException("Equipment type is assigned to one or more rooms."))
                 .when(equipmentTypeService).delete(id);
 
-        mockMvc.perform(delete("/api/equipment-types/" + id))
+        mockMvc.perform(delete("/api/equipment-types/" + id).with(csrf()))
                 .andExpect(status().isConflict());
     }
 
@@ -116,7 +123,7 @@ class EquipmentTypeControllerTest {
     void deleteReturns204() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(delete("/api/equipment-types/" + id))
+        mockMvc.perform(delete("/api/equipment-types/" + id).with(csrf()))
                 .andExpect(status().isNoContent());
     }
 }
