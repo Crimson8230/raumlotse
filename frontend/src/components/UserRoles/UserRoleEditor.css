@@ -1,0 +1,15 @@
+.role-page { max-width: 56rem; margin: 2rem auto; padding: 0 1rem; }
+.role-page h1 { margin-bottom: 1rem; }
+.role-editor fieldset { display: grid; gap: .75rem; padding: 1rem; margin: 1rem 0; border: 1px solid currentColor; border-radius: .5rem; }
+.role-editor label { display: flex; align-items: center; gap: .75rem; padding: .25rem 0; }
+.role-editor input[type=checkbox] { width: 1.2rem; height: 1.2rem; }
+.role-actions, .role-search, .role-pagination { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin: 1rem 0; }
+.role-page button, .role-page input[type=search] { padding: .65rem .9rem; font: inherit; }
+.role-page button:not(:disabled) { cursor: pointer; }
+.role-page :focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+.role-users { list-style: none; padding: 0; }
+.role-users li { padding: .8rem 0; border-bottom: 1px solid currentColor; overflow-wrap: anywhere; }
+.role-users a { display: inline-flex; flex-direction: column; gap: .25rem; }
+.role-account-label { overflow-wrap: anywhere; }
+@media (max-width: 36rem) { .role-search { align-items: stretch; flex-direction: column; } .role-page { margin: 1rem auto; } }
+

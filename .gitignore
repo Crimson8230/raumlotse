@@ -54,6 +54,14 @@ frontend/coverage/
 
 .env*
 !.env.example
+!.env.sample
+
+# Generated output and temporary files across project modules
+node_modules/
+dist/
+build/
+coverage/
+*.tmp
 
 # =========================
 # IDEs / Editors
