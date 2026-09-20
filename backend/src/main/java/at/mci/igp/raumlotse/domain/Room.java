@@ -116,14 +116,26 @@ public class Room {
     }
 
     public void setEquipmentTypes(List<EquipmentType> equipmentTypes) {
-        this.equipmentTypes = equipmentTypes;
+        this.equipmentTypes.clear();
+        if (equipmentTypes != null) {
+            this.equipmentTypes.addAll(equipmentTypes);
+        }
     }
 
     public void replaceSeatingArrangements(List<SeatingArrangement> replacement) {
-        seatingArrangements.clear();
-        for (SeatingArrangement arrangement : replacement) {
-            arrangement.setRoom(this);
-            seatingArrangements.add(arrangement);
+        seatingArrangements.removeIf(existing ->
+                replacement.stream().noneMatch(r -> r.getName().equalsIgnoreCase(existing.getName())));
+
+        for (SeatingArrangement rep : replacement) {
+            var existingOpt = seatingArrangements.stream()
+                    .filter(e -> e.getName().equalsIgnoreCase(rep.getName()))
+                    .findFirst();
+            if (existingOpt.isPresent()) {
+                existingOpt.get().setMaxCapacity(rep.getMaxCapacity());
+            } else {
+                rep.setRoom(this);
+                seatingArrangements.add(rep);
+            }
         }
     }
 }

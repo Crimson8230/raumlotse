@@ -3,6 +3,7 @@ package at.mci.igp.raumlotse.service;
 import at.mci.igp.raumlotse.domain.EntityStatus;
 import at.mci.igp.raumlotse.domain.EquipmentType;
 import at.mci.igp.raumlotse.domain.Floor;
+import at.mci.igp.raumlotse.domain.ReservationStatus;
 import at.mci.igp.raumlotse.domain.Room;
 import at.mci.igp.raumlotse.domain.SeatingArrangement;
 import at.mci.igp.raumlotse.dto.RoomCreateRequest;
@@ -11,6 +12,7 @@ import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
 import at.mci.igp.raumlotse.repository.FloorRepository;
+import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
 import java.util.List;
 import java.util.UUID;
@@ -26,16 +28,19 @@ public class RoomService {
     private final FloorRepository floorRepository;
     private final EquipmentTypeRepository equipmentTypeRepository;
     private final RoomDependentHistoryChecker dependentHistoryChecker;
+    private final ReservationRepository reservationRepository;
 
     public RoomService(
             RoomRepository roomRepository,
             FloorRepository floorRepository,
             EquipmentTypeRepository equipmentTypeRepository,
-            RoomDependentHistoryChecker dependentHistoryChecker) {
+            RoomDependentHistoryChecker dependentHistoryChecker,
+            ReservationRepository reservationRepository) {
         this.roomRepository = roomRepository;
         this.floorRepository = floorRepository;
         this.equipmentTypeRepository = equipmentTypeRepository;
         this.dependentHistoryChecker = dependentHistoryChecker;
+        this.reservationRepository = reservationRepository;
     }
 
     public Room create(RoomCreateRequest request) {
@@ -82,6 +87,9 @@ public class RoomService {
 
     public Room deactivate(UUID id) {
         Room room = findOrThrow(id);
+        if (reservationRepository.existsByRoomIdAndStatusIn(id, List.of(ReservationStatus.RESERVED, ReservationStatus.ACTIVE))) {
+            throw new ConflictException("Room has active or upcoming reservations; cancel them first.");
+        }
         room.setStatus(EntityStatus.DEACTIVATED);
         return room;
     }

@@ -243,4 +243,14 @@ class RoomControllerTest {
         mockMvc.perform(delete("/api/rooms/" + id).with(csrf()))
                 .andExpect(status().isConflict());
     }
+
+    @Test
+    void deactivateBlockedByActiveReservationsReturns409() throws Exception {
+        UUID id = UUID.randomUUID();
+        Mockito.when(roomService.deactivate(id))
+                .thenThrow(new ConflictException("Room has active or upcoming reservations; cancel them first."));
+
+        mockMvc.perform(post("/api/rooms/" + id + "/deactivate"))
+                .andExpect(status().isConflict());
+    }
 }
