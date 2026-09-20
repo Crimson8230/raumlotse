@@ -250,7 +250,7 @@ class RoomControllerTest {
         Mockito.when(roomService.deactivate(id))
                 .thenThrow(new ConflictException("Room has active or upcoming reservations; cancel them first."));
 
-        mockMvc.perform(post("/api/rooms/" + id + "/deactivate"))
+        mockMvc.perform(post("/api/rooms/" + id + "/deactivate").with(csrf()))
                 .andExpect(status().isConflict());
     }
 }

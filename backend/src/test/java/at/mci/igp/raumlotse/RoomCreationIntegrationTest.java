@@ -10,6 +10,7 @@ import at.mci.igp.raumlotse.service.BuildingService;
 import at.mci.igp.raumlotse.service.FloorService;
 import at.mci.igp.raumlotse.service.RoomService;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
@@ -30,7 +31,7 @@ class RoomCreationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void createsARoomEndToEnd() {
-        var building = buildingService.create("Main");
+        var building = buildingService.create("Main " + UUID.randomUUID());
         var floor = floorService.create(building.getId(), "1");
 
         var room = roomService.create(new RoomCreateRequest(

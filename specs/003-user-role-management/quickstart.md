@@ -1,25 +1,38 @@
 # Quickstart Validation: User Role Management
 
-Guide for the future implementation; planning does not implement endpoints or run product acceptance tests.
+Validation guide and implementation record for feature 003.
 
 ## Implementation status — 2026-09-20
 
-Setup is blocked on the authentication prerequisite; see the capability audit in
-[contracts/authentication.md](contracts/authentication.md). The implementation branch
-contains only Flyway V1-V3, so the role schema/backfill filenames remain unallocated
-until the authentication migrations are integrated. T001 is partially documented;
-T002 cannot be completed yet. No role implementation or role test execution is claimed.
+T001 and T002 are complete: authentication from feature 005 is integrated, and its
+concrete capability mapping is recorded in [contracts/authentication.md](contracts/authentication.md).
+The merged duplicate V4 was corrected by renaming the user-account migration to V6;
+reservation V4 and login-attempt V5 remain unchanged. Reserve
+`backend/src/main/resources/db/migration/V7__create_user_role_tables.sql` and
+`backend/src/main/resources/db/migration/V8__backfill_user_roles.sql` for this feature.
+These role migrations are implemented. Transactional account creation, initial-Admin
+provisioning/recovery and lifecycle coordination remain external blocked dependencies.
+No account creation or provisioning work is included in feature 003. Use verified
+role fixtures only inside tests; an external identity operator must assign the first
+Admin before production role routes can become ready.
 
-The manifests retain existing Java 21/Spring MVC/JPA/Flyway and React/TypeScript/Vitest
-dependencies. The commands below are the validation commands after integration.
+For an existing database that already applied the old authentication-only V4,
+reconcile migration history through a reviewed upgrade procedure before startup.
+No existing database was changed, repaired or cleared during this implementation.
+Fresh PostgreSQL 17 migration plus authenticated access passed the integration test.
+
+The implementation retains the existing Java 21/Spring MVC/JPA/Flyway and
+React/TypeScript/Vitest dependencies.
 
 | Test-first evidence | Status |
 |---|---|
-| Foundation failing tests (T003-T004) | Not run; setup incomplete |
-| Foundation passing tests | Not run |
-| Story failing/passing tests | Not run |
-| PostgreSQL races and migration validation | Not run |
-| Real authentication and browser acceptance | Blocked on prerequisite |
+| Migration regression: `MigrationVersionTest` | RED: duplicate V4 detected before rename; GREEN after rename with `mvnw.cmd clean -Dtest=MigrationVersionTest test` |
+| Authentication baseline: `AuthenticationIntegrationTest` | PASS against real PostgreSQL 17 via Testcontainers; session and CSRF protections retained |
+| Foundation and role integration tests | PASS: 17 tests across user-role integration, concurrency, migration and sanitized error handling |
+| Frontend role and route tests | PASS: 19 test files, 75 tests, including role editor, list, conflict recovery and access-control tests |
+| Account creation, initial Admin and deletion lifecycle | Blocked external dependencies; excluded from feature 003 |
+| Manual browser/accessibility and timed acceptance | Not performed; requires a safely provisioned external Admin |
+| Full backend suite | PASS: 218 tests, 0 failures/errors via `.\mvnw.cmd test` (run from `backend/`); includes PostgreSQL-backed concurrency and migration coverage. The first run exposed unauthenticated/CSRF-less reservation and room MVC fixtures, a per-class Testcontainers shutdown while Spring retained cached contexts, and a duplicate hard-coded building name. Fixtures now use authenticated CSRF-aware requests, the shared test database stays alive for the JVM, and the building fixture is unique. |
 
 ## Prerequisites and startup
 
