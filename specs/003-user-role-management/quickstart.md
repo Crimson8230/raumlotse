@@ -2,6 +2,25 @@
 
 Guide for the future implementation; planning does not implement endpoints or run product acceptance tests.
 
+## Implementation status — 2026-09-20
+
+Setup is blocked on the authentication prerequisite; see the capability audit in
+[contracts/authentication.md](contracts/authentication.md). The implementation branch
+contains only Flyway V1-V3, so the role schema/backfill filenames remain unallocated
+until the authentication migrations are integrated. T001 is partially documented;
+T002 cannot be completed yet. No role implementation or role test execution is claimed.
+
+The manifests retain existing Java 21/Spring MVC/JPA/Flyway and React/TypeScript/Vitest
+dependencies. The commands below are the validation commands after integration.
+
+| Test-first evidence | Status |
+|---|---|
+| Foundation failing tests (T003-T004) | Not run; setup incomplete |
+| Foundation passing tests | Not run |
+| Story failing/passing tests | Not run |
+| PostgreSQL races and migration validation | Not run |
+| Real authentication and browser acceptance | Blocked on prerequisite |
+
 ## Prerequisites and startup
 
 Java 21, compatible Node/npm, running Docker and delivered authentication satisfying [authentication.md](contracts/authentication.md). Use disposable accounts: two Admins, University Staff, Student, Lecturer and Viewer. Provision initial Admin through the identity feature's secure process. Never put credentials in source or command history.
@@ -62,4 +81,3 @@ Payloads/statuses: [api.md](contracts/api.md). Invariants: [data-model.md](data-
 ## Release evidence
 
 Backend tests plus frontend tests/lint/build pass, with red/green evidence and manual outcomes. Verify real authentication, credential/CSRF integration, sanitized logs, zero roleless accounts and at least one usable Admin. If authentication is absent, the release gate stays closed even when isolated role tests pass.
-

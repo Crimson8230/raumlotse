@@ -21,3 +21,25 @@ Before implementing the adapter, verify the delivered prerequisite and record it
 
 Missing prerequisite capability blocks integration/release, not planning. Isolated tests may supply verified principal fixtures; production must never use mock identity or implicit Admin.
 
+## Implementation prerequisite audit — 2026-09-20
+
+Audited implementation branch: `003-user-role-management`, HEAD `985110f`.
+The authentication prerequisite is not integrated into this branch. A local branch
+`005-email-password-login` exists at `c61bbf8` (Implement email/password login);
+the earlier conversational reference to feature 004 must not be used as a concrete
+module or migration mapping. Its implementation has not been reviewed here or merged.
+
+| Required capability | Evidence on the implementation branch | Status |
+|---|---|---|
+| Account storage and native key | No account entity/repository or account migration; only V1-V3 room/catalog migrations | Blocked |
+| Verified request identity and credential protections | No authentication/security configuration in backend source; no security starter in backend/pom.xml | Blocked |
+| Account directory and existence lookup | No user directory service/repository | Blocked |
+| Frontend session and expired-session flow | frontend/src/App.tsx has only home/location/room routes; frontend/src/API/client.ts has no prerequisite CSRF integration | Blocked |
+| Transactional account creation and initial Admin provisioning | No identity-owned creation/provisioning service on this branch | Blocked |
+| Deletion/deactivation coordination | No identity lifecycle implementation available to map | Blocked |
+
+Next step: integrate the intended completed authentication prerequisite into the
+implementation branch, then inspect its actual account key, session API, supported
+creation/lifecycle paths and provisioning mechanism. Record concrete class/file
+mapping here before implementing the adapter. Do not infer unsupported lifecycle
+endpoints or allocate migrations from the current V1-V3 listing.

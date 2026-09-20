@@ -3,7 +3,17 @@ target/
 .idea/
 .vscode/
 *.iml
+<<<<<<< HEAD
 .env*
 node_modules/
 coverage/
 logs/
+=======
+node_modules/
+Dockerfile*
+dockerfile*
+.dockerignore
+*.log*
+.env*
+coverage/
+>>>>>>> 5bb56d3 (added tasks)

@@ -52,8 +52,24 @@ frontend/coverage/
 # Environment secrets
 # =========================
 
+<<<<<<< HEAD
 .env*
 !.env.example
+=======
+.env
+.env.local
+.env.*.local
+.env*
+!.env.example
+!.env.sample
+
+# Generated output and temporary files across project modules
+node_modules/
+dist/
+build/
+coverage/
+*.tmp
+>>>>>>> 5bb56d3 (added tasks)
 
 # =========================
 # IDEs / Editors
