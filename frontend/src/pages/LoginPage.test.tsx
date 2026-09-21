@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ApiError } from '../API/client'
@@ -29,6 +29,8 @@ describe('LoginPage', () => {
     auth.refreshCsrfToken.mockResolvedValue(undefined)
     auth.me.mockRejectedValue(new ApiError(401))
   })
+
+  afterEach(() => vi.useRealTimers())
 
   it('masks the password and provides browser autofill hints', async () => {
     renderLogin()
@@ -80,6 +82,46 @@ describe('LoginPage', () => {
     expect(auth.login).toHaveBeenCalledTimes(1)
     await user.type(screen.getByLabelText('Password'), 'wrong-again')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(auth.login).toHaveBeenCalledTimes(2)
+  })
+
+  it('recomputes the cooldown on focus and visibility without polling or automatic retry', async () => {
+    vi.useFakeTimers()
+    const start = new Date('2026-09-21T12:00:00Z')
+    vi.setSystemTime(start)
+    auth.login.mockRejectedValueOnce(Object.assign(new ApiError(429), { retryAfterSeconds: 30 }))
+      .mockRejectedValueOnce(new ApiError(401))
+    renderLogin()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    const email = screen.getByLabelText('Email address')
+    const password = screen.getByLabelText('Password')
+    fireEvent.change(email, { target: { value: 'user@example.test' } })
+    fireEvent.change(password, { target: { value: 'wrong' } })
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('form', { name: 'Sign in' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('0:30')
+    expect(auth.login).toHaveBeenCalledTimes(1)
+
+    act(() => { vi.advanceTimersByTime(1000) })
+    expect(screen.getByRole('status')).toHaveTextContent('0:29')
+    vi.setSystemTime(new Date(start.getTime() + 31_000))
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled()
+    expect(auth.login).toHaveBeenCalledTimes(1)
+
+    fireEvent.change(password, { target: { value: 'corrected' } })
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('form', { name: 'Sign in' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
     expect(auth.login).toHaveBeenCalledTimes(2)
   })
 })

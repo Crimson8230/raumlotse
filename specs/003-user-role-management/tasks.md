@@ -164,3 +164,8 @@ All tasks start unchecked because this command generates implementation work, no
 ## Phase 7: Convergence
 
 - [X] T043 Diagnose and resolve the recorded full-backend-suite failures in `backend/src/test/` and affected test configuration; update authenticated test fixtures/expectations and Testcontainers context isolation as needed without weakening room/catalog or role-management authorization, then rerun the complete Maven suite and record the outcome in `specs/003-user-role-management/quickstart.md` per plan: Delivery Sequence and Validation step 5 / Constitution: Development Workflow & Quality Gates (partial).
+
+## Phase 8: Post-rebase Integration
+
+- [X] T044 Resolve duplicate Flyway versions in `backend/src/main/resources/db/migration/` after rebasing onto dev: reproduce the failure with `MigrationVersionTest`, remove the duplicate `V4__create_user_account.sql` after verifying it matches V6 byte-for-byte, and preserve dev's existing V1-V8 filenames and SQL unchanged per T002/T006/T034.
+- [X] T045 Run backend migration, authentication and role-management integration tests plus frontend tests, lint and build; remove leftover merge-conflict markers and record post-rebase validation in `specs/003-user-role-management/quickstart.md`, retaining existing external prerequisites and feature scope.

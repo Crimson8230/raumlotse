@@ -26,73 +26,84 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 @Configuration
 public class SecurityConfig {
+        private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SecurityConfig.class);
 
-    @Bean
-    UserDetailsService noImplicitAccounts() {
-        return username -> { throw new UsernameNotFoundException("No local username/password accounts are configured."); };
-    }
+        @Bean
+        UserDetailsService noImplicitAccounts() {
+                return username -> {
+                        throw new UsernameNotFoundException("No local username/password accounts are configured.");
+                };
+        }
 
-    @Bean
-    SecurityFilterChain applicationSecurity(HttpSecurity http, ObjectMapper objectMapper,
-            org.springframework.beans.factory.ObjectProvider<UserAccountRepository> accounts,
-            org.springframework.beans.factory.ObjectProvider<at.mci.igp.raumlotse.service.UserRoleSafety> roleSafety) throws Exception {
-        var accountFilter = new CurrentAccountFilter(accounts.getIfAvailable(), objectMapper);
-        return http
-                .csrf(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
-                .logout(logout -> logout.disable())
-                .requestCache(cache -> cache.disable())
-                .addFilterAfter(accountFilter, SecurityContextHolderFilter.class)
-                .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(roleSafety, objectMapper), CurrentAccountFilter.class)
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .anyRequest().authenticated())
-                .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(authenticationEntryPoint(objectMapper))
-                        .accessDeniedHandler(csrfAndAuthorizationDenialHandler(objectMapper)))
-                .build();
-    }
+        @Bean
+        SecurityFilterChain applicationSecurity(HttpSecurity http, ObjectMapper objectMapper,
+                        org.springframework.beans.factory.ObjectProvider<UserAccountRepository> accounts,
+                        org.springframework.beans.factory.ObjectProvider<at.mci.igp.raumlotse.service.UserRoleSafety> roleSafety)
+                        throws Exception {
+                var accountFilter = new CurrentAccountFilter(accounts.getIfAvailable(), objectMapper);
+                return http
+                                .csrf(Customizer.withDefaults())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                                .formLogin(form -> form.disable())
+                                .httpBasic(basic -> basic.disable())
+                                .logout(logout -> logout.disable())
+                                .requestCache(cache -> cache.disable())
+                                .addFilterAfter(accountFilter, SecurityContextHolderFilter.class)
+                                .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(roleSafety,
+                                                objectMapper),
+                                                CurrentAccountFilter.class)
+                                .authorizeHttpRequests(authorize -> authorize
+                                                .requestMatchers("/api/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(errors -> errors
+                                                .authenticationEntryPoint(authenticationEntryPoint(objectMapper))
+                                                .accessDeniedHandler(csrfAndAuthorizationDenialHandler(objectMapper)))
+                                .build();
+        }
 
-    private AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
-        return (request, response, exception) -> writeProblem(objectMapper, response, HttpStatus.UNAUTHORIZED,
-                "Unauthorized", "Authentication is required.", "AUTH_REQUIRED");
-    }
+        private AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
+                return (request, response, exception) -> writeProblem(objectMapper, response, HttpStatus.UNAUTHORIZED,
+                                "Unauthorized", "Authentication is required.", "AUTH_REQUIRED");
+        }
 
-    private AccessDeniedHandler csrfAndAuthorizationDenialHandler(ObjectMapper objectMapper) {
-        return (request, response, exception) -> {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            boolean authenticated = authentication != null
-                    && authentication.isAuthenticated()
-                    && !(authentication instanceof AnonymousAuthenticationToken);
-            if (exception instanceof CsrfException && !authenticated && !isPublicAuthRequest(request)) {
-                writeProblem(objectMapper, response, HttpStatus.UNAUTHORIZED,
-                        "Unauthorized", "Authentication is required.", "AUTH_REQUIRED");
-                return;
-            }
-            if (exception instanceof CsrfException) {
-                writeProblem(objectMapper, response, HttpStatus.FORBIDDEN,
-                        "Forbidden", "The request could not be verified. Refresh and try again.", "CSRF_INVALID");
-                return;
-            }
-            writeProblem(objectMapper, response, HttpStatus.FORBIDDEN,
-                    "Forbidden", "You are not permitted to perform this action.", "FORBIDDEN");
-        };
-    }
+        private AccessDeniedHandler csrfAndAuthorizationDenialHandler(ObjectMapper objectMapper) {
+                return (request, response, exception) -> {
+                        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                        boolean authenticated = authentication != null
+                                        && authentication.isAuthenticated()
+                                        && !(authentication instanceof AnonymousAuthenticationToken);
+                        if (exception instanceof CsrfException && !authenticated && !isPublicAuthRequest(request)) {
+                                writeProblem(objectMapper, response, HttpStatus.UNAUTHORIZED,
+                                                "Unauthorized", "Authentication is required.", "AUTH_REQUIRED");
+                                return;
+                        }
+                        if (exception instanceof CsrfException) {
+                                writeProblem(objectMapper, response, HttpStatus.FORBIDDEN,
+                                                "Forbidden",
+                                                "The request could not be verified. Refresh and try again.",
+                                                "CSRF_INVALID");
+                                return;
+                        }
+                        writeProblem(objectMapper, response, HttpStatus.FORBIDDEN,
+                                        "Forbidden", "You are not permitted to perform this action.", "FORBIDDEN");
+                };
+        }
 
-    private void writeProblem(ObjectMapper mapper, jakarta.servlet.http.HttpServletResponse response,
-            HttpStatus status, String title, String detail, String code) throws java.io.IOException {
-        response.setStatus(status.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setHeader("Cache-Control", "no-store");
-        mapper.writeValue(response.getOutputStream(), Problem.of(status.value(), title, detail, code));
-    }
+        private void writeProblem(ObjectMapper mapper, jakarta.servlet.http.HttpServletResponse response,
+                        HttpStatus status, String title, String detail, String code) throws java.io.IOException {
+                log.warn("authentication_failure code={} status={}", code, status.value());
+                response.setStatus(status.value());
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setHeader("Cache-Control", "no-store");
+                mapper.writeValue(response.getOutputStream(), Problem.of(status.value(), title, detail, code));
+        }
 
-    private boolean isPublicAuthRequest(HttpServletRequest request) {
-        return ("GET".equals(request.getMethod()) && "/api/auth/csrf".equals(request.getRequestURI()))
-                || ("POST".equals(request.getMethod()) && "/api/auth/login".equals(request.getRequestURI()));
-    }
+        private boolean isPublicAuthRequest(HttpServletRequest request) {
+                return ("GET".equals(request.getMethod()) && "/api/auth/csrf".equals(request.getRequestURI()))
+                                || ("POST".equals(request.getMethod())
+                                                && "/api/auth/login".equals(request.getRequestURI()));
+        }
 }

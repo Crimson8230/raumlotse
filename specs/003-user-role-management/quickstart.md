@@ -2,6 +2,35 @@
 
 Validation guide and implementation record for feature 003.
 
+## Post-rebase integration validation — 2026-09-21
+
+Removed the reintroduced `V4__create_user_account.sql` after confirming its SHA-256
+matches `V6__create_user_account.sql`. The complete migration directory now matches
+`dev`: V1-V3 catalog tables, V4 reservations, V5 login-attempt state, V6 user accounts,
+V7 role tables and V8 role backfill. Existing filenames and SQL are unchanged.
+V5 has no account-table dependency; V7 references the UUID account key created by V6.
+Removed leftover merge-conflict markers from this document. T044-T045 are complete;
+the existing external lifecycle/provisioning and manual acceptance gates remain open.
+
+| Check | Result |
+|---|---|
+| Before fix: `.\mvnw.cmd -Dtest=MigrationVersionTest test` | RED: duplicate Flyway version 4 |
+| Backend migration/authentication/role checks | GREEN: 19 tests, zero failures/errors/skips; fresh PostgreSQL 17 migration through V8, V7-to-V8 backfill preservation, real login/session/CSRF, current roles and concurrent mutation safeguards |
+| Frontend `npm test` | PASS: 19 files, 75 tests |
+| Frontend `npm run lint` and `npm run build` | PASS |
+
+Backend validation command, from `backend/`:
+
+```powershell
+.\mvnw.cmd clean '-Dtest=MigrationVersionTest,AuthenticationIntegrationTest,UserRoleIntegrationTest,UserRoleConcurrentUpdateIntegrationTest,UserRoleMigrationIntegrationTest,UserRoleErrorHandlingTest' test
+```
+
+The clean build removed the deleted migration's stale copy from `target/classes`.
+The sandbox denied Docker named-pipe access during that run; rerunning the same
+test selection without `clean` outside the sandbox passed using disposable
+Testcontainers databases. Runtime: Java 25, compiling for Java 21. This run covered
+the selected backend suites; the full-suite result below is historical evidence.
+
 ## Implementation status — 2026-09-20
 
 T001 and T002 are complete: authentication from feature 005 is integrated, and its

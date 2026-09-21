@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 public class CurrentAccountFilter extends OncePerRequestFilter {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CurrentAccountFilter.class);
     private final UserAccountRepository accounts;
     private final ObjectMapper mapper;
     private final SecurityContextRepository contexts = new HttpSessionSecurityContextRepository();
@@ -38,14 +39,17 @@ public class CurrentAccountFilter extends OncePerRequestFilter {
         }
         try {
             if (accounts.findById(user.userId()).isEmpty()) {
+                log.warn("authentication_failure code=AUTH_REQUIRED reason=account_missing status=401");
                 SecurityContextHolder.clearContext();
                 var session = request.getSession(false);
-                if (session != null) session.invalidate();
+                if (session != null)
+                    session.invalidate();
                 contexts.saveContext(SecurityContextHolder.createEmptyContext(), request, response);
                 chain.doFilter(request, response);
                 return;
             }
         } catch (DataAccessException ex) {
+            log.warn("authentication_failure code=AUTH_UNAVAILABLE reason=account_lookup status=503");
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setHeader("Cache-Control", "no-store");

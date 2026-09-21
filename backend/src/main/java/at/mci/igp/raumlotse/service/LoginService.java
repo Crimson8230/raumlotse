@@ -13,39 +13,50 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class LoginService {
-    public record Result(AuthenticatedUser user, LoginAttemptService.Outcome outcome, int retryAfterSeconds) { }
+    public record Result(AuthenticatedUser user, LoginAttemptService.Outcome outcome, int retryAfterSeconds) {
+    }
+
     private static final String CSRF_SESSION_ATTRIBUTE = HttpSessionCsrfTokenRepository.class.getName() + ".CSRF_TOKEN";
     private final LoginAttemptService attempts;
     private final HttpSessionSecurityContextRepository contexts = new HttpSessionSecurityContextRepository();
 
-    public LoginService(LoginAttemptService attempts) { this.attempts = attempts; }
+    public LoginService(LoginAttemptService attempts) {
+        this.attempts = attempts;
+    }
 
     public Result login(String email, String password, HttpServletRequest request,
             HttpServletResponse response) {
-        var result = attempts.authenticate(email, password);
-        if (result.outcome() != LoginAttemptService.Outcome.SUCCESS) {
-            return new Result(null, result.outcome(), result.retryAfterSeconds());
-        }
+        var prepared = new java.util.concurrent.atomic.AtomicReference<SecurityContext>();
         try {
-            return new Result(establishSession(result.account(), request, response), result.outcome(), 0);
+            var result = attempts.authenticate(email, password,
+                    account -> prepared.set(prepareSession(account, request)));
+            if (result.outcome() != LoginAttemptService.Outcome.SUCCESS) {
+                return new Result(null, result.outcome(), result.retryAfterSeconds());
+            }
+            SecurityContext context = java.util.Objects.requireNonNull(prepared.get());
+            SecurityContextHolder.setContext(context);
+            contexts.saveContext(context, request, response);
+            return new Result((AuthenticatedUser) context.getAuthentication().getPrincipal(), result.outcome(), 0);
         } catch (RuntimeException ex) {
             SecurityContextHolder.clearContext();
             var session = request.getSession(false);
-            if (session != null) session.invalidate();
+            if (session != null)
+                session.invalidate();
+            response.addHeader("Set-Cookie", org.springframework.http.ResponseCookie.from("JSESSIONID", "")
+                    .path("/").httpOnly(true).secure(request.isSecure()).sameSite("Lax").maxAge(0).build().toString());
             throw ex;
         }
     }
 
-    private AuthenticatedUser establishSession(UserAccount account, HttpServletRequest request,
-            HttpServletResponse response) {
+    private SecurityContext prepareSession(UserAccount account, HttpServletRequest request) {
         request.changeSessionId();
         var session = request.getSession(false);
-        if (session != null) session.removeAttribute(CSRF_SESSION_ATTRIBUTE);
+        if (session != null)
+            session.removeAttribute(CSRF_SESSION_ATTRIBUTE);
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         var principal = new AuthenticatedUser(account.getId(), account.getDisplayName());
-        context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null, java.util.List.of()));
-        SecurityContextHolder.setContext(context);
-        contexts.saveContext(context, request, response);
-        return principal;
+        context.setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principal, null, java.util.List.of()));
+        return context;
     }
 }

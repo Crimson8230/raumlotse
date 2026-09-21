@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { z } from 'zod'
+import { canonicalEmail, loginSchema } from '../auth/loginSchema'
 import { ApiError } from '../API/client'
 import { useAuth } from '../auth/useAuth'
 import './LoginPage.css'
-
-const loginSchema = z.object({
-  email: z.string().trim().email('Enter a valid email address.').max(254, 'Email address is too long.'),
-  password: z.string().min(1, 'Enter your password.').max(1024, 'Password is too long.'),
-})
 
 export default function LoginPage() {
   const { state, user, login, retryAvailability } = useAuth()
@@ -85,12 +80,12 @@ export default function LoginPage() {
     }
   }
 
-  const currentEmailKey = email.trim().toLowerCase()
+  const currentEmailKey = canonicalEmail(email)
   const remaining = Math.max(0, Math.ceil(((cooldowns[currentEmailKey] ?? 0) - now) / 1000))
 
   return (
     <main className="login-page">
-      <form className="login-card" onSubmit={submit} aria-labelledby="login-title">
+      <form className="login-card" onSubmit={submit} aria-labelledby="login-title" noValidate>
         <h1 id="login-title">Sign in</h1>
         <p>Use your email address and password to access Raumlotse.</p>
         <label htmlFor="login-email">Email address</label>

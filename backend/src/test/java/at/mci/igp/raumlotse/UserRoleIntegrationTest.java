@@ -169,4 +169,40 @@ class UserRoleIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get("/api/admin/users").session(session)).andExpect(status().isForbidden());
         mvc.perform(get("/api/rooms").session(session)).andExpect(status().isOk());
     }
+
+    @Test void realNonAdminLoginKeepsPersistedRolesAndIgnoresBrowserAuthorityClaims() throws Exception {
+        String password = "Test-only student password";
+        db.update("update user_account set password_hash=? where id=?", passwordEncoder.encode(password), target);
+        long versionBefore = db.queryForObject("select roles_version from user_role_state where user_id=?", Long.class, target);
+
+        var bootstrap = mvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+        String token = com.jayway.jsonpath.JsonPath.read(bootstrap.getResponse().getContentAsString(), "$.token");
+        mvc.perform(post("/api/auth/login")
+                .session((org.springframework.mock.web.MockHttpSession) bootstrap.getRequest().getSession(false))
+                .header("X-CSRF-TOKEN", token).contentType("application/json")
+                .content("{\"email\":\"target@example.test\",\"password\":\"" + password
+                        + "\",\"userId\":\"" + admin + "\",\"roles\":[\"ADMIN\"]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value("VALIDATION_FAILED"));
+        var cleanBootstrap = mvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+        String cleanToken = com.jayway.jsonpath.JsonPath.read(cleanBootstrap.getResponse().getContentAsString(), "$.token");
+        var login = mvc.perform(post("/api/auth/login")
+                .session((org.springframework.mock.web.MockHttpSession) cleanBootstrap.getRequest().getSession(false))
+                .header("X-CSRF-TOKEN", cleanToken).contentType("application/json")
+                .content("{\"email\":\"target@example.test\",\"password\":\"" + password + "\"}"))
+                .andExpect(status().isOk()).andReturn();
+        var session = (org.springframework.mock.web.MockHttpSession) login.getRequest().getSession(false);
+
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.userId").value(target.toString()));
+        mvc.perform(get("/api/auth/roles").session(session)).andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.roles[0]").value("VIEWER"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.ready").value(true));
+        mvc.perform(get("/api/admin/users").session(session)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/rooms").session(session)).andExpect(status().isOk());
+        assertThat(db.queryForList("select role_code from role_assignment where user_id=?", String.class, target))
+                .containsExactly("VIEWER");
+        assertThat(db.queryForObject("select roles_version from user_role_state where user_id=?", Long.class, target))
+                .isEqualTo(versionBefore);
+    }
 }

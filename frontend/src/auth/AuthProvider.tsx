@@ -58,6 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(acceptedIdentity)
         setState('unavailable')
       } else {
+        if (error instanceof ApiError && error.status === 409) {
+          setState('finishing-login')
+          try {
+            await authApi.refreshCsrfToken()
+            const identity = await authApi.me()
+            setUser(identity)
+            setState('authenticated')
+            return
+          } catch (recoveryError) {
+            setUser(null)
+            setState(recoveryError instanceof ApiError && recoveryError.status === 401 ? 'anonymous' : 'unavailable')
+            throw recoveryError
+          }
+        }
         setUser(null)
         setState(error instanceof ApiError && error.status < 500 ? 'anonymous' : 'unavailable')
       }
@@ -66,16 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const retryAvailability = useCallback(async () => {
+    setState('finishing-login')
     try {
       await authApi.refreshCsrfToken()
-      const identity = user ?? await authApi.me()
+      const identity = await authApi.me()
       setUser(identity)
       setState('authenticated')
     } catch (error) {
-      setState('unavailable')
+      if (error instanceof ApiError && error.status === 401) setUser(null)
+      setState(error instanceof ApiError && error.status === 401 ? 'anonymous' : 'unavailable')
       throw error
     }
-  }, [user])
+  }, [])
 
   const value = useMemo(() => ({ state, user, login, retryAvailability }), [state, user, login, retryAvailability])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

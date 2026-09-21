@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
     private final LoginService loginService;
     private final EmailCanonicalizer emailCanonicalizer;
 
@@ -42,6 +43,7 @@ public class AuthController {
             LoginService.Result result = loginService.login(request.getEmail(), request.getPassword(),
                     servletRequest, servletResponse);
             if (result.outcome() == LoginAttemptService.Outcome.COOLDOWN) {
+                log.warn("authentication_failure code=LOGIN_COOLDOWN status=429");
                 return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                         .header("Retry-After", Integer.toString(result.retryAfterSeconds()))
                         .cacheControl(CacheControl.noStore())
@@ -71,13 +73,17 @@ public class AuthController {
     }
 
     private ResponseEntity<Problem> problem(HttpStatus status, String code, String detail) {
+        log.warn("authentication_failure code={} status={}", code, status.value());
         return ResponseEntity.status(status).cacheControl(CacheControl.noStore())
                 .body(Problem.of(status.value(), status.getReasonPhrase(), detail, code));
     }
 
     private ResponseEntity<Problem> problem(HttpStatus status, String code, String detail, int retryAfterSeconds) {
+        log.warn("authentication_failure code={} status={} retry_after_seconds={}", code, status.value(),
+                retryAfterSeconds);
         var builder = ResponseEntity.status(status).cacheControl(CacheControl.noStore());
-        if (retryAfterSeconds > 0) builder.header("Retry-After", Integer.toString(retryAfterSeconds));
+        if (retryAfterSeconds > 0)
+            builder.header("Retry-After", Integer.toString(retryAfterSeconds));
         return builder.body(Problem.of(status.value(), status.getReasonPhrase(), detail, code,
                 retryAfterSeconds > 0 ? retryAfterSeconds : null));
     }

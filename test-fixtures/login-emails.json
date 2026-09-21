@@ -1,0 +1,13 @@
+[
+  {"input":"  USER@Example.Test  ","canonical":"user@example.test"},
+  {"input":"a..b@example.test","canonical":"a..b@example.test"},
+  {"input":"a@b.c","canonical":"a@b.c"},
+  {"input":"\u2003User@Example.Test\u2003","canonical":"user@example.test"},
+  {"input":"a+b@example.test","canonical":"a+b@example.test"},
+  {"input":"","canonical":null},
+  {"input":"  ","canonical":null},
+  {"input":"a b@example.test","canonical":null},
+  {"input":"a@@example.test","canonical":null},
+  {"input":"user@example","canonical":null},
+  {"input":"@example.test","canonical":null}
+]
