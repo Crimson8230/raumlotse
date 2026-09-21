@@ -4,13 +4,17 @@ This guide describes the implemented email/password login and the additional evi
 
 ## Verification status
 
-The frontend verification currently passes: `npm test` (10 files, 39 tests), `npm run lint`, and `npm run build`. The backend security, controller, account-policy/reset, configuration, session-service, cooldown-policy, privacy-logging and existing catalog-controller tests pass in a targeted Maven selection. This includes validation rejection before limiter access and parameterized coverage for every current business-controller route/method. The full backend/Testcontainers suite, including `LoginCooldownBoundaryTest` and the PostgreSQL authentication/cooldown integration tests, could not run in this environment because Docker is unavailable (`Could not find a valid Docker environment`). These test sources compile as part of the passing targeted Maven run. The browser acceptance steps below also remain manual release evidence; they were not run here.
+Latest verification: `npm test` passes (20 files, 89 tests), and `npm run lint` and `npm run build` pass. The complete backend Maven suite passes (230 tests in 39 suites, zero failures, errors, or skips) with Docker/Testcontainers, including the authentication logging request-path test. Real-browser acceptance remains manual release evidence and was not run in this environment because no browser automation runner is configured.
 
-The passing backend selections were:
+The migration allocation is V5 `login_attempt_state`, V6 `user_account`, V7 role-management tables, and V8 role backfill. Testcontainers applied that order successfully to a fresh PostgreSQL 17 database and validated all eight migrations. The role-migration tests also passed after login migrations, confirming compatibility with feature 003's installed schema.
+
+The complete backend suite was run from `backend` with:
 
 ```powershell
-./mvnw.cmd "-Dtest=SecurityPolicyTest,SecurityResponseHandlerTest,CsrfControllerTest,AuthControllerTest,AccountAuthenticationServiceTest,LoginAttemptPolicyTest,LoginAttemptResetTest,LoginServiceTest,AuthenticationConfigurationTest,ConfigurationPrivacyTest,CurrentAccountFilterTest,ProtectedBusinessRouteTest,RoomControllerTest,BuildingControllerTest,FloorControllerTest,EquipmentTypeControllerTest,AuthenticationLoggingTest,LoginCooldownFailureTest" test -q
+./mvnw.cmd test -q
 ```
+
+The PostgreSQL tests validate the V5 limiter / V6 account / V7 role tables / V8 role backfill ordering, fresh-service cooldown persistence, serialized login behavior, cleanup races and compatibility with role management. Frontend automated checks cover cooldown focus/visibility updates and explicit retry; browser checks below still need a configured browser runner and disposable provisioned account.
 
 The production role integration is still a feature 003 release prerequisite, as detailed in `contracts/integration.md`.
 
@@ -92,7 +96,7 @@ npm run lint
 npm run build
 ```
 
-Expected before release: all existing and new tests pass, no lint/build errors, and each scenario below has recorded evidence. The Docker-dependent integration and full-suite evidence remains outstanding for this implementation pass.
+Expected before release: all existing and new tests pass, no lint/build errors, and each scenario below has recorded evidence. Automated backend and frontend gates pass. Manual browser evidence remains outstanding for the journeys below.
 
 | Automated scenario | Expected proof |
 |---|---|
@@ -138,7 +142,7 @@ Use `LoginCooldownIntegrationTest` and `LoginCooldownConcurrencyTest` with dispo
 .\mvnw.cmd "-Dtest=LoginCooldownIntegrationTest,LoginCooldownConcurrencyTest" test
 ```
 
-The integration and concurrency test classes are present but were not executed here because Docker is unavailable. Use barriers/latches and transaction locks for concurrency tests, not timing-dependent sleeps. All protocol cases execute real CSRF/bootstrap requests. Seed fresh histories for independent scenarios; do not expose a production reset endpoint.
+The integration and concurrency classes pass in the complete backend suite. They cover simultaneous failures and shared canonical identities, registered/unknown parity, fixed deadline behavior, repeated blocked requests without deadline extension, continued access for an already-authenticated session, correct-password serialization behind the fifth failure, persistence through a fresh service using the same database/key, and cleanup races. Use barriers/latches and transaction locks for concurrency tests, not timing-dependent sleeps. All protocol cases execute real CSRF/bootstrap requests. Seed fresh histories for independent scenarios; do not expose a production reset endpoint.
 
 1. Against a fresh registered-email history, submit five wrong passwords. Responses 1-4 are generic 401; response 5 is the same generic 401 plus retryAfterSeconds=900 and Retry-After=900. Repeat with a fresh unknown email and compare the same fields/messages.
 2. During cooldown, submit the correct password from another browser/session with a valid CSRF token. Expect 429 LOGIN_COOLDOWN with a positive remaining wait. Record the database deadline in the isolated test and prove it never moves after repeated blocked requests.

@@ -1,6 +1,6 @@
 # Tasks: Email and Password Login
 
-**Input**: Design documents in `specs/004-email-password-login/`
+**Input**: Design documents in `specs/005-email-password-login/`
 
 **Prerequisites**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
@@ -101,7 +101,7 @@
 
 - [X] T040 [P] [US3] Write failing parameterized access tests for every current rooms/buildings/floors/equipment-types GET and mutation route, anonymous tokenless writes returning 401, authenticated missing-token writes returning 403, no state change, and health remaining public in `backend/src/test/java/at/mci/igp/raumlotse/security/ProtectedBusinessRouteTest.java`.
 - [X] T041 [P] [US3] Write failing route-guard tests for `/`, `/locations`, `/rooms`, `/rooms/new`, `/rooms/:roomId`, login redirection, loading/error states, expiry, browser Back, and clearing mounted private data in `frontend/src/App.protected-routes.test.tsx`.
-- [ ] T042 [P] [US3] Write failing tests proving login does not grant/change roles and installed role restrictions still deny unauthorized authenticated users in `backend/src/test/java/at/mci/igp/raumlotse/security/ExistingPermissionIntegrationTest.java`.
+- [X] T042 [P] [US3] Verify login does not grant/change roles and installed persisted role restrictions deny unauthorized authenticated users in `backend/src/test/java/at/mci/igp/raumlotse/UserRoleIntegrationTest.java` (implemented with the feature 003 integration fixtures).
 
 ### Implementation for User Story 3
 
@@ -110,7 +110,7 @@
 - [X] T045 [US3] Update legitimate existing room/catalog controller and integration tests to authenticate and supply CSRF while retaining the real filter chain in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomControllerTest.java`, `backend/src/test/java/at/mci/igp/raumlotse/controller/BuildingControllerTest.java`, `backend/src/test/java/at/mci/igp/raumlotse/controller/FloorControllerTest.java`, and `backend/src/test/java/at/mci/igp/raumlotse/controller/EquipmentTypeControllerTest.java`.
 - [X] T046 [US3] Extend the US1 shell guard to every existing and future business route, verify direct navigation, expiry, browser Back and clear mounted/cached private state on protected 401 in `frontend/src/App.tsx` and `frontend/src/auth/RequireAuth.tsx`.
 - [X] T047 [US3] Update the shared API client to include same-origin session cookies and fresh CSRF headers on every unsafe business request, distinguish login 401/429 from protected 401, and never automatically replay mutations in `frontend/src/API/client.ts`.
-- [ ] T048 [US3] Exercise a test-only persisted permission restriction and verify no role claims from login or frontend can authorize an endpoint in `backend/src/test/java/at/mci/igp/raumlotse/security/ExistingPermissionIntegrationTest.java`; record feature 003's production role integration as a release prerequisite.
+- [X] T048 [US3] Exercise persisted permission restrictions and verify login/browser-supplied role claims cannot authorize an endpoint in `backend/src/test/java/at/mci/igp/raumlotse/UserRoleIntegrationTest.java`; record feature 003's production role integration as a release prerequisite.
 
 ## Phase 6: Polish and Cross-Cutting Concerns
 
@@ -118,9 +118,9 @@
 
 - [X] T049 [P] Write failing configuration tests rejecting production fixture activation and committed database/pgAdmin credential defaults in `backend/src/test/java/at/mci/igp/raumlotse/config/AuthenticationConfigurationTest.java` and `backend/src/test/java/at/mci/igp/raumlotse/ConfigurationPrivacyTest.java`.
 - [X] T050 Externalize required database/pgAdmin credentials, keep local values in untracked configuration, and document the stable HMAC key, local fixture and session-cookie deployment settings in `docker-compose.yml`, `backend/src/main/resources/application.yaml`, `.env.example`, `.gitignore`, and `README.md`.
-- [ ] T051 Run the complete backend JUnit/Testcontainers suite and verify red/green evidence, login cooldown boundary/concurrency/failure-injection tests, sanitized log capture and all protected routes in `specs/004-email-password-login/quickstart.md`.
-- [ ] T052 Run `npm test`, `npm run lint`, and `npm run build`; record browser timing, masked typing/paste/autofill, cooldown countdown, reload, expiry and protected-content results in `specs/004-email-password-login/quickstart.md`.
-- [X] T053 Confirm feature 003 integration gates for real provisioned accounts, stable user-id mapping, per-request persisted role enforcement, initial Admin operation and account lifecycle coordination before enabling role-managed production routes in `specs/004-email-password-login/contracts/integration.md`.
+- [X] T051 Run the complete backend JUnit/Testcontainers suite and verify login cooldown boundary/concurrency/failure-injection tests, sanitized log capture and protected routes in `specs/005-email-password-login/quickstart.md`.
+- [ ] T052 Run `npm test`, `npm run lint`, and `npm run build`; record browser timing, masked typing/paste/autofill, cooldown countdown, reload, expiry and protected-content results in `specs/005-email-password-login/quickstart.md`.
+- [X] T053 Confirm feature 003 integration gates for real provisioned accounts, stable user-id mapping, per-request persisted role enforcement, initial Admin operation and account lifecycle coordination before enabling role-managed production routes in `specs/005-email-password-login/contracts/integration.md`.
 
 ---
 
@@ -175,3 +175,28 @@ Each checkpoint retains its failing-test evidence before implementation and pass
 
 - [X] T054 Add deterministic rolling-window and cooldown boundary tests proving successful-login reset, expired-history reset, and validation/service-outage exclusions alongside the exact 15-minute cutoffs per FR-014, SC-007, and T025 (partial).
 - [X] T055 Expand parameterized protected-route tests to cover every current GET, POST, PUT, DELETE, deactivate, and reactivate endpoint; assert anonymous reads/writes are denied, authenticated unsafe requests require CSRF, and denied requests make no changes per FR-009, SC-003, and T040 (partial).
+
+## Phase 8: Convergence
+
+- [X] T056 CRITICAL: Add sanitized structured failure events to authentication/security rejection paths in `backend/src/main/java/at/mci/igp/raumlotse/config/SecurityConfig.java`, `service/CurrentAccountFilter.java`, and auth request/session error handling in `controller/AuthController.java` and `exception/GlobalExceptionHandler.java`; add assertions for 401/403 and account/session 503 paths, retain fixed event/reason/status fields, and exclude submitted values, identities, tokens and raw exception text per Constitution V / T006/T037/T044.
+- [X] T057 Re-prune login failures against the post-verification database timestamp in `backend/src/main/java/at/mci/igp/raumlotse/service/LoginAttemptService.java` before appending a new failure and evaluating the threshold; add a deterministic regression where an earlier failure crosses the rolling-window cutoff during password verification, proving four remaining failures cannot start a cooldown per FR-014 / SC-007 / T033 / plan: cooldown boundary decisions.
+- [X] T058 Complete the planned session preparation/commit/publication sequence across `backend/src/main/java/at/mci/igp/raumlotse/service/LoginService.java` and `LoginAttemptService.java`: prepare the candidate principal/session under the limiter transaction, keep authentication unpublished until commit confirmation, roll back preparation failures, and invalidate candidate context/session plus expire its cookie on preparation, commit or publication failure. Preserve committed history after postcommit publication failure and never replay an uncertain commit; add failure-injection and precommit-visibility tests per T018/T034 / plan: session lifecycle and failure compensation.
+- [X] T059 Align Java, provisioning, and frontend email canonicalization/validation using shared frontend/backend vectors covering dot placement, domain syntax, case and surrounding whitespace, including `a..b@example.test` and `a@b.c`. Preserve existing account identity semantics per FR-003/004 / T010/T014/T023 / plan: canonical account identity.
+- [X] T060 Make frontend authentication recovery revalidate `/api/auth/me`; handle `409 ALREADY_AUTHENTICATED` by refreshing the actual session identity, clear identity on a confirmed expired session, and publish authenticated state only after CSRF and identity recovery succeed. Add recovery and another-tab-login tests without replaying credentials per FR-008/010/012 / T021/T022 / plan: session recovery.
+- [X] T061 Cooldown integration verifies unchanged deadlines across repeated blocked requests, existing-session continuity, serialized simultaneous failures including a correct-password attempt queued behind the fifth failure, persistence through a fresh service using the same database/key, cleanup races, shared canonical identities, parity, boundaries and reset behavior; frontend fake-timer coverage verifies focus/visibility refresh without polling or automatic retry per T024-T028 / FR-014 / SC-007.
+- [X] T062 Capture logs over real successful, known/unknown rejected, malformed, cooldown and unavailable login request paths; assert credentials, email, account name, password hash, CSRF values, HMAC key sentinel and exception details never appear while fixed outcome events remain greppable per FR-013 / SC-004 / T027/T037.
+- [X] T063 Complete permission integration with real Admin and non-Admin login sessions; assert login leaves persisted roles and versions unchanged, role restrictions deny management access, and browser-supplied identity/role claims do not grant authority. Use the installed feature 003 policy and preserve external provisioning/lifecycle release gates per FR-011 / US3/AC4 / SC-006.
+- [X] T064 Quickstart records full backend/PostgreSQL and frontend test/lint/build evidence, the browser-runner limitation, and V5 limiter / V6 account / V7-V8 role migration order. Manual browser evidence remains pending for login timing, input/autofill, cookies/session rotation, reload/expiry, browser Back, protected content and cooldown journeys using disposable provisioned accounts per SC-001/005 / T051/T052 / plan: Delivery Sequence and Validation step 5.
+
+## Phase 9: Convergence
+
+- [X] T065 Add deterministic PostgreSQL acceptance coverage for a correct-password attempt queued behind the fifth failure, cooldown persistence through a fresh service with the same database/key, and cleanup races against first attempts and active histories. Verify no live cooldown is deleted or bypassed per FR-014 / SC-007 / T061.
+- [X] T066 Add frontend cooldown fake-timer tests for countdown updates after focus/visibility changes, no polling or automatic retry, and explicit submission once the cooldown expires per FR-014 / SC-007 / T028/T061.
+- [X] T067 Capture logs over real successful, known/unknown rejected, malformed, cooldown and unavailable login request paths; assert password, email, account name, hash, CSRF, HMAC and exception sentinels never appear, while fixed outcome events remain greppable per FR-013 / SC-004 / Constitution IV/V / T062.
+- [X] T068 Run the complete backend JUnit/Testcontainers suite: 230 tests in 39 suites, zero failures/errors/skips; record the result in `specs/005-email-password-login/quickstart.md` per T051 / Constitution II and Development Workflow.
+- [ ] T069 Complete and record browser acceptance using disposable provisioned accounts: one-minute valid login, correction and retry, masked typing/paste/autofill, cookie/session rotation, reload and expiry, browser Back, protected-content denial, and cooldown countdown/retry per SC-001/003/004/005/007 / T052.
+
+## Phase 10: Convergence
+
+- [ ] T070 Run and record the planned browser acceptance scenarios in a browser-enabled environment using disposable provisioned accounts, including timed login, masked typing/paste/autofill, actual cookie/session rotation, reload/expiry, browser Back, protected-content denial, and cooldown retry; keep credential and cookie values out of the report per SC-001/003/004/005/006/007 / plan: Testing and Delivery Sequence validation (partial).
+- [ ] T071 Benchmark password verification on deployment hardware and record the hardware/runtime context and observed result in the quickstart before release; do not infer an unsupported throughput SLA per plan: Performance Goals / SC-001 (partial).

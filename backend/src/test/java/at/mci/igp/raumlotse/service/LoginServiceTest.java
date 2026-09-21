@@ -19,8 +19,12 @@ class LoginServiceTest {
         var account = mock(UserAccount.class);
         when(account.getId()).thenReturn(UUID.randomUUID());
         when(account.getDisplayName()).thenReturn("Test User");
-        when(attempts.authenticate("user@example.test", "password"))
-                .thenReturn(new LoginAttemptService.Attempt(LoginAttemptService.Outcome.SUCCESS, account, 0));
+        when(attempts.authenticate(org.mockito.ArgumentMatchers.eq("user@example.test"), org.mockito.ArgumentMatchers.eq("password"), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Consumer<UserAccount> prepare = invocation.getArgument(2);
+                    prepare.accept(account);
+                    return new LoginAttemptService.Attempt(LoginAttemptService.Outcome.SUCCESS, account, 0);
+                });
         var request = spy(new MockHttpServletRequest());
         var session = request.getSession(true);
         session.setAttribute("org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository.CSRF_TOKEN", "old-token");

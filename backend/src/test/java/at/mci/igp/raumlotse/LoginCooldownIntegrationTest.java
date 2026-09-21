@@ -7,6 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import at.mci.igp.raumlotse.domain.UserAccount;
 import at.mci.igp.raumlotse.repository.UserAccountRepository;
+import at.mci.igp.raumlotse.repository.LoginAttemptStateRepository;
+import at.mci.igp.raumlotse.service.AccountAuthenticationService;
+import at.mci.igp.raumlotse.service.EmailCanonicalizer;
+import at.mci.igp.raumlotse.service.LoginAttemptCleanupService;
+import at.mci.igp.raumlotse.service.LoginAttemptService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,18 +20,27 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @AutoConfigureMockMvc
 class LoginCooldownIntegrationTest extends AbstractIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired UserAccountRepository accounts;
     @Autowired PasswordEncoder passwordEncoder;
+    @Autowired JdbcTemplate jdbc;
+    @Autowired at.mci.igp.raumlotse.service.LoginAttemptIdentity identities;
+    @Autowired LoginAttemptStateRepository states;
+    @Autowired AccountAuthenticationService authentication;
+    @Autowired EmailCanonicalizer canonicalizer;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Autowired LoginAttemptCleanupService cleanup;
 
     @Test
     void registeredAndUnknownAddressesReceiveTheSameFifthFailureAndFixedCooldown() throws Exception {
         String registered = UUID.randomUUID() + "@example.test";
         String unknown = UUID.randomUUID() + "@example.test";
         accounts.saveAndFlush(new UserAccount(registered, "Cooldown User", passwordEncoder.encode("correct-password")));
+        MockHttpSession existingAuthenticatedSession = loginCorrectly(registered, "correct-password");
 
         var knownFifth = failFiveTimes(registered, "wrong-password");
         var unknownFifth = failFiveTimes(unknown, "wrong-password");
@@ -44,6 +58,38 @@ class LoginCooldownIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isTooManyRequests())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code")
                         .value("LOGIN_COOLDOWN"));
+        java.sql.Timestamp deadline = jdbc.queryForObject(
+                "select blocked_until from login_attempt_state where identity_key = ?", java.sql.Timestamp.class,
+                identities.derive(registered));
+        var repeatedBlock = bootstrap();
+        postCredentials(registered, "correct-password", repeatedBlock.session(), repeatedBlock.token())
+                .andExpect(status().isTooManyRequests());
+        assertThat(jdbc.queryForObject("select blocked_until from login_attempt_state where identity_key = ?",
+                java.sql.Timestamp.class, identities.derive(registered))).isEqualTo(deadline);
+        var restartedService = new LoginAttemptService(authentication, states, identities, canonicalizer, jdbc, transactionManager);
+        assertThat(restartedService.authenticate(registered, "correct-password").outcome())
+                .isEqualTo(LoginAttemptService.Outcome.COOLDOWN);
+        cleanup.removeExpiredBatch();
+        assertThat(jdbc.queryForObject("select count(*) from login_attempt_state where identity_key=?", Integer.class,
+                identities.derive(registered))).isEqualTo(1);
+        mvc.perform(get("/api/rooms").session(existingAuthenticatedSession)).andExpect(status().isOk());
+    }
+
+    private MockHttpSession loginCorrectly(String email, String password) throws Exception {
+        MvcResult bootstrap = mvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+        String token = com.jayway.jsonpath.JsonPath.read(bootstrap.getResponse().getContentAsString(), "$.token");
+        MvcResult login = postCredentials(email, password,
+                (MockHttpSession) bootstrap.getRequest().getSession(false), token)
+                .andExpect(status().isOk()).andReturn();
+        return (MockHttpSession) login.getRequest().getSession(false);
+    }
+
+    private record SessionToken(MockHttpSession session, String token) { }
+
+    private SessionToken bootstrap() throws Exception {
+        MvcResult result = mvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+        return new SessionToken((MockHttpSession) result.getRequest().getSession(false),
+                com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.token"));
     }
 
     private MvcResult failFiveTimes(String email, String password) throws Exception {

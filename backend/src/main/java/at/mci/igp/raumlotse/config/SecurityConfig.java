@@ -26,6 +26,7 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 @Configuration
 public class SecurityConfig {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
     UserDetailsService noImplicitAccounts() {
@@ -89,6 +90,7 @@ public class SecurityConfig {
 
     private void writeProblem(ObjectMapper mapper, jakarta.servlet.http.HttpServletResponse response,
             HttpStatus status, String title, String detail, String code) throws java.io.IOException {
+        log.warn("authentication_failure code={} status={}", code, status.value());
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setHeader("Cache-Control", "no-store");

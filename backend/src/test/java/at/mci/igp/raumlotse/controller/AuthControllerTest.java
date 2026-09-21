@@ -39,8 +39,11 @@ class AuthControllerTest {
         var account = org.mockito.Mockito.mock(UserAccount.class);
         when(account.getId()).thenReturn(identity.userId());
         when(account.getDisplayName()).thenReturn(identity.displayName());
-        when(attempts.authenticate("user@example.test", " exact "))
-                .thenReturn(new LoginAttemptService.Attempt(LoginAttemptService.Outcome.SUCCESS, account, 0));
+        when(attempts.authenticate(eq("user@example.test"), eq(" exact "), any()))
+                .thenAnswer(invocation -> {
+                    invocation.<java.util.function.Consumer<UserAccount>>getArgument(2).accept(account);
+                    return new LoginAttemptService.Attempt(LoginAttemptService.Outcome.SUCCESS, account, 0);
+                });
 
         MvcResult login = mvc.perform(post("/api/auth/login").session((org.springframework.mock.web.MockHttpSession) session)
                         .header("X-CSRF-TOKEN", token).contentType("application/json")
@@ -66,7 +69,7 @@ class AuthControllerTest {
     void wrongCredentialsHaveGenericSafeResponse() throws Exception {
         MvcResult bootstrap = mvc.perform(get("/api/auth/csrf")).andReturn();
         var token = com.jayway.jsonpath.JsonPath.read(bootstrap.getResponse().getContentAsString(), "$.token");
-        when(attempts.authenticate("nobody@example.test", "wrong"))
+        when(attempts.authenticate(eq("nobody@example.test"), eq("wrong"), any()))
                 .thenReturn(new LoginAttemptService.Attempt(LoginAttemptService.Outcome.INVALID_CREDENTIALS, null, 0));
 
         mvc.perform(post("/api/auth/login").session((org.springframework.mock.web.MockHttpSession) bootstrap.getRequest().getSession(false))
@@ -81,7 +84,7 @@ class AuthControllerTest {
     void fifthFailureAndActiveCooldownReturnRetryMetadata() throws Exception {
         MvcResult bootstrap = mvc.perform(get("/api/auth/csrf")).andReturn();
         var token = com.jayway.jsonpath.JsonPath.read(bootstrap.getResponse().getContentAsString(), "$.token");
-        when(attempts.authenticate("fifth@example.test", "wrong"))
+        when(attempts.authenticate(eq("fifth@example.test"), eq("wrong"), any()))
                 .thenReturn(new LoginAttemptService.Attempt(LoginAttemptService.Outcome.INVALID_CREDENTIALS, null, 900));
         mvc.perform(post("/api/auth/login").session((org.springframework.mock.web.MockHttpSession) bootstrap.getRequest().getSession(false))
                         .header("X-CSRF-TOKEN", token).contentType("application/json")
@@ -92,7 +95,7 @@ class AuthControllerTest {
 
         MvcResult next = mvc.perform(get("/api/auth/csrf")).andReturn();
         var nextToken = com.jayway.jsonpath.JsonPath.read(next.getResponse().getContentAsString(), "$.token");
-        when(attempts.authenticate("fifth@example.test", "right"))
+        when(attempts.authenticate(eq("fifth@example.test"), eq("right"), any()))
                 .thenReturn(new LoginAttemptService.Attempt(LoginAttemptService.Outcome.COOLDOWN, null, 899));
         mvc.perform(post("/api/auth/login").session((org.springframework.mock.web.MockHttpSession) next.getRequest().getSession(false))
                         .header("X-CSRF-TOKEN", nextToken).contentType("application/json")
@@ -136,7 +139,7 @@ class AuthControllerTest {
     void authenticationStoreFailureIsSanitizedAs503() throws Exception {
         MvcResult bootstrap = mvc.perform(get("/api/auth/csrf")).andReturn();
         var token = com.jayway.jsonpath.JsonPath.read(bootstrap.getResponse().getContentAsString(), "$.token");
-        when(attempts.authenticate("user@example.test", "password"))
+        when(attempts.authenticate(eq("user@example.test"), eq("password"), any()))
                 .thenThrow(new org.springframework.dao.DataAccessResourceFailureException("private database sentinel"));
         mvc.perform(post("/api/auth/login").session((org.springframework.mock.web.MockHttpSession) bootstrap.getRequest().getSession(false))
                         .header("X-CSRF-TOKEN", token).contentType("application/json")

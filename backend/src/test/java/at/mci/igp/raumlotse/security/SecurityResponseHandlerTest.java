@@ -19,7 +19,19 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(HealthController.class)
 @Import(SecurityConfig.class)
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 class SecurityResponseHandlerTest {
+
+    @Test
+    void securityFailuresEmitSafeStructuredEvents(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+        mockMvc.perform(get("/api/rooms")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"privacy-log@example.test\",\"password\":\"private-password\"}"))
+                .andExpect(status().isForbidden());
+        org.assertj.core.api.Assertions.assertThat(output.getAll())
+                .contains("authentication_failure code=AUTH_REQUIRED status=401", "authentication_failure code=CSRF_INVALID status=403")
+                .doesNotContain("privacy-log@example.test", "private-password");
+    }
 
     @Autowired
     private MockMvc mockMvc;

@@ -61,12 +61,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Problem> handleUnreadableRequest(HttpMessageNotReadableException ex) {
+        log.warn("request_failure code=VALIDATION_FAILED status=400");
         return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).body(
                 Problem.of(400, "Validation Failed", "The request body is invalid.", "VALIDATION_FAILED"));
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Problem> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        log.warn("request_failure code=UNSUPPORTED_MEDIA_TYPE status=415");
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).cacheControl(CacheControl.noStore()).body(
                 Problem.of(415, "Unsupported Media Type", "Use application/json for this request.", "UNSUPPORTED_MEDIA_TYPE"));
     }

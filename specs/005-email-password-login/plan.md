@@ -2,7 +2,7 @@
 
 **Branch**: `005-email-password-login` | **Date**: 2026-09-20 | **Spec**: [spec.md](spec.md)
 
-**Input**: `specs/004-email-password-login/spec.md`
+**Input**: `specs/005-email-password-login/spec.md`
 
 ## Summary
 
@@ -50,7 +50,7 @@ These are design results, not executed implementation checks. Existing database 
 ### Documentation (this feature)
 
 ```text
-specs/004-email-password-login/
+specs/005-email-password-login/
   spec.md
   plan.md
   research.md
@@ -109,7 +109,7 @@ docker-compose.yml
 
 Coverage: FR-001/002/003/006/007 -> UI/validation; FR-004/005 -> provider/account contracts; FR-008/010 -> session lifecycle; FR-009 -> all protected routes/APIs; FR-011 -> verified identity and preservation of installed permissions; FR-012/013 -> outages/log capture; FR-014 -> rolling-window boundaries, concurrency, same-email variants, success/expiry reset, no deadline extension, isolation and unchanged authenticated sessions. SC-001/005 are observed usability checks; SC-002/003/004/006/007 combine automated checks and browser validation.
 
-Setup reports the directory identifier as `BRANCH=004-email-password-login`; Git reports `005-email-password-login`. Use `.specify/feature.json` for artifact discovery and the actual Git branch for source control.
+The feature directory `specs/005-email-password-login` matches the Git branch `005-email-password-login`. `.specify/feature.json` selects this directory for artifact discovery.
 
 ## Complexity Tracking
 

@@ -22,6 +22,22 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 
 class LoginAttemptResetTest {
     @Test
+    void failureThatExpiresDuringVerificationDoesNotTriggerCooldown() {
+        Instant now = Instant.parse("2026-09-20T12:00:00Z");
+        var authentication = mock(AccountAuthenticationService.class);
+        var states = mock(LoginAttemptStateRepository.class);
+        when(states.lock(any(byte[].class))).thenReturn(new LockedState(
+                List.of(now.minusSeconds(899), now.minusSeconds(120), now.minusSeconds(60), now.minusSeconds(30)), null, now));
+        when(authentication.authenticate("user@example.test", "wrong")).thenReturn(Optional.empty());
+        var jdbc = mock(JdbcTemplate.class);
+        when(jdbc.queryForObject(eq("SELECT clock_timestamp()"), any(RowMapper.class))).thenReturn(now.plusSeconds(2));
+        var result = service(authentication, states, jdbc).authenticate("user@example.test", "wrong");
+        assertThat(result.retryAfterSeconds()).isZero();
+        verify(states).save(any(byte[].class), eq(List.of(now.minusSeconds(120), now.minusSeconds(60),
+                now.minusSeconds(30), now.plusSeconds(2))), eq(null), eq(now.plusSeconds(902)));
+    }
+
+    @Test
     void successfulAuthenticationClearsAllPreviousFailures() {
         Instant now = Instant.parse("2026-09-20T12:00:00Z");
         var authentication = mock(AccountAuthenticationService.class);

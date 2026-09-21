@@ -44,10 +44,18 @@ public class LoginAttemptService {
     }
 
     public Attempt authenticate(String email, String password) {
+        return authenticate(email, password, account -> { });
+    }
+
+    public Attempt authenticate(String email, String password, java.util.function.Consumer<UserAccount> prepareSession) {
         String canonicalEmail = canonicalizer.canonicalize(email);
         byte[] key = identity.derive(canonicalEmail);
         try {
-            Attempt result = transaction.execute(status -> evaluate(key, canonicalEmail, password));
+            Attempt result = transaction.execute(status -> {
+                Attempt attempt = evaluate(key, canonicalEmail, password);
+                if (attempt.outcome() == Outcome.SUCCESS) prepareSession.accept(attempt.account());
+                return attempt;
+            });
             log.info("authentication outcome={}", result.outcome().name().toLowerCase(java.util.Locale.ROOT));
             return result;
         } catch (RuntimeException ex) {
@@ -75,6 +83,7 @@ public class LoginAttemptService {
             return new Attempt(Outcome.SUCCESS, account.get(), 0);
         }
 
+        failures = new ArrayList<>(activeFailures(failures, completedAt));
         failures.add(completedAt);
         while (failures.size() > 5) failures.remove(0);
         Instant blockedUntil = failures.size() == 5 ? completedAt.plus(COOLDOWN) : null;

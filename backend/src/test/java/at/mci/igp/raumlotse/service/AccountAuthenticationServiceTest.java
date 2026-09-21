@@ -11,6 +11,20 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
 class AccountAuthenticationServiceTest {
+    record EmailVector(String input, String canonical) { }
+
+    @Test
+    void sharesEmailPolicyWithTheFrontendAndProvisioning() throws Exception {
+        var vectors = new tools.jackson.databind.json.JsonMapper().readValue(
+                java.nio.file.Files.readString(java.nio.file.Path.of("../test-fixtures/login-emails.json")), EmailVector[].class);
+        for (var vector : vectors) {
+            if (vector.canonical() == null) {
+                assertThatThrownBy(() -> canonicalizer.canonicalize(vector.input())).isInstanceOf(IllegalArgumentException.class);
+            } else {
+                assertThat(canonicalizer.canonicalize(vector.input())).isEqualTo(vector.canonical());
+            }
+        }
+    }
     private final EmailCanonicalizer canonicalizer = new EmailCanonicalizer();
 
     @Test
