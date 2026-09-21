@@ -52,6 +52,10 @@ describe('RoomDetailPage', () => {
     expect(await screen.findByText('Room 101')).toBeInTheDocument()
     expect(screen.getByText('Main Building')).toBeInTheDocument()
     expect(screen.getByText('1st Floor')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Display Room Information' })).toHaveAttribute(
+      'href',
+      '/rooms/room-1/display',
+    )
 
     const bookBtn = screen.getByRole('button', { name: /book room/i })
     await user.click(bookBtn)

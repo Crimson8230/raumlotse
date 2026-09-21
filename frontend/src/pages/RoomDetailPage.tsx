@@ -66,7 +66,10 @@ export default function RoomDetailPage() {
     <main className="room-detail-page">
       <div className="room-detail-header">
         <h1>{room.name}</h1>
-        <Link to={`/rooms/${room.id}/edit`}>Edit Room</Link>
+        <div>
+          <Link to={`/rooms/${room.id}/display`}>Display Room Information</Link>{' '}
+          <Link to={`/rooms/${room.id}/edit`}>Edit Room</Link>
+        </div>
       </div>
 
       <dl className="panel room-detail-metadata">

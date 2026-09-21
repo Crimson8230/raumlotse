@@ -7,7 +7,6 @@ export interface RoomDisplayViewModel {
   currentDateTime: Date
   state: RoomDisplayState
   reservation: Reservation | null
-  upcomingReservation: Reservation | null
   errorMessage?: string
 }
 
@@ -15,7 +14,6 @@ export interface RoomDisplayProps {
   roomName: string
   currentDateTime: Date
   reservation: Reservation | null
-  upcomingReservation?: Reservation | null
   state: Exclude<RoomDisplayState, 'loading'>
   errorMessage?: string
 }

@@ -3,10 +3,7 @@ import { useParams } from 'react-router-dom'
 import { getRoom } from '../API/rooms'
 import { listRoomReservations } from '../API/reservations'
 import { RoomDisplay } from '../components/RoomDisplay/RoomDisplay'
-import {
-  selectCurrentReservation,
-  selectUpcomingReservation,
-} from '../components/RoomDisplay/roomDisplayLogic'
+import { selectCurrentReservation } from '../components/RoomDisplay/roomDisplayLogic'
 import type { Reservation } from '../types/reservation'
 import type { Room } from '../types/room'
 
@@ -72,21 +69,12 @@ export default function RoomDisplayPage() {
     [currentDateTime, requestState.reservations, room, roomId],
   )
 
-  const upcomingReservation = useMemo(
-    () =>
-      room && roomId
-        ? selectUpcomingReservation(requestState.reservations, currentDateTime, roomId)
-        : null,
-    [currentDateTime, requestState.reservations, room, roomId],
-  )
-
   if (!roomId) {
     return (
       <RoomDisplay
         roomName="Room unavailable"
         currentDateTime={currentDateTime}
         reservation={null}
-        upcomingReservation={null}
         state="unavailable"
         errorMessage="Room information is unavailable."
       />
@@ -106,7 +94,6 @@ export default function RoomDisplayPage() {
       roomName={room?.name ?? 'Room unavailable'}
       currentDateTime={currentDateTime}
       reservation={currentReservation}
-      upcomingReservation={upcomingReservation}
       state={errorMessage ? 'unavailable' : currentReservation ? 'reservation' : 'no-reservation'}
       errorMessage={errorMessage ?? undefined}
     />

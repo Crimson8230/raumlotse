@@ -1,6 +1,6 @@
 # Room Display View Contract
 
-**Branch**: `005-display-room-information` | **Date**: 2026-09-20 | [spec.md](../spec.md)
+**Branch**: `005-display-room-information` | **Date**: 2026-09-21 | [spec.md](../spec.md)
 
 ## Purpose
 
@@ -10,7 +10,12 @@ Define the user-visible contract for the read-only room display mockup. The view
 
 - One room identifier from the display route/context.
 - Existing room response containing at least `id`, `name`, and `status`.
-- Existing reservation responses containing `id`, `roomId`, `startTime`, `endTime`, `status`, required `createdBy`, and nullable `note`.
+- Existing reservation responses containing `id`, `roomId`, `startTime`, `endTime`, `status`, `createdBy`, and nullable `note`.
+
+## Entry Point
+
+- The room detail view shows `Display Room Information` directly beside `Edit Room`.
+- Activating it navigates to `/rooms/:roomId/display` for the room currently shown in the detail view.
 
 ## Current Reservation Rule
 
@@ -24,19 +29,6 @@ roomId == displayedRoom.id
 
 If multiple records qualify, the view chooses the earliest start time, then the smallest reservation id. Terminal records (`COMPLETED`, `EXPIRED`, `CANCELLED`) are never shown as current.
 
-## Upcoming Reservation Rule
-
-The view selects the first eligible reservation satisfying all of the following:
-
-```text
-status ∈ { RESERVED, ACTIVE }
-startTime > currentTime
-localDate(startTime) == localDate(currentTime)
-roomId == displayedRoom.id
-```
-
-The upcoming reservation is shown whether or not a current reservation exists. Reservations whose local calendar date is later than the current display date are not shown as upcoming.
-
 ## Rendered States
 
 | State | Required visible content |
@@ -44,23 +36,13 @@ The upcoming reservation is shown whether or not a current reservation exists. R
 | Loading | A clear loading indicator |
 | Reservation unavailable | Room/data unavailable message; no stale reservation details |
 | No current reservation | Room name, current date/time, and explicit no-current-reservation message |
-| Current reservation | Room name, current date/time, note or `No note provided`, `Booked by: <name>`, separately labeled start/end times, and same-day upcoming reservation when available |
+| Current reservation | Room name, current date/time, `Booked by: <name>`, note or `No note provided`, and separately labeled start/end times |
 
-## Note Presentation
+## Reservation Field Presentation
 
-- Preserve note text order, whitespace, and special characters where visible.
-- Show the complete note when it fits the readable note area.
-- When it does not fit, show a bounded preview with an explicit truncation indicator.
-- If an upcoming reservation is available, reserve one line for its start and end times and reduce the note area first; a shortened note must use an explicit marker such as `...`.
-- Do not render separate reservation-title or lecturer-name fields.
-- Render the current reservation creator as `Booked by: <name>` using `createdBy`.
-
-## Upcoming Presentation
-
-- Label the section `Upcoming reservation`.
-- Render its start and end time on one line.
-- Render it even when there is no current reservation, provided a same-day eligible reservation exists.
-- Do not render a reservation from a later local calendar day.
+- Render `Booked by`, `Note`, `Start time`, and `End time` as separate, clearly labeled values.
+- Preserve note and creator values, including spaces and special characters.
+- For a null, empty, or whitespace-only note, render `No note provided`.
 
 ## Freshness and Accessibility
 

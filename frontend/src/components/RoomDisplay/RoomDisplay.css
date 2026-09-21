@@ -78,37 +78,6 @@
   white-space: pre-wrap;
 }
 
-.room-display--has-upcoming .room-display-note {
-  max-height: 5rem;
-}
-
-.room-display-upcoming {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  border-top: 2px solid #64748b;
-  padding-top: 1rem;
-}
-
-.room-display-upcoming h2,
-.room-display-upcoming-times {
-  margin: 0;
-}
-
-.room-display-upcoming h2 {
-  flex: 0 0 auto;
-  font-size: 1.25rem;
-}
-
-.room-display-upcoming-times {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
-}
-
 .room-display-state {
   margin: auto 0;
   font-size: 1.5rem;

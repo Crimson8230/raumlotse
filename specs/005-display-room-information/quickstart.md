@@ -1,6 +1,6 @@
 # Quickstart Validation Guide: Display Room Information
 
-**Branch**: `005-display-room-information` | **Date**: 2026-09-20 | [spec.md](./spec.md) | [Contract](./contracts/room-display-view.md)
+**Branch**: `005-display-room-information` | **Date**: 2026-09-21 | [spec.md](./spec.md) | [Contract](./contracts/room-display-view.md)
 
 ## Prerequisites
 
@@ -35,7 +35,7 @@ npm run lint
 
 Expected outcomes:
 
-- Display component tests pass for current, same-day upcoming, next-day exclusion, ended, cancelled, missing-note, long-note-with-upcoming-line, no-reservation, loading, and unavailable states.
+- Display component and page tests pass for current, ended, future, terminal, wrong-room, missing-note, no-reservation, loading, unavailable, and room-detail navigation states.
 - The TypeScript build completes without errors.
 - ESLint reports no violations.
 
@@ -43,53 +43,45 @@ Expected outcomes:
 
 All visual and usability checks use an 800 × 480 CSS-pixel viewport. Body text must remain at least 14 px.
 
-### Scenario 1: Current reservation
+### Scenario 1: Navigate from room management
+
+1. Open a specific room's detail view.
+2. Verify `Display Room Information` appears directly beside `Edit Room`.
+3. Activate it and verify the display opens for the same room.
+
+### Scenario 2: Current reservation
 
 1. Open the room display for an active room with a reservation whose interval contains the current time.
-2. Verify the room name, current date/time, reservation note, `Booked by: <createdBy>`, start time, and end time are visible.
-3. Verify no reservation-title or lecturer-name fields appear.
+2. Verify the room name, current date/time, `Booked by`, `Note`, `Start time`, and `End time` are visible with distinct labels.
 
-### Scenario 2: No current reservation
+### Scenario 3: No current reservation
 
 1. Use a room with no reservation covering the current time, or wait until a reservation ends.
 2. Verify the room name and clock remain visible.
 3. Verify an explicit no-current-reservation message appears and ended/future reservations are not shown.
 
-### Scenario 3: Note fallback and truncation
+### Scenario 4: Missing note and special characters
 
 1. Use a current reservation with an empty note and verify `No note provided` is shown.
-2. Use a current reservation with a long note containing line breaks and special characters.
-3. Verify the preview remains readable, does not overlap other fields, and includes an explicit truncation indicator when necessary.
+2. Use a current reservation with a note and creator name containing spaces and special characters.
+3. Verify both values remain complete and readable.
 
-### Scenario 4: Same-day upcoming reservation
+### Scenario 5: Long values
 
-1. Use a room with a current reservation and a later eligible reservation on the same local calendar day.
-2. Verify the `Upcoming reservation` section is visible with the later reservation's start and end time on one line.
-3. Repeat with no current reservation and verify the same upcoming section remains visible.
-4. Use a long current note and verify the note area is reduced first and the incomplete note receives an explicit `...` marker.
+1. Use long room, note, and creator values.
+2. Verify values wrap or use another visible treatment without clipping or overlap.
 
-### Scenario 5: Later-day reservation exclusion
-
-1. Use a room with no later reservation today and a reservation tomorrow.
-2. Verify no `Upcoming reservation` section is shown before the next local calendar day begins.
-
-### Scenario 6: Booked-by display
-
-1. Use a current reservation with `createdBy` set to `Albert Einstein`.
-2. Verify the current reservation shows `Booked by: Albert Einstein`.
-3. Verify the one-line upcoming section, when present, remains limited to its start and end times.
-
-### Scenario 7: Clock freshness
+### Scenario 6: Clock freshness
 
 1. Leave the display open for at least two minutes.
 2. Verify the displayed time advances and remains within 60 seconds of the current time.
 
-### Scenario 8: Unavailable data
+### Scenario 7: Unavailable data
 
 1. Simulate a failed room or reservation request.
 2. Verify the display shows a clear unavailable state and does not retain stale reservation data.
 
-### Scenario 9: Five-second usability check
+### Scenario 8: Five-second usability check
 
 1. Conduct at least 10 manual viewer trials at the target viewport size.
 2. For each trial, show the display and record whether the viewer identifies the room and determines whether a current reservation exists within 5 seconds.

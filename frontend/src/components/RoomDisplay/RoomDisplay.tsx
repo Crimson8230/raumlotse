@@ -7,13 +7,12 @@ export function RoomDisplay({
   roomName,
   currentDateTime,
   reservation,
-  upcomingReservation = null,
   state,
   errorMessage,
 }: RoomDisplayProps) {
   return (
     <main
-      className={`room-display${upcomingReservation ? ' room-display--has-upcoming' : ''}`}
+      className="room-display"
       data-testid="room-display"
     >
       <header className="room-display-header">
@@ -52,15 +51,6 @@ export function RoomDisplay({
         </section>
       )}
 
-      {upcomingReservation && (
-        <section className="room-display-upcoming" aria-labelledby="room-display-upcoming-title">
-          <h2 id="room-display-upcoming-title">Upcoming reservation</h2>
-          <p className="room-display-upcoming-times" aria-label="Upcoming reservation times">
-            {formatTime(new Date(upcomingReservation.startTime))} –{' '}
-            {formatTime(new Date(upcomingReservation.endTime))}
-          </p>
-        </section>
-      )}
     </main>
   )
 }

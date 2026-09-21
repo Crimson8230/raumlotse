@@ -35,7 +35,7 @@ describe('RoomDisplay smoke test', () => {
     expect(screen.getByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
   })
 
-  it('renders current reservation information without title or lecturer fields', () => {
+  it('renders the required current reservation information', () => {
     render(
       <RoomDisplay
         roomName="Room 101"
@@ -54,29 +54,6 @@ describe('RoomDisplay smoke test', () => {
     expect(screen.getByText('Booked by: Alice')).toBeInTheDocument()
     expect(screen.getByText(formatTime(new Date(reservationFixture().startTime)))).toBeInTheDocument()
     expect(screen.getByText(formatTime(new Date(reservationFixture().endTime)))).toBeInTheDocument()
-    expect(screen.queryByText(/title|lecturer/i)).not.toBeInTheDocument()
-  })
-
-  it('renders the creator for the current reservation but not for the upcoming line', () => {
-    render(
-      <RoomDisplay
-        roomName="Room 101"
-        currentDateTime={new Date(2026, 8, 20, 10, 0)}
-        reservation={reservationFixture()}
-        upcomingReservation={{
-          ...reservationFixture(),
-          id: 'res-upcoming',
-          startTime: '2026-09-20T12:00:00.000Z',
-          endTime: '2026-09-20T13:00:00.000Z',
-          createdBy: 'Marie Curie',
-        }}
-        state="reservation"
-      />,
-    )
-
-    expect(screen.getByText('Booked by: Alice')).toBeInTheDocument()
-    expect(screen.queryByText('Booked by: Marie Curie')).not.toBeInTheDocument()
-    expect(screen.getByTestId('room-display')).toHaveClass('room-display--has-upcoming')
   })
 
   it('renders an explicit no-reservation state', () => {
@@ -123,67 +100,4 @@ describe('RoomDisplay smoke test', () => {
     expect(screen.getByText(/End time/)).toBeInTheDocument()
   })
 
-  it('renders a one-line upcoming reservation when one is available', () => {
-    render(
-      <RoomDisplay
-        roomName="Room 101"
-        currentDateTime={new Date(2026, 8, 20, 10, 0)}
-        reservation={reservationFixture()}
-        upcomingReservation={{
-          ...reservationFixture(),
-          id: 'res-upcoming',
-          startTime: '2026-09-20T12:00:00.000Z',
-          endTime: '2026-09-20T13:00:00.000Z',
-          note: 'Later meeting',
-        }}
-        state="reservation"
-      />,
-    )
-
-    expect(screen.getByRole('heading', { name: 'Upcoming reservation' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Upcoming reservation times')).toHaveTextContent(
-      `${formatTime(new Date('2026-09-20T12:00:00.000Z'))} – ${formatTime(new Date('2026-09-20T13:00:00.000Z'))}`,
-    )
-  })
-
-  it('keeps the upcoming reservation visible without a current reservation', () => {
-    render(
-      <RoomDisplay
-        roomName="Room 101"
-        currentDateTime={new Date(2026, 8, 20, 10, 0)}
-        reservation={null}
-        upcomingReservation={{
-          ...reservationFixture(),
-          id: 'res-upcoming',
-          startTime: '2026-09-20T12:00:00.000Z',
-          endTime: '2026-09-20T13:00:00.000Z',
-        }}
-        state="no-reservation"
-      />,
-    )
-
-    expect(screen.getByRole('status', { name: 'No current reservation' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Upcoming reservation' })).toBeInTheDocument()
-  })
-
-  it('keeps the upcoming line when the current note is truncated', () => {
-    render(
-      <RoomDisplay
-        roomName="Room 101"
-        currentDateTime={new Date(2026, 8, 20, 10, 0)}
-        reservation={{ ...reservationFixture(), note: 'A'.repeat(300) }}
-        upcomingReservation={{
-          ...reservationFixture(),
-          id: 'res-upcoming',
-          startTime: '2026-09-20T12:00:00.000Z',
-          endTime: '2026-09-20T13:00:00.000Z',
-        }}
-        state="reservation"
-      />,
-    )
-
-    expect(screen.getByTestId('room-display')).toHaveClass('room-display--has-upcoming')
-    expect(screen.getByText(/\.\.\.$/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Upcoming reservation' })).toBeInTheDocument()
-  })
 })

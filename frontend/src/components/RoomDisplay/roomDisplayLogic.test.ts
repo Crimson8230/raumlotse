@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Reservation } from '../../types/reservation'
-import { getNotePreview, selectCurrentReservation, selectUpcomingReservation } from './roomDisplayLogic'
+import { getNotePreview, selectCurrentReservation } from './roomDisplayLogic'
 
 const now = new Date('2026-09-20T10:00:00.000Z')
 
@@ -109,55 +109,5 @@ describe('getNotePreview', () => {
     expect(preview.text).toHaveLength(40)
     expect(preview.text.endsWith('...')).toBe(true)
     expect(preview.text.startsWith('A'.repeat(37))).toBe(true)
-  })
-})
-
-describe('selectUpcomingReservation', () => {
-  it('selects the earliest eligible reservation later on the current local calendar day', () => {
-    const later = reservationFixture({
-      id: 'res-later',
-      startTime: '2026-09-20T14:00:00.000Z',
-      endTime: '2026-09-20T15:00:00.000Z',
-    })
-    const earlier = reservationFixture({
-      id: 'res-earlier',
-      startTime: '2026-09-20T12:00:00.000Z',
-      endTime: '2026-09-20T13:00:00.000Z',
-    })
-
-    expect(selectUpcomingReservation([later, earlier], now, 'room-1')).toBe(earlier)
-  })
-
-  it('shows an upcoming reservation without requiring a current reservation', () => {
-    const upcoming = reservationFixture({
-      startTime: '2026-09-20T12:00:00.000Z',
-      endTime: '2026-09-20T13:00:00.000Z',
-    })
-
-    expect(selectUpcomingReservation([upcoming], now, 'room-1')).toBe(upcoming)
-  })
-
-  it('excludes reservations from a later local calendar day', () => {
-    const tomorrow = reservationFixture({
-      startTime: '2026-09-21T09:00:00.000Z',
-      endTime: '2026-09-21T10:00:00.000Z',
-    })
-
-    expect(selectUpcomingReservation([tomorrow], now, 'room-1')).toBeNull()
-  })
-
-  it('uses the reservation id as a deterministic tie-breaker', () => {
-    const higherId = reservationFixture({
-      id: 'res-b',
-      startTime: '2026-09-20T12:00:00.000Z',
-      endTime: '2026-09-20T13:00:00.000Z',
-    })
-    const lowerId = reservationFixture({
-      id: 'res-a',
-      startTime: '2026-09-20T12:00:00.000Z',
-      endTime: '2026-09-20T13:00:00.000Z',
-    })
-
-    expect(selectUpcomingReservation([higherId, lowerId], now, 'room-1')).toBe(lowerId)
   })
 })
