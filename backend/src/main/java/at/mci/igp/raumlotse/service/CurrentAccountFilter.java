@@ -42,7 +42,8 @@ public class CurrentAccountFilter extends OncePerRequestFilter {
                 log.warn("authentication_failure code=AUTH_REQUIRED reason=account_missing status=401");
                 SecurityContextHolder.clearContext();
                 var session = request.getSession(false);
-                if (session != null) session.invalidate();
+                if (session != null)
+                    session.invalidate();
                 contexts.saveContext(SecurityContextHolder.createEmptyContext(), request, response);
                 chain.doFilter(request, response);
                 return;

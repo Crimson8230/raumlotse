@@ -79,9 +79,11 @@ public class AuthController {
     }
 
     private ResponseEntity<Problem> problem(HttpStatus status, String code, String detail, int retryAfterSeconds) {
-        log.warn("authentication_failure code={} status={} retry_after_seconds={}", code, status.value(), retryAfterSeconds);
+        log.warn("authentication_failure code={} status={} retry_after_seconds={}", code, status.value(),
+                retryAfterSeconds);
         var builder = ResponseEntity.status(status).cacheControl(CacheControl.noStore());
-        if (retryAfterSeconds > 0) builder.header("Retry-After", Integer.toString(retryAfterSeconds));
+        if (retryAfterSeconds > 0)
+            builder.header("Retry-After", Integer.toString(retryAfterSeconds));
         return builder.body(Problem.of(status.value(), status.getReasonPhrase(), detail, code,
                 retryAfterSeconds > 0 ? retryAfterSeconds : null));
     }

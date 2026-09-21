@@ -12,7 +12,9 @@ public class LoginAttemptCleanupService {
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptCleanupService.class);
     private final JdbcTemplate jdbc;
 
-    public LoginAttemptCleanupService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public LoginAttemptCleanupService(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     @Scheduled(initialDelay = 0, fixedDelay = 300_000)
     @Transactional(timeout = 10)
@@ -31,7 +33,8 @@ public class LoginAttemptCleanupService {
                     WHERE state.identity_key = candidates.identity_key
                       AND state.expires_at <= clock_timestamp()
                     """);
-            if (deleted > 0) log.info("authentication cleanup deleted_rows={}", deleted);
+            if (deleted > 0)
+                log.info("authentication cleanup deleted_rows={}", deleted);
         } catch (RuntimeException failure) {
             log.warn("authentication cleanup outcome=unavailable");
             throw failure;
