@@ -1,5 +1,10 @@
 package at.mci.igp.raumlotse.controller;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import at.mci.igp.raumlotse.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -23,6 +28,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(FloorController.class)
+@WithMockUser
+@Import(SecurityConfig.class)
 class FloorControllerTest {
 
     @Autowired
@@ -40,7 +47,7 @@ class FloorControllerTest {
         UUID buildingId = UUID.randomUUID();
         when(floorService.create(eq(buildingId), eq("1"))).thenReturn(floorOf(new Building("Main"), "1"));
 
-        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors")
+        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"1\"}"))
                 .andExpect(status().isCreated())
@@ -54,7 +61,7 @@ class FloorControllerTest {
                 .thenThrow(new IllegalArgumentException(
                         "Building 'Main' is not active; a floor can only be created under an active building."));
 
-        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors")
+        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"1\"}"))
                 .andExpect(status().isBadRequest());
@@ -77,7 +84,7 @@ class FloorControllerTest {
         when(floorService.create(eq(buildingId), eq("1")))
                 .thenThrow(new ConflictException("A floor named '1' already exists in this building."));
 
-        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors")
+        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"1\"}"))
                 .andExpect(status().isConflict());
@@ -88,7 +95,7 @@ class FloorControllerTest {
         UUID floorId = UUID.randomUUID();
         when(floorService.rename(eq(floorId), eq("Ground"))).thenReturn(floorOf(new Building("Main"), "Ground"));
 
-        mockMvc.perform(put("/api/floors/" + floorId)
+        mockMvc.perform(put("/api/floors/" + floorId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Ground\"}"))
                 .andExpect(status().isOk())
@@ -100,7 +107,7 @@ class FloorControllerTest {
         UUID floorId = UUID.randomUUID();
         when(floorService.deactivate(floorId)).thenReturn(floorOf(new Building("Main"), "1"));
 
-        mockMvc.perform(post("/api/floors/" + floorId + "/deactivate"))
+        mockMvc.perform(post("/api/floors/" + floorId + "/deactivate").with(csrf()))
                 .andExpect(status().isOk());
     }
 
@@ -110,7 +117,7 @@ class FloorControllerTest {
         when(floorService.reactivate(floorId))
                 .thenThrow(new ConflictException("Building is still deactivated; reactivate it first."));
 
-        mockMvc.perform(post("/api/floors/" + floorId + "/reactivate"))
+        mockMvc.perform(post("/api/floors/" + floorId + "/reactivate").with(csrf()))
                 .andExpect(status().isConflict());
     }
 
@@ -120,7 +127,7 @@ class FloorControllerTest {
         Mockito.doThrow(new ConflictException("Floor is referenced by one or more rooms."))
                 .when(floorService).delete(floorId);
 
-        mockMvc.perform(delete("/api/floors/" + floorId))
+        mockMvc.perform(delete("/api/floors/" + floorId).with(csrf()))
                 .andExpect(status().isConflict());
     }
 
@@ -128,7 +135,7 @@ class FloorControllerTest {
     void deleteReturns204() throws Exception {
         UUID floorId = UUID.randomUUID();
 
-        mockMvc.perform(delete("/api/floors/" + floorId))
+        mockMvc.perform(delete("/api/floors/" + floorId).with(csrf()))
                 .andExpect(status().isNoContent());
     }
 }

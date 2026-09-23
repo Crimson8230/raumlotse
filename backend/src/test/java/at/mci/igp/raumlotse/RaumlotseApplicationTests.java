@@ -1,10 +1,8 @@
 package at.mci.igp.raumlotse;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class RaumlotseApplicationTests {
+class RaumlotseApplicationTests extends AbstractIntegrationTest {
 
 	@Test
 	void contextLoads() {

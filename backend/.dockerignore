@@ -6,3 +6,11 @@ target/
 *.log*
 coverage/
 .env*
+logs/
+node_modules/
+Dockerfile*
+dockerfile*
+.dockerignore
+*.log*
+.env*
+coverage/

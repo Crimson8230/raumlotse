@@ -2,6 +2,17 @@ spring:
   application:
     name: raumlotse
   datasource:
-    url: jdbc:postgresql://localhost:5432/raumlotse
-    username: raumlotse
-    password: raumlotse
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/raumlotse}
+    username: ${SPRING_DATASOURCE_USERNAME:raumlotse}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+server:
+  servlet:
+    session:
+      timeout: 30m
+      tracking-modes: cookie
+      cookie:
+        name: JSESSIONID
+        path: /
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
