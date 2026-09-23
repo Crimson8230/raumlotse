@@ -50,11 +50,11 @@ public final class ReservationPolicyConstants {
 stateDiagram-v2
     [*] --> RESERVED: Create Reservation
 
-    RESERVED --> ACTIVE: Check-In / Activate (within start_time + 5m)
-    RESERVED --> EXPIRED: Background Auto-Expire (now >= start_time + 5m)
+    RESERVED --> ACTIVE: Check-In / Activate (within start_time + 5m and before end_time)
+    RESERVED --> EXPIRED: Background Auto-Expire (now > start_time + 5m OR now >= end_time)
     RESERVED --> CANCELLED: Cancel Reservation
 
-    ACTIVE --> COMPLETED: Check-Out / Complete
+    ACTIVE --> COMPLETED: Check-Out / Complete OR Background Auto-Complete (now >= end_time)
     ACTIVE --> CANCELLED: Cancel Reservation
 
     EXPIRED --> [*]: Permanent Terminal State
@@ -67,6 +67,7 @@ stateDiagram-v2
 ## Invariants & Validation Rules
 
 1. **Terminal State Invariant**: Once in `EXPIRED`, `COMPLETED`, or `CANCELLED`, a reservation cannot transition to any other status.
-2. **Conflict Invariant**: Only reservations in `RESERVED` or `ACTIVE` status block room scheduling in `findConflictingReservations`. Once a reservation transitions to `EXPIRED`, the room becomes instantly bookable for the remaining duration.
-3. **Grace Period Invariant**: An unattended reservation in `RESERVED` status MUST NOT be transitioned to `EXPIRED` before `startTime + 5 minutes` has passed.
+2. **Conflict Invariant**: Only reservations in `RESERVED` or `ACTIVE` status block room scheduling in `findConflictingReservations`. Once a reservation transitions to `EXPIRED` or `COMPLETED`, the room becomes instantly bookable for the remaining duration.
+3. **Grace Period Invariant**: An unattended reservation in `RESERVED` status MUST NOT be transitioned to `EXPIRED` before `startTime + 5 minutes` has strictly elapsed (`now > startTime + 5 minutes`), UNLESS its scheduled `endTime` has elapsed (`now >= endTime`), in which case it expires immediately upon reaching `endTime`. Check-in is strictly rejected once `endTime` has elapsed.
 4. **Optimistic Locking Invariant**: Any concurrent check-in attempt modifying `status` from `RESERVED` to `ACTIVE` will increment `version`. If the background expiration job attempts to commit concurrently, an `OptimisticLockingFailureException` is thrown, preventing corrupt or lost updates.
+5. **Concluded Active Invariant**: Reservations in `ACTIVE` status whose scheduled `endTime` has elapsed (`now >= endTime`) are automatically transitioned to `COMPLETED` by the background sweep.

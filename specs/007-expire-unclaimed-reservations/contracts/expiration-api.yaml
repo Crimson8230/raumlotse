@@ -17,11 +17,16 @@ paths:
                 type: object
                 required:
                   - expiredCount
+                  - completedCount
                 properties:
                   expiredCount:
                     type: integer
                     description: Number of unattended reservations transitioned to EXPIRED
                     example: 2
+                  completedCount:
+                    type: integer
+                    description: Number of concluded active reservations transitioned to COMPLETED
+                    example: 1
 
   /api/reservations/{reservationId}/activate:
     post:

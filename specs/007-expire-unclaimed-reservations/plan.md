@@ -6,7 +6,7 @@
 
 ## Summary
 
-Automatically transition unattended room reservations in `RESERVED` status to `EXPIRED` once 5 minutes have elapsed from their scheduled `startTime` without a check-in (activation). The technical approach leverages Spring Boot's built-in `@Scheduled` periodic runner (every 30 seconds) executing within `ReservationExpirationScheduler`, calling `ReservationService.expireUnattendedReservations()`. A derived JPA repository query efficiently fetches overdue `RESERVED` bookings, transitions them to `EXPIRED`, updates modification timestamps, and emits structured audit logs. `Clock` injection guarantees deterministic unit testing of boundary conditions (TDD), and existing optimistic locking (`@Version`) resolves any concurrent check-in races.
+Automatically transition unattended room reservations in `RESERVED` status to `EXPIRED` once 5 minutes have strictly elapsed from their scheduled `startTime` without a check-in (activation), and automatically transition concluded `ACTIVE` reservations to `COMPLETED` once their scheduled `endTime` has elapsed. The technical approach leverages Spring Boot's built-in `@Scheduled` periodic runner (every 30 seconds) executing within `ReservationExpirationScheduler`, calling `ReservationService.sweepOverdueReservations()`. Derived JPA repository queries efficiently fetch overdue `RESERVED` and `ACTIVE` bookings, transition them to `EXPIRED` and `COMPLETED` respectively, update modification timestamps, and emit structured audit logs. `Clock` injection guarantees deterministic unit testing of boundary conditions (TDD), and existing optimistic locking (`@Version`) resolves any concurrent check-in races.
 
 ## Technical Context
 
@@ -68,9 +68,9 @@ backend/
 │   │   │   ├── domain/
 │   │   │   │   └── ReservationStatus.java            # Existing: RESERVED, ACTIVE, COMPLETED, EXPIRED, CANCELLED
 │   │   │   ├── repository/
-│   │   │   │   └── ReservationRepository.java        # Add findByStatusAndStartTimeLessThanEqual
+│   │   │   │   └── ReservationRepository.java        # Add findUnattendedReservationsForExpiration and findByStatusAndEndTimeLessThanEqual
 │   │   │   ├── service/
-│   │   │   │   ├── ReservationService.java           # Add expireUnattendedReservations()
+│   │   │   │   ├── ReservationService.java           # Add sweepOverdueReservations() / expireUnattendedReservations()
 │   │   │   │   └── ReservationExpirationScheduler.java # Add @Scheduled(fixedDelay = 30000)
 │   │   │   └── controller/
 │   │   │       └── ReservationController.java        # Expose POST /api/reservations/expire-unattended

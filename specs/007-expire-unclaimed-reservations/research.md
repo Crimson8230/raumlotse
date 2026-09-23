@@ -24,15 +24,21 @@
 ### Decision 2: Query Strategy and Database State Management
 
 - **Context**: The background process must find all reservations where status is `RESERVED` and `startTime + 5 minutes <= now`.
-- **Decision**: Add a derived query method in `ReservationRepository`:
+- **Decision**: Add a repository query method in `ReservationRepository`:
   ```java
-  List<Reservation> findByStatusAndStartTimeLessThanEqual(ReservationStatus status, Instant cutoffTime);
+  @Query("SELECT r FROM Reservation r WHERE r.status = :status AND (r.startTime < :cutoffTime OR r.endTime <= :now)")
+  List<Reservation> findUnattendedReservationsForExpiration(
+      @Param("status") ReservationStatus status,
+      @Param("cutoffTime") Instant cutoffTime,
+      @Param("now") Instant now
+  );
   ```
-  Where `cutoffTime = clock.instant().minus(Duration.ofMinutes(5))`.
+  Where `cutoffTime = clock.instant().minus(Duration.ofMinutes(5))` and `now = clock.instant()`.
 - **Rationale**:
-  - Condition `startTime + 5m <= now` is mathematically equivalent to `startTime <= now - 5m`.
-  - Spring Data JPA generates an index-friendly query: `WHERE status = ? AND start_time <= ?`.
-  - The composite index on `reservation (room_id, status, start_time, end_time)` and status checks already exist in migration `V4__create_reservation_tables.sql`.
+  - Condition `now > startTime + 5m OR now >= endTime` ensures reservations expire strictly after the 5-minute grace period or as soon as their scheduled end time elapses for sub-5-minute bookings.
+  - Using strict `LessThan` for graceCutoff ensures attendees have up to and including the exact 5-minute mark to check in.
+  - Using `LessThanEqual` for endTime ensures a booking ending at 10:03 expires immediately upon reaching 10:03:00.
+  - The composite index on `reservation (room_id, status, start_time, end_time)` supports the query.
   - Database schema requires no Flyway migration changes because `status` already supports `'EXPIRED'` and terminal state checks are in place.
 - **Alternatives Considered**:
   - *Bulk `UPDATE reservation SET status = 'EXPIRED' WHERE ...`*: Rejected because updating via entities ensures `@UpdateTimestamp` updates correctly and optimistic locking (`@Version`) is enforced.
@@ -74,6 +80,23 @@
   ```
   And summary metric:
   ```text
-  Unattended reservation expiration sweep completed: expired_count=<int>
+  Unattended reservation expiration sweep completed: expired_count=<int> completed_count=<int>
   ```
 - **Rationale**: Readily diagnosable via `docker compose logs backend` without exposing sensitive user information (Constitution Principle IV).
+
+---
+
+### Decision 6: Automated Completion of Concluded Active Reservations
+
+- **Context**: Per clarified requirement (CHK002), active reservations whose scheduled `endTime` has elapsed without manual checkout must automatically transition to `COMPLETED`.
+- **Decision**: Add repository query:
+  ```java
+  List<Reservation> findByStatusAndEndTimeLessThanEqual(ReservationStatus status, Instant cutoffTime);
+  ```
+  Executed as part of the background sweep where `status = ReservationStatus.ACTIVE` and `cutoffTime = clock.instant()`.
+- **Rationale**:
+  - Reuses the same periodic scheduler sweep (`fixedDelay = 30000`).
+  - Closes concluded meetings, releases rooms from conflict detection, and accurately preserves the meeting as attended (`COMPLETED`) rather than no-show (`EXPIRED`).
+- **Alternatives Considered**:
+  - *Leaving ACTIVE indefinitely until manual checkout*: Rejected per user decision on CHK002.
+  - *Expiring overdue active bookings*: Rejected because attended meetings must not be logged as no-shows (`EXPIRED`).
