@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import { ReservationForm } from './ReservationForm'
+import { ApiError } from '../../API/client'
 import * as reservationsApi from '../../API/reservations'
 import type { Room } from '../../types/room'
 import type { Reservation } from '../../types/reservation'
@@ -150,5 +152,38 @@ describe('ReservationForm', () => {
     expect(
       await screen.findByText(/all catalog equipment is already present in this room/i),
     ).toBeInTheDocument()
+  })
+
+  it('displays conflict message and link to /rooms when booking conflicts with an existing reservation', async () => {
+    const user = userEvent.setup()
+    reservations.createReservation.mockRejectedValue(
+      new ApiError(409, {
+        status: 409,
+        title: 'Conflict',
+        detail: 'Scheduling conflict: The room is already reserved during this time.',
+      }),
+    )
+
+    render(
+      <MemoryRouter>
+        <ReservationForm room={sampleRoom()} onSaved={vi.fn()} />
+      </MemoryRouter>,
+    )
+
+    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.type(screen.getByLabelText(/attendees/i), '30')
+    await user.type(screen.getByLabelText(/booked by/i), 'Jane Doe')
+
+    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveClass('feedback-conflict')
+    expect(alert).toHaveTextContent(/scheduling conflict/i)
+
+    const link = screen.getByRole('link', { name: /zurück zur raumübersicht/i })
+    expect(link).toBeInTheDocument()
+    expect(link).toHaveAttribute('href', '/rooms')
   })
 })

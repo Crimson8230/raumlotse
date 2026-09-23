@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { createReservation, getAvailableEquipment } from '../../API/reservations'
-import { formatApiError } from '../../API/client'
+import { ApiError, formatApiError } from '../../API/client'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
@@ -24,6 +25,7 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([])
   const [loadingEquipment, setLoadingEquipment] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isConflict, setIsConflict] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setIsConflict(false)
 
     const selectedArrangement = room.seatingArrangements.find(
       (sa) => sa.id === seatingArrangementId,
@@ -115,6 +118,9 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
       onSaved(saved)
     } catch (err) {
       setError(formatApiError(err))
+      if (err instanceof ApiError && err.status === 409) {
+        setIsConflict(true)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -123,9 +129,14 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
   return (
     <form onSubmit={handleSubmit} noValidate className="panel reservation-form">
       {error && (
-        <p role="alert" className="feedback-error">
-          {error}
-        </p>
+        <div role="alert" className={isConflict ? 'feedback-conflict' : 'feedback-error'}>
+          <p>{error}</p>
+          {isConflict && (
+            <p>
+              <Link to="/rooms">Zurück zur Raumübersicht</Link>
+            </p>
+          )}
+        </div>
       )}
 
       <div>
