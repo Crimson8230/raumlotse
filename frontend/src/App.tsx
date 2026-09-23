@@ -7,6 +7,7 @@ import LocationCatalogPage from './pages/LocationCatalogPage'
 import RoomListPage from './pages/RoomListPage'
 import RoomFormPage from './pages/RoomFormPage'
 import RoomDetailPage from './pages/RoomDetailPage'
+import RoomDisplayPage from './pages/RoomDisplayPage'
 import { RequireAdmin } from './auth/RequireAdmin'
 import UserRoleListPage from './pages/UserRoleListPage'
 import UserRolePage from './pages/UserRolePage'
@@ -22,11 +23,13 @@ function App() {
             <Route path="/admin/users" element={<UserRoleListPage />} />
             <Route path="/admin/users/:userId/roles" element={<UserRolePage />} />
           </Route>
+
           <Route path="/" element={<HomePage />} />
           <Route path="/locations" element={<LocationCatalogPage />} />
           <Route path="/rooms" element={<RoomListPage />} />
           <Route path="/rooms/new" element={<RoomFormPage />} />
           <Route path="/rooms/:roomId" element={<RoomDetailPage />} />
+          <Route path="/rooms/:roomId/display" element={<RoomDisplayPage />} />
           <Route path="/rooms/:roomId/edit" element={<RoomFormPage />} />
         </Route>
       </Routes>
