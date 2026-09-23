@@ -1,0 +1,127 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Room Device Control API
+  version: 1.0.0
+  description: Authenticated room-device capability and state-control contract.
+paths:
+  /api/rooms/{roomId}/device-controls:
+    get:
+      summary: Get controllable devices for the current user
+      description: Returns device capabilities only when the authenticated user owns an ACTIVE reservation whose current interval contains now.
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200':
+          description: Available devices and their last confirmed states
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomDeviceControlsResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/rooms/{roomId}/device-controls/{kind}:
+    post:
+      summary: Change one room-device state
+      description: Rechecks authentication, ownership, ACTIVE status, room association, time interval, and capability availability before executing the command.
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+        - $ref: '#/components/parameters/DeviceKind'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomDeviceCommandRequest'
+      responses:
+        '200':
+          description: Command acknowledged and state persisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomDeviceResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Device capability is not available for this room or the command conflicts with current configuration
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: Device operation could not be acknowledged; persisted state is unchanged
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+components:
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DeviceKind:
+      name: kind
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [LIGHTING, VENTILATION, PROJECTOR]
+  schemas:
+    RoomDeviceControlsResponse:
+      type: object
+      required: [roomId, reservationId, devices]
+      properties:
+        roomId: { type: string, format: uuid }
+        reservationId: { type: string, format: uuid }
+        devices:
+          type: array
+          items: { $ref: '#/components/schemas/RoomDeviceResponse' }
+    RoomDeviceResponse:
+      type: object
+      required: [kind, enabled, state, updatedAt]
+      properties:
+        kind:
+          type: string
+          enum: [LIGHTING, VENTILATION, PROJECTOR]
+        enabled: { type: boolean }
+        state: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+    RoomDeviceCommandRequest:
+      type: object
+      required: [state]
+      additionalProperties: false
+      properties:
+        state: { type: boolean }
+    Problem:
+      type: object
+      required: [title, status, detail]
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string }
+  responses:
+    BadRequest:
+      description: Invalid device kind or command payload
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: User has no eligible ACTIVE reservation for this room
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Room or requested resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
