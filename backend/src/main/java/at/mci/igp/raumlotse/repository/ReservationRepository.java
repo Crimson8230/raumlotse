@@ -35,4 +35,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     boolean existsByRoomId(UUID roomId);
 
     boolean existsByRoomIdAndStatusIn(UUID roomId, Collection<ReservationStatus> statuses);
+
+    @Query("""
+        select r from Reservation r
+        where r.status = :status
+          and (r.startTime < :graceCutoff or r.endTime <= :now)
+    """)
+    List<Reservation> findUnattendedReservationsForExpiration(
+            @Param("status") ReservationStatus status,
+            @Param("graceCutoff") Instant graceCutoff,
+            @Param("now") Instant now);
+
+    List<Reservation> findByStatusAndEndTimeLessThanEqual(ReservationStatus status, Instant endTime);
 }

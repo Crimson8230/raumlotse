@@ -9,9 +9,9 @@
 
 **Purpose**: Clock abstraction, time injection, and policy constants required across all expiration workflows.
 
-- [ ] T001 Register `java.time.Clock` singleton bean (`Clock.systemUTC()`) in `backend/src/main/java/at/mci/igp/raumlotse/config/ClockConfig.java`
-- [ ] T002 Inject `Clock` dependency into `ReservationService` via constructor injection in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`
-- [ ] T003 [P] Define domain policy constants (`CHECK_IN_GRACE_PERIOD = Duration.ofMinutes(5)`, `EXPIRATION_POLL_INTERVAL_MS = 30000L`) in `backend/src/main/java/at/mci/igp/raumlotse/config/ReservationPolicyConstants.java`
+- [X] T001 Register `java.time.Clock` singleton bean (`Clock.systemUTC()`) in `backend/src/main/java/at/mci/igp/raumlotse/config/ClockConfig.java`
+- [X] T002 Inject `Clock` dependency into `ReservationService` via constructor injection in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`
+- [X] T003 [P] Define domain policy constants (`CHECK_IN_GRACE_PERIOD = Duration.ofMinutes(5)`, `EXPIRATION_POLL_INTERVAL_MS = 30000L`) in `backend/src/main/java/at/mci/igp/raumlotse/config/ReservationPolicyConstants.java`
 
 ---
 
@@ -21,9 +21,9 @@
 
 **⚠️ CRITICAL**: Must complete before user story execution begins.
 
-- [ ] T004 [P] Add repository query `findUnattendedReservationsForExpiration` selecting `status = 'RESERVED'` and `(startTime < :graceCutoff OR endTime <= :now)` in `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java`
-- [ ] T005 [P] Add repository query `findByStatusAndEndTimeLessThanEqual` selecting `status = 'ACTIVE'` and `endTime <= :now` in `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java`
-- [ ] T006 [P] Create DTO record `ReservationSweepResponse(int expiredCount, int completedCount)` in `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationSweepResponse.java` matching `contracts/expiration-api.yaml`
+- [X] T004 [P] Add repository query `findUnattendedReservationsForExpiration` selecting `status = 'RESERVED'` and `(startTime < :graceCutoff OR endTime <= :now)` in `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java`
+- [X] T005 [P] Add repository query `findByStatusAndEndTimeLessThanEqual` selecting `status = 'ACTIVE'` and `endTime <= :now` in `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java`
+- [X] T006 [P] Create DTO record `ReservationSweepResponse(int expiredCount, int completedCount)` in `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationSweepResponse.java` matching `contracts/expiration-api.yaml`
 
 **Checkpoint**: Core queries and models ready — user story implementation can proceed.
 
@@ -37,16 +37,16 @@
 
 ### Tests for User Story 1 (TDD - Mandatory Test-First) ⚠️
 
-- [ ] T007 [P] [US1] Unit test unattended reservation expiration logic, timestamp updating, and zero-buffer room availability in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
-- [ ] T008 [P] [US1] Unit test activation rejection on expired reservations and concluded bookings (`now >= endTime`) in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
-- [ ] T009 [P] [US1] Integration test full auto-expiration sweep lifecycle and conflict resolution with database in `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`
+- [X] T007 [P] [US1] Unit test unattended reservation expiration logic, timestamp updating, and zero-buffer room availability in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
+- [X] T008 [P] [US1] Unit test activation rejection on expired reservations and concluded bookings (`now >= endTime`) in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
+- [X] T009 [P] [US1] Integration test full auto-expiration sweep lifecycle and conflict resolution with database in `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `expireUnattendedReservations()` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` transitioning candidates to `EXPIRED`, setting `updatedAt`, and emitting SLF4J audit logs without PII
-- [ ] T011 [US1] Update `activateReservation(UUID reservationId)` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to strictly reject activation if `now >= reservation.getEndTime()`, throwing `ConflictException`
-- [ ] T012 [US1] Implement `@Scheduled(initialDelay = 30000, fixedDelay = 30000)` background runner in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationExpirationScheduler.java` delegating to `ReservationService`
-- [ ] T013 [US1] Expose operational endpoint `POST /api/reservations/expire-unattended` returning `ReservationSweepResponse` in `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java` per `contracts/expiration-api.yaml`
+- [X] T010 [US1] Implement `expireUnattendedReservations()` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` transitioning candidates to `EXPIRED`, setting `updatedAt`, and emitting SLF4J audit logs without PII
+- [X] T011 [US1] Update `activateReservation(UUID reservationId)` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to strictly reject activation if `now >= reservation.getEndTime()`, throwing `ConflictException`
+- [X] T012 [US1] Implement `@Scheduled(initialDelay = 30000, fixedDelay = 30000)` background runner in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationExpirationScheduler.java` delegating to `ReservationService`
+- [X] T013 [US1] Expose operational endpoint `POST /api/reservations/expire-unattended` returning `ReservationSweepResponse` in `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java` per `contracts/expiration-api.yaml`
 
 **Checkpoint**: User Story 1 fully functional and testable independently (MVP Complete).
 
@@ -60,13 +60,13 @@
 
 ### Tests for User Story 2 (TDD - Mandatory Test-First) ⚠️
 
-- [ ] T014 [P] [US2] Unit test verifying `ACTIVE` reservations are exempted from expiration and auto-transition to `COMPLETED` upon `now >= endTime` in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
-- [ ] T015 [P] [US2] Integration test verifying check-in exemption and automatic completion past `endTime` in `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`
+- [X] T014 [P] [US2] Unit test verifying `ACTIVE` reservations are exempted from expiration and auto-transition to `COMPLETED` upon `now >= endTime` in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
+- [X] T015 [P] [US2] Integration test verifying check-in exemption and automatic completion past `endTime` in `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Implement `completeOverdueActiveReservations()` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` transitioning overdue active bookings to `COMPLETED` and logging transitions
-- [ ] T017 [US2] Compose unified `sweepOverdueReservations()` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` executing unattended expiration and active completion in sequence, returning `ReservationSweepResponse`
+- [X] T016 [US2] Implement `completeOverdueActiveReservations()` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` transitioning overdue active bookings to `COMPLETED` and logging transitions
+- [X] T017 [US2] Compose unified `sweepOverdueReservations()` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` executing unattended expiration and active completion in sequence, returning `ReservationSweepResponse`
 
 **Checkpoint**: User Stories 1 and 2 work independently and harmoniously.
 
@@ -80,12 +80,12 @@
 
 ### Tests for User Story 3 (TDD - Mandatory Test-First) ⚠️
 
-- [ ] T018 [P] [US3] Unit test boundary precision at exact 5-minute mark (`now == startTime + 5m` vs. `now > startTime + 5m`) in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
-- [ ] T019 [P] [US3] Concurrency unit test simulating simultaneous activation and sweep under optimistic locking (`@Version`) in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
+- [X] T018 [P] [US3] Unit test boundary precision at exact 5-minute mark (`now == startTime + 5m` vs. `now > startTime + 5m`) in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
+- [X] T019 [P] [US3] Concurrency unit test simulating simultaneous activation and sweep under optimistic locking (`@Version`) in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Enforce strict temporal comparison logic using `clock.instant()` against `startTime.plus(CHECK_IN_GRACE_PERIOD)` and catch `OptimisticLockingFailureException` cleanly per-reservation during sweep in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`
+- [X] T020 [US3] Enforce strict temporal comparison logic using `clock.instant()` against `startTime.plus(CHECK_IN_GRACE_PERIOD)` and catch `OptimisticLockingFailureException` cleanly per-reservation during sweep in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`
 
 **Checkpoint**: Exact temporal boundary and optimistic concurrency resilience verified.
 
@@ -99,13 +99,13 @@
 
 ### Tests for User Story 4 (TDD - Mandatory Test-First) ⚠️
 
-- [ ] T021 [P] [US4] Controller tests verifying `POST /api/reservations/expire-unattended` and terminal state mutation rejection (`409 Conflict`) in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java`
-- [ ] T022 [P] [US4] Integration test verifying GET room reservation schedules contain `EXPIRED` status badges and exclude expired slots from conflicts in `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`
+- [X] T021 [P] [US4] Controller tests verifying `POST /api/reservations/expire-unattended` and terminal state mutation rejection (`409 Conflict`) in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java`
+- [X] T022 [P] [US4] Integration test verifying GET room reservation schedules contain `EXPIRED` status badges and exclude expired slots from conflicts in `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Enforce terminal state immutability in `updateReservationMetadata` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`, strictly rejecting updates if status is in `EXPIRED`, `COMPLETED`, or `CANCELLED`
-- [ ] T024 [US4] Validate frontend badge rendering and action button suppression for terminal states against `frontend/src/components/ReservationList/ReservationList.tsx` and run frontend test suite via `npm test` in `frontend/`
+- [X] T023 [US4] Enforce terminal state immutability in `updateReservationMetadata` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`, strictly rejecting updates if status is in `EXPIRED`, `COMPLETED`, or `CANCELLED`
+- [X] T024 [US4] Validate frontend badge rendering and action button suppression for terminal states against `frontend/src/components/ReservationList/ReservationList.tsx` and run frontend test suite via `npm test` in `frontend/`
 
 **Checkpoint**: Visual feedback, schedule queries, and terminal immutability verified across frontend and backend.
 
@@ -115,9 +115,9 @@
 
 **Purpose**: Operational observability, test coverage validation, and regression prevention.
 
-- [ ] T025 [P] Unit test scheduler delegation and exception resilience in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationExpirationSchedulerTest.java`
-- [ ] T026 [P] Verify structured logging adheres to Constitution Principle IV (no credentials or personal data) in `backend/src/test/java/at/mci/igp/raumlotse/config/ConfigurationPrivacyTest.java`
-- [ ] T027 Execute end-to-end quickstart validation per `specs/007-expire-unclaimed-reservations/quickstart.md` using `./dev.sh` and Maven verification
+- [X] T025 [P] Unit test scheduler delegation and exception resilience in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationExpirationSchedulerTest.java`
+- [X] T026 [P] Verify structured logging adheres to Constitution Principle IV (no credentials or personal data) in `backend/src/test/java/at/mci/igp/raumlotse/config/ConfigurationPrivacyTest.java`
+- [X] T027 Execute end-to-end quickstart validation per `specs/007-expire-unclaimed-reservations/quickstart.md` using `./dev.sh` and Maven verification
 
 ---
 

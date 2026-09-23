@@ -148,9 +148,12 @@ describe('ReservationList', () => {
     render(<ReservationList room={sampleRoom()} />)
 
     await screen.findByText('COMPLETED')
+    expect(screen.getByText('EXPIRED')).toBeInTheDocument()
+    expect(screen.getByText('CANCELLED')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /activate/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /complete/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /expire/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /cancel reservation/i })).not.toBeInTheDocument()
   })
 

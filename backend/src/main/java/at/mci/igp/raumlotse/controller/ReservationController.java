@@ -3,6 +3,7 @@ package at.mci.igp.raumlotse.controller;
 import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
+import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
 import at.mci.igp.raumlotse.service.ReservationService;
 import jakarta.validation.Valid;
@@ -79,5 +80,10 @@ public class ReservationController {
     @PostMapping("/api/reservations/{reservationId}/cancel")
     public ReservationResponse cancelReservation(@PathVariable UUID reservationId) {
         return reservationService.cancelReservation(reservationId);
+    }
+
+    @PostMapping("/api/reservations/expire-unattended")
+    public ReservationSweepResponse expireUnattendedReservations() {
+        return reservationService.sweepOverdueReservations();
     }
 }

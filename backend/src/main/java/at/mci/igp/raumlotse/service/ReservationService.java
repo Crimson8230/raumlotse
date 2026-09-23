@@ -9,6 +9,7 @@ import at.mci.igp.raumlotse.domain.SeatingArrangement;
 import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
+import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
@@ -16,10 +17,16 @@ import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
 import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
 import at.mci.igp.raumlotse.repository.SeatingArrangementRepository;
+import at.mci.igp.raumlotse.config.ReservationPolicyConstants;
 import java.time.Duration;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,18 +34,32 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ReservationService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReservationService.class);
+
     private final ReservationRepository reservationRepository;
     private final RoomRepository roomRepository;
     private final EquipmentTypeRepository equipmentTypeRepository;
+    private final Clock clock;
+
+    @Autowired
+    public ReservationService(
+            ReservationRepository reservationRepository,
+            RoomRepository roomRepository,
+            SeatingArrangementRepository seatingArrangementRepository,
+            EquipmentTypeRepository equipmentTypeRepository,
+            Clock clock) {
+        this.reservationRepository = reservationRepository;
+        this.roomRepository = roomRepository;
+        this.equipmentTypeRepository = equipmentTypeRepository;
+        this.clock = clock;
+    }
 
     public ReservationService(
             ReservationRepository reservationRepository,
             RoomRepository roomRepository,
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository) {
-        this.reservationRepository = reservationRepository;
-        this.roomRepository = roomRepository;
-        this.equipmentTypeRepository = equipmentTypeRepository;
+        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, Clock.systemUTC());
     }
 
     public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request) {
@@ -176,9 +197,66 @@ public class ReservationService {
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
             throw new ConflictException("Reservation cannot be activated from status: " + reservation.getStatus());
         }
+        Instant now = clock.instant();
+        if (reservation.getEndTime() != null && !now.isBefore(reservation.getEndTime())) {
+            throw new ConflictException("Reservation scheduled time has elapsed and cannot be activated.");
+        }
         reservation.setStatus(ReservationStatus.ACTIVE);
         Reservation saved = reservationRepository.save(reservation);
         return ReservationResponse.from(saved);
+    }
+
+    public int expireUnattendedReservations() {
+        Instant now = clock.instant();
+        Instant cutoff = now.minus(ReservationPolicyConstants.CHECK_IN_GRACE_PERIOD);
+        List<Reservation> candidates = reservationRepository.findUnattendedReservationsForExpiration(
+                ReservationStatus.RESERVED, cutoff, now);
+
+        int count = 0;
+        for (Reservation reservation : candidates) {
+            try {
+                reservation.setStatus(ReservationStatus.EXPIRED);
+                reservation.setUpdatedAt(now);
+                reservationRepository.save(reservation);
+                count++;
+                log.info("Auto-expired unattended reservation id={} roomId={} startTime={}",
+                        reservation.getId(),
+                        reservation.getRoom() != null ? reservation.getRoom().getId() : null,
+                        reservation.getStartTime());
+            } catch (OptimisticLockingFailureException ex) {
+                log.warn("Concurrent update detected when expiring reservation id={}, skipping", reservation.getId());
+            }
+        }
+        return count;
+    }
+
+    public int completeOverdueActiveReservations() {
+        Instant now = clock.instant();
+        List<Reservation> candidates = reservationRepository.findByStatusAndEndTimeLessThanEqual(
+                ReservationStatus.ACTIVE, now);
+
+        int count = 0;
+        for (Reservation reservation : candidates) {
+            try {
+                reservation.setStatus(ReservationStatus.COMPLETED);
+                reservation.setUpdatedAt(now);
+                reservationRepository.save(reservation);
+                count++;
+                log.info("Auto-completed concluded active reservation id={} roomId={} endTime={}",
+                        reservation.getId(),
+                        reservation.getRoom() != null ? reservation.getRoom().getId() : null,
+                        reservation.getEndTime());
+            } catch (OptimisticLockingFailureException ex) {
+                log.warn("Concurrent update detected when completing reservation id={}, skipping", reservation.getId());
+            }
+        }
+        return count;
+    }
+
+    public ReservationSweepResponse sweepOverdueReservations() {
+        int expired = expireUnattendedReservations();
+        int completed = completeOverdueActiveReservations();
+        return new ReservationSweepResponse(expired, completed);
     }
 
     public ReservationResponse completeReservation(UUID reservationId) {
