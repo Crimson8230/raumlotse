@@ -8,6 +8,9 @@ import type { Room } from './types/room'
 
 vi.mock('./API/rooms')
 vi.mock('./API/reservations')
+const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
+vi.mock('./API/auth', () => ({ authApi: auth }))
+vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 'ok' }) }))
 
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
@@ -25,6 +28,8 @@ const sampleRoom: Room = {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Admin' })
+  auth.refreshCsrfToken.mockResolvedValue(undefined)
   rooms.getRoom.mockResolvedValue(sampleRoom)
   reservations.listRoomReservations.mockResolvedValue([])
   reservations.getAvailableEquipment.mockResolvedValue([])

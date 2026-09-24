@@ -1,0 +1,153 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Unclaimed Reservation Expiration API
+  version: 1.0.0
+  description: API specifications and behavior contracts for automated and operational expiration of unclaimed room reservations.
+paths:
+  /api/reservations/expire-unattended:
+    post:
+      summary: Trigger manual sweep of unattended overdue reservations
+      description: Operational endpoint to execute an immediate check and expiration of all reservations in RESERVED status whose start time plus 5-minute grace period has passed. Useful for automated testing and administrative maintenance.
+      responses:
+        '200':
+          description: Expiration sweep executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - expiredCount
+                  - completedCount
+                properties:
+                  expiredCount:
+                    type: integer
+                    description: Number of unattended reservations transitioned to EXPIRED
+                    example: 2
+                  completedCount:
+                    type: integer
+                    description: Number of concluded active reservations transitioned to COMPLETED
+                    example: 1
+
+  /api/reservations/{reservationId}/activate:
+    post:
+      summary: Activate (check-in) a reservation
+      description: Transitions a reservation from RESERVED to ACTIVE. If the reservation has already expired due to no-show, returns a 409 Conflict error.
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reservation successfully activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '404':
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Reservation cannot be activated because it is in EXPIRED, COMPLETED, or CANCELLED status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+                example:
+                  type: about:blank
+                  title: Conflict
+                  status: 409
+                  detail: "Reservation cannot be activated from status: EXPIRED"
+
+  /api/rooms/{roomId}/reservations:
+    get:
+      summary: List reservations for a room
+      description: Returns all reservations for the room. Overdue reservations that have expired will show status EXPIRED.
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of reservations with their current lifecycle status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReservationResponse'
+
+components:
+  schemas:
+    ReservationStatus:
+      type: string
+      enum:
+        - RESERVED
+        - ACTIVE
+        - COMPLETED
+        - EXPIRED
+        - CANCELLED
+
+    ReservationResponse:
+      type: object
+      required:
+        - id
+        - roomId
+        - roomName
+        - startTime
+        - endTime
+        - status
+        - expectedAttendees
+        - createdBy
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        roomName:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        expectedAttendees:
+          type: integer
+        note:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Problem:
+      type: object
+      required:
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string

@@ -13,6 +13,7 @@ import at.mci.igp.raumlotse.domain.EntityStatus;
 import at.mci.igp.raumlotse.domain.ReservationStatus;
 import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
+import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.SeatingArrangementResponse;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
@@ -365,5 +366,45 @@ class ReservationControllerTest {
         mockMvc.perform(post("/api/reservations/{reservationId}/cancel", resId).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Reservation is in terminal state CANCELLED and cannot be cancelled."));
+    }
+
+    @Test
+    void expireUnattendedReservations_returns200() throws Exception {
+        when(reservationService.sweepOverdueReservations()).thenReturn(new ReservationSweepResponse(2, 3));
+
+        mockMvc.perform(post("/api/reservations/expire-unattended").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiredCount").value(2))
+                .andExpect(jsonPath("$.completedCount").value(3));
+    }
+
+    @Test
+    void activateReservation_terminalState_returns409() throws Exception {
+        UUID resId = UUID.randomUUID();
+
+        when(reservationService.activateReservation(resId))
+                .thenThrow(new ConflictException("Reservation cannot be activated from status: EXPIRED"));
+
+        mockMvc.perform(post("/api/reservations/{reservationId}/activate", resId).with(csrf()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Reservation cannot be activated from status: EXPIRED"));
+    }
+
+    @Test
+    void updateReservationMetadata_terminalState_returns409() throws Exception {
+        UUID resId = UUID.randomUUID();
+
+        when(reservationService.updateReservationMetadata(eq(resId), any()))
+                .thenThrow(new ConflictException("Only reservations in RESERVED status can be edited."));
+
+        mockMvc.perform(patch("/api/reservations/{reservationId}", resId).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "note": "Updated note"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Only reservations in RESERVED status can be edited."));
     }
 }
