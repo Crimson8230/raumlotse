@@ -10,6 +10,15 @@ import type { Reservation } from '../../types/reservation'
 
 vi.mock('../../API/reservations')
 
+let mockAuthState = {
+  state: 'authenticated',
+  user: { userId: 'user-1', displayName: 'Jane Doe' } as { userId: string; displayName: string } | null,
+}
+
+vi.mock('../../auth/useAuth', () => ({
+  useAuth: () => mockAuthState,
+}))
+
 const reservations = vi.mocked(reservationsApi)
 
 function sampleRoom(overrides: Partial<Room> = {}): Room {
@@ -51,9 +60,95 @@ function sampleReservation(): Reservation {
 beforeEach(() => {
   vi.resetAllMocks()
   reservations.getAvailableEquipment.mockResolvedValue([])
+  mockAuthState = {
+    state: 'authenticated',
+    user: { userId: 'user-1', displayName: 'Jane Doe' },
+  }
 })
 
 describe('ReservationForm', () => {
+  it('pre-fills reservedFor input with authenticated user display name and omits manual createdBy input', async () => {
+    mockAuthState = {
+      state: 'authenticated',
+      user: { userId: 'user-1', displayName: 'Max Mustermann' },
+    }
+    render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
+    const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i) as HTMLInputElement
+    expect(reservedForInput).toBeInTheDocument()
+    expect(reservedForInput.value).toBe('Max Mustermann')
+    expect(screen.queryByLabelText(/booked by/i)).not.toBeInTheDocument()
+  })
+
+  it('allows overwriting reservedFor with custom text and submits it', async () => {
+    const user = userEvent.setup()
+    const onSaved = vi.fn()
+    mockAuthState = {
+      state: 'authenticated',
+      user: { userId: 'user-1', displayName: 'Max Mustermann' },
+    }
+    reservations.createReservation.mockResolvedValue(sampleReservation())
+
+    render(<ReservationForm room={sampleRoom()} onSaved={onSaved} />)
+
+    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.type(screen.getByLabelText(/attendees/i), '30')
+
+    const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
+    await user.clear(reservedForInput)
+    await user.type(reservedForInput, 'Projektgruppe Web')
+
+    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+
+    await waitFor(() => {
+      expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
+        seatingArrangementId: 'seat-1',
+        expectedAttendees: 30,
+        reservedFor: 'Projektgruppe Web',
+      }))
+    })
+  })
+
+  it('validates that reservedFor is mandatory and non-blank', async () => {
+    const user = userEvent.setup()
+    mockAuthState = {
+      state: 'authenticated',
+      user: { userId: 'user-1', displayName: 'Max Mustermann' },
+    }
+
+    render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
+
+    const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
+    await user.clear(reservedForInput)
+
+    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.type(screen.getByLabelText(/attendees/i), '30')
+
+    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+
+    expect(await screen.findByText(/reserviert für ist ein pflichtfeld|reserved for is required/i)).toBeInTheDocument()
+    expect(reservations.createReservation).not.toHaveBeenCalled()
+  })
+
+  it('displays an authentication prompt when visitor is unauthenticated', async () => {
+    mockAuthState = {
+      state: 'anonymous',
+      user: null,
+    }
+
+    render(
+      <MemoryRouter>
+        <ReservationForm room={sampleRoom()} onSaved={vi.fn()} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText(/bitte melden sie sich an|sign in to make a reservation/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /confirm reservation/i })).not.toBeInTheDocument()
+  })
+
   it('renders form inputs and auto-selects layout when room has only one arrangement', async () => {
     const singleLayoutRoom = sampleRoom({
       seatingArrangements: [{ id: 'seat-1', name: 'Theater', maxCapacity: 40 }],
@@ -64,7 +159,7 @@ describe('ReservationForm', () => {
     expect(screen.getByLabelText(/start time/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/end time/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/attendees/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/booked by/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/reserviert für|reserved for/i)).toBeInTheDocument()
 
     const select = screen.getByLabelText(/seating arrangement/i) as HTMLSelectElement
     expect(select.value).toBe('seat-1')
@@ -99,7 +194,9 @@ describe('ReservationForm', () => {
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
     await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
     await user.type(screen.getByLabelText(/attendees/i), '30')
-    await user.type(screen.getByLabelText(/booked by/i), 'Jane Doe')
+    const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
+    await user.clear(reservedForInput)
+    await user.type(reservedForInput, 'Jane Doe')
     await user.type(screen.getByLabelText(/notes/i), 'Department Sync')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
@@ -108,7 +205,7 @@ describe('ReservationForm', () => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
         seatingArrangementId: 'seat-1',
         expectedAttendees: 30,
-        createdBy: 'Jane Doe',
+        reservedFor: 'Jane Doe',
         note: 'Department Sync',
       }))
       expect(onSaved).toHaveBeenCalledWith(res)
@@ -135,7 +232,6 @@ describe('ReservationForm', () => {
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
     await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
     await user.type(screen.getByLabelText(/attendees/i), '30')
-    await user.type(screen.getByLabelText(/booked by/i), 'Jane Doe')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
 
@@ -176,7 +272,6 @@ describe('ReservationForm', () => {
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
     await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
     await user.type(screen.getByLabelText(/attendees/i), '30')
-    await user.type(screen.getByLabelText(/booked by/i), 'Jane Doe')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
 

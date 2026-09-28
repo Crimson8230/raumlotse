@@ -69,3 +69,7 @@ export function cancelReservation(reservationId: string): Promise<Reservation> {
     method: 'POST',
   })
 }
+
+export function getMyUpcomingReservations(): Promise<Reservation[]> {
+  return apiRequest<Reservation[]>('/api/reservations/my-upcoming')
+}

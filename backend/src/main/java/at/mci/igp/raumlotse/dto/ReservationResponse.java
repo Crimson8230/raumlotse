@@ -18,7 +18,24 @@ public record ReservationResponse(
         List<EquipmentTypeResponse> additionalEquipment,
         String note,
         String createdBy,
+        String reservedFor,
         Instant createdAt) {
+
+    public ReservationResponse(
+            UUID id,
+            UUID roomId,
+            String roomName,
+            Instant startTime,
+            Instant endTime,
+            ReservationStatus status,
+            SeatingArrangementResponse seatingArrangement,
+            int expectedAttendees,
+            List<EquipmentTypeResponse> additionalEquipment,
+            String note,
+            String createdBy,
+            Instant createdAt) {
+        this(id, roomId, roomName, startTime, endTime, status, seatingArrangement, expectedAttendees, additionalEquipment, note, createdBy, createdBy, createdAt);
+    }
 
     public static ReservationResponse from(Reservation reservation) {
         return new ReservationResponse(
@@ -33,6 +50,7 @@ public record ReservationResponse(
                 reservation.getAdditionalEquipment().stream().map(EquipmentTypeResponse::from).toList(),
                 reservation.getNote(),
                 reservation.getCreatedBy(),
+                reservation.getReservedFor(),
                 reservation.getCreatedAt());
     }
 }

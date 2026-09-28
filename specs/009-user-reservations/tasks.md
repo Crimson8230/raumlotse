@@ -8,8 +8,8 @@
 
 **Purpose**: Database schema migration and foundational JPA entity mapping.
 
-- [ ] T001 Create Flyway migration `backend/src/main/resources/db/migration/V10__add_reserved_for_and_user_reservation_index.sql` adding column `reserved_for VARCHAR(255)`, backfilling with `created_by`, setting `NOT NULL`, adding constraint `ck_reservation_reserved_for_nonempty CHECK (length(btrim(reserved_for)) BETWEEN 1 AND 255)`, and creating index `ix_reservation_user_upcoming ON reservation (created_by, status, end_time, start_time)`
-- [ ] T002 Update `Reservation` JPA entity in `backend/src/main/java/at/mci/igp/raumlotse/domain/Reservation.java` with `@Column(name = "reserved_for", nullable = false) private String reservedFor;` along with getters and setters
+- [X] T001 Create Flyway migration `backend/src/main/resources/db/migration/V10__add_reserved_for_and_user_reservation_index.sql` adding column `reserved_for VARCHAR(255)`, backfilling with `created_by`, setting `NOT NULL`, adding constraint `ck_reservation_reserved_for_nonempty CHECK (length(btrim(reserved_for)) BETWEEN 1 AND 255)`, and creating index `ix_reservation_user_upcoming ON reservation (created_by, status, end_time, start_time)`
+- [X] T002 Update `Reservation` JPA entity in `backend/src/main/java/at/mci/igp/raumlotse/domain/Reservation.java` with `@Column(name = "reserved_for", nullable = false) private String reservedFor;` along with getters and setters
 
 ---
 
@@ -19,9 +19,9 @@
 
 **⚠️ CRITICAL**: Must complete before user story implementation begins.
 
-- [ ] T003 [P] Update backend DTOs: add `@NotBlank @Size(max = 255) String reservedFor` to `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationCreateRequest.java`, add `@Size(min = 1, max = 255) String reservedFor` to `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationUpdateRequest.java`, and add `String reservedFor` to `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationResponse.java`
-- [ ] T004 [P] Update frontend reservation interfaces in `frontend/src/types/reservation.ts` adding `reservedFor: string` to `Reservation`, `reservedFor: string` to `ReservationCreatePayload`, and optional `reservedFor?: string` to `ReservationUpdatePayload`
-- [ ] T005 [P] Implement duration formatting helper in `frontend/src/utils/date.ts` with unit tests in `frontend/src/utils/date.test.ts` converting time difference to localized strings (e.g. `"45 Min."` for < 60 min and `"1 Std. 30 Min."` for >= 60 min)
+- [X] T003 [P] Update backend DTOs: add `@NotBlank @Size(max = 255) String reservedFor` to `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationCreateRequest.java`, add `@Size(min = 1, max = 255) String reservedFor` to `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationUpdateRequest.java`, and add `String reservedFor` to `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationResponse.java`
+- [X] T004 [P] Update frontend reservation interfaces in `frontend/src/types/reservation.ts` adding `reservedFor: string` to `Reservation`, `reservedFor: string` to `ReservationCreatePayload`, and optional `reservedFor?: string` to `ReservationUpdatePayload`
+- [X] T005 [P] Implement duration formatting helper in `frontend/src/utils/date.ts` with unit tests in `frontend/src/utils/date.test.ts` converting time difference to localized strings (e.g. `"45 Min."` for < 60 min and `"1 Std. 30 Min."` for >= 60 min)
 
 **Checkpoint**: Core models, DTOs, and shared utilities ready; story implementations can proceed.
 
@@ -35,16 +35,16 @@
 
 ### Tests for User Story 1 (Test-First) ⚠️
 
-- [ ] T006 [P] [US1] Write failing controller tests in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java` verifying `POST /api/rooms/{roomId}/reservations` assigns `createdBy` from authenticated session principal (`AuthenticatedUser`), stores `reservedFor`, returns 400 Bad Request on blank or missing `reservedFor`, and returns 401 Unauthorized (`AUTH_REQUIRED`) when unauthenticated
-- [ ] T007 [P] [US1] Write failing integration test in `backend/src/test/java/at/mci/igp/raumlotse/ReservationCreationIntegrationTest.java` testing end-to-end reservation creation asserting `createdBy` matches user account ID and `reservedFor` persists non-blank text
-- [ ] T008 [P] [US1] Write failing component tests in `frontend/src/components/ReservationForm/ReservationForm.test.tsx` verifying `reservedFor` input pre-fills with `auth.user.displayName`, validates non-blank input, submits without manual `createdBy` input, and displays authentication prompt when unauthenticated
+- [X] T006 [P] [US1] Write failing controller tests in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java` verifying `POST /api/rooms/{roomId}/reservations` assigns `createdBy` from authenticated session principal (`AuthenticatedUser`), stores `reservedFor`, returns 400 Bad Request on blank or missing `reservedFor`, and returns 401 Unauthorized (`AUTH_REQUIRED`) when unauthenticated
+- [X] T007 [P] [US1] Write failing integration test in `backend/src/test/java/at/mci/igp/raumlotse/ReservationCreationIntegrationTest.java` testing end-to-end reservation creation asserting `createdBy` matches user account ID and `reservedFor` persists non-blank text
+- [X] T008 [P] [US1] Write failing component tests in `frontend/src/components/ReservationForm/ReservationForm.test.tsx` verifying `reservedFor` input pre-fills with `auth.user.displayName`, validates non-blank input, submits without manual `createdBy` input, and displays authentication prompt when unauthenticated
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Update `createReservation` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to set `reservation.setCreatedBy(userId)` and `reservation.setReservedFor(request.reservedFor().trim())`, validating `reservedFor` length between 1 and 255
-- [ ] T010 [US1] Update `POST /api/rooms/{roomId}/reservations` in `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java` to extract `AuthenticatedUser` principal from Spring Security `Authentication`, rejecting unauthenticated requests with 401 `AUTH_REQUIRED`, and passing authenticated user ID to the service
-- [ ] T011 [US1] Update `createReservation` in `frontend/src/API/reservations.ts` to include `reservedFor` in payload
-- [ ] T012 [US1] Update `ReservationForm` in `frontend/src/components/ReservationForm/ReservationForm.tsx` to read `user` from `useAuth()`, pre-fill `reservedFor` with `user.displayName`, validate non-blank (max 255), remove legacy `createdBy` input, and render a sign-in redirect prompt when `user` is not authenticated
+- [X] T009 [US1] Update `createReservation` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to set `reservation.setCreatedBy(userId)` and `reservation.setReservedFor(request.reservedFor().trim())`, validating `reservedFor` length between 1 and 255
+- [X] T010 [US1] Update `POST /api/rooms/{roomId}/reservations` in `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java` to extract `AuthenticatedUser` principal from Spring Security `Authentication`, rejecting unauthenticated requests with 401 `AUTH_REQUIRED`, and passing authenticated user ID to the service
+- [X] T011 [US1] Update `createReservation` in `frontend/src/API/reservations.ts` to include `reservedFor` in payload
+- [X] T012 [US1] Update `ReservationForm` in `frontend/src/components/ReservationForm/ReservationForm.tsx` to read `user` from `useAuth()`, pre-fill `reservedFor` with `user.displayName`, validate non-blank (max 255), remove legacy `createdBy` input, and render a sign-in redirect prompt when `user` is not authenticated
 
 **Checkpoint**: User Story 1 (MVP) is fully functional and testable independently.
 
@@ -58,18 +58,18 @@
 
 ### Tests for User Story 2 (Test-First) ⚠️
 
-- [ ] T013 [P] [US2] Write failing repository test in `backend/src/test/java/at/mci/igp/raumlotse/repository/ReservationOccupancyIntegrationTest.java` verifying `findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc` filters strictly by creator ID, future end time, active/reserved statuses, ascending order, and limit 10
-- [ ] T014 [P] [US2] Write failing controller tests in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java` for `GET /api/reservations/my-upcoming` verifying HTTP 200 OK with list of reservations for authenticated user, 0% cross-user exposure, and HTTP 401 when unauthenticated
-- [ ] T015 [P] [US2] Write failing component test in `frontend/src/components/MyUpcomingReservations/MyUpcomingReservations.test.tsx` verifying table rendering (Reservation Time, Room link, Duration), empty state message ("Keine anstehenden Reservierungen vorhanden."), error feedback, and loading state
+- [X] T013 [P] [US2] Write failing repository test in `backend/src/test/java/at/mci/igp/raumlotse/repository/ReservationOccupancyIntegrationTest.java` verifying `findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc` filters strictly by creator ID, future end time, active/reserved statuses, ascending order, and limit 10
+- [X] T014 [P] [US2] Write failing controller tests in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java` for `GET /api/reservations/my-upcoming` verifying HTTP 200 OK with list of reservations for authenticated user, 0% cross-user exposure, and HTTP 401 when unauthenticated
+- [X] T015 [P] [US2] Write failing component test in `frontend/src/components/MyUpcomingReservations/MyUpcomingReservations.test.tsx` verifying table rendering (Reservation Time, Room link, Duration), empty state message ("Keine anstehenden Reservierungen vorhanden."), error feedback, and loading state
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add query method `findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(String createdBy, Collection<ReservationStatus> statuses, Instant now)` to `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java`
-- [ ] T017 [US2] Implement `getMyUpcomingReservations(String createdBy)` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` querying repository with `clock.instant()` and statuses `[RESERVED, ACTIVE]`
-- [ ] T018 [US2] Implement endpoint `GET /api/reservations/my-upcoming` in `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java` requiring authenticated user and returning `List<ReservationResponse>`
-- [ ] T019 [US2] Add API function `getMyUpcomingReservations(): Promise<Reservation[]>` in `frontend/src/API/reservations.ts`
-- [ ] T020 [US2] Create component `MyUpcomingReservations` in `frontend/src/components/MyUpcomingReservations/MyUpcomingReservations.tsx` and styling in `frontend/src/components/MyUpcomingReservations/MyUpcomingReservations.css` rendering the table with columns Zeitpunkt, Raum (link to `/rooms/:id`), and Dauer (using `formatDuration`), plus empty state
-- [ ] T021 [US2] Integrate `MyUpcomingReservations` component into `frontend/src/pages/HomePage.tsx`
+- [X] T016 [US2] Add query method `findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(String createdBy, Collection<ReservationStatus> statuses, Instant now)` to `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java`
+- [X] T017 [US2] Implement `getMyUpcomingReservations(String createdBy)` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` querying repository with `clock.instant()` and statuses `[RESERVED, ACTIVE]`
+- [X] T018 [US2] Implement endpoint `GET /api/reservations/my-upcoming` in `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java` requiring authenticated user and returning `List<ReservationResponse>`
+- [X] T019 [US2] Add API function `getMyUpcomingReservations(): Promise<Reservation[]>` in `frontend/src/API/reservations.ts`
+- [X] T020 [US2] Create component `MyUpcomingReservations` in `frontend/src/components/MyUpcomingReservations/MyUpcomingReservations.tsx` and styling in `frontend/src/components/MyUpcomingReservations/MyUpcomingReservations.css` rendering the table with columns Zeitpunkt, Raum (link to `/rooms/:id`), and Dauer (using `formatDuration`), plus empty state
+- [X] T021 [US2] Integrate `MyUpcomingReservations` component into `frontend/src/pages/HomePage.tsx`
 
 **Checkpoint**: User Stories 1 and 2 work independently; authenticated users can book rooms and view their personal upcoming reservations.
 
@@ -83,11 +83,11 @@
 
 ### Tests for User Story 3 (Test-First) ⚠️
 
-- [ ] T022 [P] [US3] Write failing page tests in `frontend/src/pages/HomePage.test.tsx` verifying "My Upcoming Reservations" is not rendered in the DOM when `useAuth().state !== 'authenticated'`, and renders when authenticated
+- [X] T022 [P] [US3] Write failing page tests in `frontend/src/pages/HomePage.test.tsx` verifying "My Upcoming Reservations" is not rendered in the DOM when `useAuth().state !== 'authenticated'`, and renders when authenticated
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Update `frontend/src/pages/HomePage.tsx` to conditionally mount `MyUpcomingReservations` only when `auth.state === 'authenticated'`, completely omitting the section and preventing network requests when unauthenticated
+- [X] T023 [US3] Update `frontend/src/pages/HomePage.tsx` to conditionally mount `MyUpcomingReservations` only when `auth.state === 'authenticated'`, completely omitting the section and preventing network requests when unauthenticated
 
 **Checkpoint**: Home page cleanly distinguishes authenticated and unauthenticated visitors.
 
@@ -101,14 +101,14 @@
 
 ### Tests for User Story 4 (Test-First) ⚠️
 
-- [ ] T024 [P] [US4] Write failing controller tests in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java` for `PATCH /api/reservations/{reservationId}` verifying `reservedFor` can be updated on `RESERVED` bookings, rejects blank strings (400), and rejects updates when status is not `RESERVED` (409)
-- [ ] T025 [P] [US4] Write failing component tests in `frontend/src/components/ReservationList/ReservationList.test.tsx` verifying `reservedFor` is rendered on reservation cards, included in the inline edit form, and saved via `updateReservationMetadata`
+- [X] T024 [P] [US4] Write failing controller tests in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationControllerTest.java` for `PATCH /api/reservations/{reservationId}` verifying `reservedFor` can be updated on `RESERVED` bookings, rejects blank strings (400), and rejects updates when status is not `RESERVED` (409)
+- [X] T025 [P] [US4] Write failing component tests in `frontend/src/components/ReservationList/ReservationList.test.tsx` verifying `reservedFor` is rendered on reservation cards, included in the inline edit form, and saved via `updateReservationMetadata`
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Update `updateReservationMetadata` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to update `reservation.setReservedFor(request.reservedFor().trim())` when non-null and validate non-blank (max 255)
-- [ ] T027 [US4] Update `ReservationList` in `frontend/src/components/ReservationList/ReservationList.tsx` to display `reservedFor` ("Reserviert für"), add `reservedFor` input to inline edit form, and pass it in payload to `updateReservationMetadata`
-- [ ] T028 [US4] Update `RoomDisplay` in `frontend/src/components/RoomDisplay/RoomDisplay.tsx` and tests in `frontend/src/components/RoomDisplay/RoomDisplay.test.tsx` to render `reservedFor` for the active/upcoming reservation
+- [X] T026 [US4] Update `updateReservationMetadata` in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to update `reservation.setReservedFor(request.reservedFor().trim())` when non-null and validate non-blank (max 255)
+- [X] T027 [US4] Update `ReservationList` in `frontend/src/components/ReservationList/ReservationList.tsx` to display `reservedFor` ("Reserviert für"), add `reservedFor` input to inline edit form, and pass it in payload to `updateReservationMetadata`
+- [X] T028 [US4] Update `RoomDisplay` in `frontend/src/components/RoomDisplay/RoomDisplay.tsx` and tests in `frontend/src/components/RoomDisplay/RoomDisplay.test.tsx` to render `reservedFor` for the active/upcoming reservation
 
 **Checkpoint**: All 4 user stories are fully implemented and independently verifiable.
 
@@ -118,9 +118,9 @@
 
 **Purpose**: Backwards compatibility of existing tests, regression checks, and end-to-end quickstart validation.
 
-- [ ] T029 [P] Update existing backend tests in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`, `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`, and `backend/src/test/java/at/mci/igp/raumlotse/RoomSearchIntegrationTest.java` to supply valid `reservedFor` in test requests
-- [ ] T030 [P] Update existing frontend tests in `frontend/src/pages/RoomDetailPage.test.tsx` and `frontend/src/pages/RoomDisplayPage.test.tsx` to mock `reservedFor` in reservation test fixtures
-- [ ] T031 Execute and document all manual validation scenarios from `specs/009-user-reservations/quickstart.md` (unauthenticated visitor check, creation with custom `reservedFor`, home page table links, and inline editing)
+- [X] T029 [P] Update existing backend tests in `backend/src/test/java/at/mci/igp/raumlotse/service/ReservationServiceTest.java`, `backend/src/test/java/at/mci/igp/raumlotse/ReservationExpirationIntegrationTest.java`, and `backend/src/test/java/at/mci/igp/raumlotse/RoomSearchIntegrationTest.java` to supply valid `reservedFor` in test requests
+- [X] T030 [P] Update existing frontend tests in `frontend/src/pages/RoomDetailPage.test.tsx` and `frontend/src/pages/RoomDisplayPage.test.tsx` to mock `reservedFor` in reservation test fixtures
+- [X] T031 Execute and document all manual validation scenarios from `specs/009-user-reservations/quickstart.md` (unauthenticated visitor check, creation with custom `reservedFor`, home page table links, and inline editing)
 
 ---
 

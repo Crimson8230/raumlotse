@@ -60,4 +60,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     Set<UUID> findOccupiedRoomIds(@Param("from") Instant from, @Param("to") Instant to);
 
     List<Reservation> findByStatusAndEndTimeLessThanEqual(ReservationStatus status, Instant endTime);
+
+    List<Reservation> findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(
+            String createdBy, Collection<ReservationStatus> statuses, Instant now);
 }

@@ -10,6 +10,13 @@ import type { Room } from '../types/room'
 vi.mock('../API/rooms')
 vi.mock('../API/reservations')
 
+vi.mock('../auth/useAuth', () => ({
+  useAuth: () => ({
+    state: 'authenticated',
+    user: { userId: 'user-1', displayName: 'Jane Doe' },
+  }),
+}))
+
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
 
@@ -84,13 +91,14 @@ describe('RoomDetailPage', () => {
         additionalEquipment: [],
         note: null,
         createdBy: 'Alice Bob',
+        reservedFor: 'Alice Bob',
         createdAt: '2026-09-19T09:00:00Z',
       },
     ])
 
     renderComponent()
 
-    expect(await screen.findByText(/Alice Bob/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Alice Bob/)).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('RESERVED')).toBeInTheDocument()
   })
 
@@ -162,6 +170,7 @@ describe('RoomDetailPage', () => {
       additionalEquipment: [],
       note: null,
       createdBy: 'Alice',
+      reservedFor: 'Jane Doe',
       createdAt: start.toISOString(),
     })
 
@@ -170,7 +179,6 @@ describe('RoomDetailPage', () => {
     await user.clear(endInput)
     await user.type(endInput, '2026-10-05T12:30')
     await user.type(screen.getByLabelText(/attendees/i), '10')
-    await user.type(screen.getByLabelText(/booked by/i), 'Alice')
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
 
     expect(reservations.createReservation).toHaveBeenCalledWith(

@@ -39,6 +39,7 @@ function sampleReservation(overrides: Partial<Reservation> = {}): Reservation {
     additionalEquipment: [{ id: 'eq-1', name: 'Projector', status: 'ACTIVE' }],
     note: 'Initial note',
     createdBy: 'Prof. Smith',
+    reservedFor: 'Team Alpha',
     createdAt: '2026-09-19T10:00:00Z',
     ...overrides,
   }
@@ -56,6 +57,7 @@ describe('ReservationList', () => {
     render(<ReservationList room={sampleRoom()} />)
 
     expect(await screen.findByText(/Prof\. Smith/)).toBeInTheDocument()
+    expect(screen.getByText(/Team Alpha/)).toBeInTheDocument()
     expect(screen.getByText('RESERVED')).toBeInTheDocument()
     expect(screen.getByText(/Theater/)).toBeInTheDocument()
     expect(screen.getByText(/Projector/)).toBeInTheDocument()
@@ -176,11 +178,14 @@ describe('ReservationList', () => {
 
     const attendeesInput = screen.getByLabelText(/edit attendees/i)
     const noteInput = screen.getByLabelText(/edit notes/i)
+    const reservedForInput = screen.getByLabelText(/reserviert für|edit reserved for/i)
 
     await user.clear(attendeesInput)
     await user.type(attendeesInput, '30')
     await user.clear(noteInput)
     await user.type(noteInput, 'Updated note')
+    await user.clear(reservedForInput)
+    await user.type(reservedForInput, 'Neues Team')
 
     await user.click(screen.getByRole('button', { name: /save/i }))
 
@@ -188,7 +193,27 @@ describe('ReservationList', () => {
       expect(reservations.updateReservationMetadata).toHaveBeenCalledWith('res-1', {
         expectedAttendees: 30,
         note: 'Updated note',
+        reservedFor: 'Neues Team',
       })
     })
+  })
+
+  it('validates that reservedFor is mandatory and non-blank when editing', async () => {
+    const user = userEvent.setup()
+    const res = sampleReservation({ status: 'RESERVED', reservedFor: 'Original Team' })
+    reservations.listRoomReservations.mockResolvedValue([res])
+
+    render(<ReservationList room={sampleRoom()} />)
+
+    const editBtn = await screen.findByRole('button', { name: /edit/i })
+    await user.click(editBtn)
+
+    const reservedForInput = screen.getByLabelText(/reserviert für|edit reserved for/i)
+    await user.clear(reservedForInput)
+
+    await user.click(screen.getByRole('button', { name: /save/i }))
+
+    expect(await screen.findByText(/reserviert für ist ein pflichtfeld|reserved for is required/i)).toBeInTheDocument()
+    expect(reservations.updateReservationMetadata).not.toHaveBeenCalled()
   })
 })
