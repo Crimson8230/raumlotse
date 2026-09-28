@@ -1,0 +1,44 @@
+.my-upcoming-reservations {
+  margin-top: 1.5rem;
+}
+
+.my-upcoming-reservations h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.upcoming-reservations-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.upcoming-reservations-table th,
+.upcoming-reservations-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.upcoming-reservations-table th {
+  background-color: var(--color-bg-subtle, #f8fafc);
+  font-weight: 600;
+}
+
+.upcoming-reservations-table tr:hover {
+  background-color: var(--color-bg-hover, #f1f5f9);
+}
+
+.my-upcoming-reservations .empty-state {
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+.my-upcoming-reservations .loading-state {
+  color: var(--color-info, #0284c7);
+  margin: 0.5rem 0;
+}

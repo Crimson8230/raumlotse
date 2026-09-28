@@ -46,3 +46,23 @@ export function formatDateTimeRange(startIso: string, endIso: string): string {
 
   return `${formatDate(startDate)}, ${formatTime(startDate)} – ${formatDate(endDate)}, ${formatTime(endDate)}`
 }
+
+export function formatDuration(startIso: string, endIso: string): string {
+  const start = new Date(startIso).getTime()
+  const end = new Date(endIso).getTime()
+  if (isNaN(start) || isNaN(end) || end <= start) {
+    return '0 Min.'
+  }
+  const totalMinutes = Math.round((end - start) / (1000 * 60))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours === 0) {
+    return `${minutes} Min.`
+  }
+  if (minutes === 0) {
+    return `${hours} Std.`
+  }
+  return `${hours} Std. ${minutes} Min.`
+}
+

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getHealth } from '../API/health'
+import { useAuth } from '../auth/useAuth'
+import { MyUpcomingReservations } from '../components/MyUpcomingReservations/MyUpcomingReservations'
 import './HomePage.css'
 
 function HomePage() {
   const [backendStatus, setBackendStatus] = useState<string>('checking...')
+  const auth = useAuth()
 
   useEffect(() => {
     getHealth()
@@ -25,6 +28,8 @@ function HomePage() {
       <p>
         Backend status: <span className={statusClassName}>{backendStatus}</span>
       </p>
+
+      {auth.state === 'authenticated' && <MyUpcomingReservations />}
     </main>
   )
 }

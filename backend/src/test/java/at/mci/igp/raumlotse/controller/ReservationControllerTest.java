@@ -31,7 +31,11 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import at.mci.igp.raumlotse.config.SecurityConfig;
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 @WebMvcTest(ReservationController.class)
@@ -44,6 +48,98 @@ class ReservationControllerTest {
 
     @MockitoBean
     private ReservationService reservationService;
+
+    @Test
+    void createReservation_authenticatedUser_assignsCreatedByAndReservedFor() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        UUID reservationId = UUID.randomUUID();
+        UUID layoutId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        Instant end = start.plus(2, ChronoUnit.HOURS);
+
+        var actor = authentication(UsernamePasswordAuthenticationToken.authenticated(
+                new AuthenticatedUser(userId, "Max Mustermann"), null, List.of()));
+
+        ReservationResponse response = new ReservationResponse(
+                reservationId,
+                roomId,
+                "Room 101",
+                start,
+                end,
+                ReservationStatus.RESERVED,
+                new SeatingArrangementResponse(layoutId, "Theater", 40),
+                25,
+                List.of(),
+                "Planning",
+                userId.toString(),
+                "Projektgruppe Web",
+                Instant.now());
+
+        when(reservationService.createReservation(eq(roomId), any(), eq(userId.toString()))).thenReturn(response);
+
+        mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf()).with(actor)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "startTime": "%s",
+                                  "endTime": "%s",
+                                  "seatingArrangementId": "%s",
+                                  "expectedAttendees": 25,
+                                  "reservedFor": "Projektgruppe Web"
+                                }
+                                """.formatted(start, end, layoutId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(reservationId.toString()))
+                .andExpect(jsonPath("$.createdBy").value(userId.toString()))
+                .andExpect(jsonPath("$.reservedFor").value("Projektgruppe Web"));
+    }
+
+    @Test
+    void createReservation_blankReservedFor_returns400() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        UUID layoutId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        Instant end = start.plus(2, ChronoUnit.HOURS);
+
+        var actor = authentication(UsernamePasswordAuthenticationToken.authenticated(
+                new AuthenticatedUser(userId, "Max Mustermann"), null, List.of()));
+
+        mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf()).with(actor)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "startTime": "%s",
+                                  "endTime": "%s",
+                                  "seatingArrangementId": "%s",
+                                  "expectedAttendees": 25,
+                                  "reservedFor": "   "
+                                }
+                                """.formatted(start, end, layoutId)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createReservation_unauthenticated_returns401() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        UUID layoutId = UUID.randomUUID();
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        Instant end = start.plus(2, ChronoUnit.HOURS);
+
+        mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf()).with(anonymous())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "startTime": "%s",
+                                  "endTime": "%s",
+                                  "seatingArrangementId": "%s",
+                                  "expectedAttendees": 25,
+                                  "reservedFor": "Projektgruppe Web"
+                                }
+                                """.formatted(start, end, layoutId)))
+                .andExpect(status().isUnauthorized());
+    }
 
     @Test
     void createReservation_returns201() throws Exception {
@@ -67,7 +163,7 @@ class ReservationControllerTest {
                 "Jane Doe",
                 Instant.now());
 
-        when(reservationService.createReservation(eq(roomId), any())).thenReturn(response);
+        when(reservationService.createReservation(eq(roomId), any(), any())).thenReturn(response);
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +175,7 @@ class ReservationControllerTest {
                                   "expectedAttendees": 25,
                                   "additionalEquipmentTypeIds": [],
                                   "note": "Quarterly Planning",
-                                  "createdBy": "Jane Doe"
+                                  "reservedFor": "Jane Doe"
                                 }
                                 """.formatted(start, end, layoutId)))
                 .andExpect(status().isCreated())
@@ -87,28 +183,8 @@ class ReservationControllerTest {
                 .andExpect(jsonPath("$.status").value("RESERVED"))
                 .andExpect(jsonPath("$.roomName").value("Room 101"))
                 .andExpect(jsonPath("$.expectedAttendees").value(25))
-                .andExpect(jsonPath("$.createdBy").value("Jane Doe"));
-    }
-
-    @Test
-    void createReservation_blankCreatedBy_returns400() throws Exception {
-        UUID roomId = UUID.randomUUID();
-        UUID layoutId = UUID.randomUUID();
-        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
-        Instant end = start.plus(2, ChronoUnit.HOURS);
-
-        mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "startTime": "%s",
-                                  "endTime": "%s",
-                                  "seatingArrangementId": "%s",
-                                  "expectedAttendees": 25,
-                                  "createdBy": "   "
-                                }
-                                """.formatted(start, end, layoutId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(jsonPath("$.createdBy").value("Jane Doe"))
+                .andExpect(jsonPath("$.reservedFor").value("Jane Doe"));
     }
 
     @Test
@@ -126,7 +202,7 @@ class ReservationControllerTest {
                                   "endTime": "%s",
                                   "seatingArrangementId": "%s",
                                   "expectedAttendees": 0,
-                                  "createdBy": "Jane Doe"
+                                  "reservedFor": "Jane Doe"
                                 }
                                 """.formatted(start, end, layoutId)))
                 .andExpect(status().isBadRequest());
@@ -139,7 +215,7 @@ class ReservationControllerTest {
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
-        when(reservationService.createReservation(eq(roomId), any()))
+        when(reservationService.createReservation(eq(roomId), any(), any()))
                 .thenThrow(new ConflictException("Scheduling conflict: The room is already reserved during this time."));
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
@@ -150,7 +226,7 @@ class ReservationControllerTest {
                                   "endTime": "%s",
                                   "seatingArrangementId": "%s",
                                   "expectedAttendees": 25,
-                                  "createdBy": "Jane Doe"
+                                  "reservedFor": "Jane Doe"
                                 }
                                 """.formatted(start, end, layoutId)))
                 .andExpect(status().isConflict())
@@ -164,7 +240,7 @@ class ReservationControllerTest {
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
-        when(reservationService.createReservation(eq(roomId), any()))
+        when(reservationService.createReservation(eq(roomId), any(), any()))
                 .thenThrow(new NotFoundException("Room " + roomId + " not found."));
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
@@ -175,7 +251,7 @@ class ReservationControllerTest {
                                   "endTime": "%s",
                                   "seatingArrangementId": "%s",
                                   "expectedAttendees": 25,
-                                  "createdBy": "Jane Doe"
+                                  "reservedFor": "Jane Doe"
                                 }
                                 """.formatted(start, end, layoutId)))
                 .andExpect(status().isNotFound());
@@ -204,7 +280,7 @@ class ReservationControllerTest {
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
-        when(reservationService.createReservation(eq(roomId), any()))
+        when(reservationService.createReservation(eq(roomId), any(), any()))
                 .thenThrow(new IllegalArgumentException("Equipment type 'Old Cam' is deactivated and cannot be reserved."));
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
@@ -216,7 +292,7 @@ class ReservationControllerTest {
                                   "seatingArrangementId": "%s",
                                   "expectedAttendees": 25,
                                   "additionalEquipmentTypeIds": ["%s"],
-                                  "createdBy": "Jane Doe"
+                                  "reservedFor": "Jane Doe"
                                 }
                                 """.formatted(start, end, layoutId, eqId)))
                 .andExpect(status().isBadRequest())
@@ -406,5 +482,97 @@ class ReservationControllerTest {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Only reservations in RESERVED status can be edited."));
+    }
+
+    @Test
+    void getMyUpcomingReservations_authenticated_returns200() throws Exception {
+        UUID userId = UUID.randomUUID();
+        var actor = authentication(UsernamePasswordAuthenticationToken.authenticated(
+                new AuthenticatedUser(userId, "Jane Doe"), null, List.of()));
+
+        UUID roomId = UUID.randomUUID();
+        UUID resId = UUID.randomUUID();
+        Instant start = Instant.now().plus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.SECONDS);
+        Instant end = start.plus(1, ChronoUnit.HOURS);
+
+        ReservationResponse response = new ReservationResponse(
+                resId,
+                roomId,
+                "Room 101",
+                start,
+                end,
+                ReservationStatus.RESERVED,
+                new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
+                10,
+                List.of(),
+                "Sync",
+                userId.toString(),
+                "Jane Doe",
+                Instant.now());
+
+        when(reservationService.getMyUpcomingReservations(userId.toString())).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/api/reservations/my-upcoming").with(actor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(resId.toString()))
+                .andExpect(jsonPath("$[0].roomName").value("Room 101"))
+                .andExpect(jsonPath("$[0].createdBy").value(userId.toString()))
+                .andExpect(jsonPath("$[0].reservedFor").value("Jane Doe"));
+    }
+
+    @Test
+    void getMyUpcomingReservations_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/reservations/my-upcoming").with(anonymous()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateReservationMetadata_updateReservedFor_returns200() throws Exception {
+        UUID resId = UUID.randomUUID();
+        UUID roomId = UUID.randomUUID();
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        Instant end = start.plus(2, ChronoUnit.HOURS);
+
+        ReservationResponse response = new ReservationResponse(
+                resId,
+                roomId,
+                "Room 101",
+                start,
+                end,
+                ReservationStatus.RESERVED,
+                new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
+                25,
+                List.of(),
+                "Updated note",
+                "user-1",
+                "Neues Projektteam",
+                Instant.now());
+
+        when(reservationService.updateReservationMetadata(eq(resId), any())).thenReturn(response);
+
+        mockMvc.perform(patch("/api/reservations/{reservationId}", resId).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reservedFor": "Neues Projektteam"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(resId.toString()))
+                .andExpect(jsonPath("$.reservedFor").value("Neues Projektteam"));
+    }
+
+    @Test
+    void updateReservationMetadata_blankReservedFor_returns400() throws Exception {
+        UUID resId = UUID.randomUUID();
+
+        mockMvc.perform(patch("/api/reservations/{reservationId}", resId).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reservedFor": "   "
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
     }
 }

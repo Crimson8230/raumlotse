@@ -62,9 +62,16 @@ public class ReservationService {
         this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, Clock.systemUTC());
     }
 
-    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request) {
-        if (request.createdBy() == null || request.createdBy().isBlank()) {
+    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request, String createdBy) {
+        String effectiveCreatedBy = createdBy != null && !createdBy.isBlank() ? createdBy.trim() : (request.createdBy() != null ? request.createdBy().trim() : null);
+        if (effectiveCreatedBy == null || effectiveCreatedBy.isBlank()) {
             throw new IllegalArgumentException("Creator identity ('createdBy') cannot be blank.");
+        }
+        if (request.reservedFor() == null || request.reservedFor().isBlank()) {
+            throw new IllegalArgumentException("Designated person ('reservedFor') cannot be blank.");
+        }
+        if (request.reservedFor().trim().length() > 255) {
+            throw new IllegalArgumentException("Designated person ('reservedFor') cannot exceed 255 characters.");
         }
         if (request.startTime() == null || request.endTime() == null) {
             throw new IllegalArgumentException("Start time and end time are required.");
@@ -118,7 +125,8 @@ public class ReservationService {
         reservation.setStatus(ReservationStatus.RESERVED);
         reservation.setExpectedAttendees(request.expectedAttendees());
         reservation.setNote(request.note());
-        reservation.setCreatedBy(request.createdBy().trim());
+        reservation.setCreatedBy(effectiveCreatedBy);
+        reservation.setReservedFor(request.reservedFor().trim());
 
         if (request.additionalEquipmentTypeIds() != null && !request.additionalEquipmentTypeIds().isEmpty()) {
             List<EquipmentType> additionalEquipment = resolveAdditionalEquipment(room, request.additionalEquipmentTypeIds());
@@ -127,6 +135,10 @@ public class ReservationService {
 
         Reservation saved = reservationRepository.save(reservation);
         return ReservationResponse.from(saved);
+    }
+
+    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request) {
+        return createReservation(roomId, request, request.createdBy());
     }
 
     @Transactional(readOnly = true)
@@ -187,6 +199,13 @@ public class ReservationService {
         }
         if (request.note() != null) {
             reservation.setNote(request.note());
+        }
+        if (request.reservedFor() != null) {
+            String trimmed = request.reservedFor().trim();
+            if (trimmed.isEmpty() || trimmed.length() > 255) {
+                throw new IllegalArgumentException("Reserved for cannot be blank and must not exceed 255 characters.");
+            }
+            reservation.setReservedFor(trimmed);
         }
         Reservation saved = reservationRepository.save(reservation);
         return ReservationResponse.from(saved);
@@ -316,5 +335,19 @@ public class ReservationService {
             }
             return eq;
         }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getMyUpcomingReservations(String createdBy) {
+        if (createdBy == null || createdBy.isBlank()) {
+            return List.of();
+        }
+        Instant now = clock.instant();
+        List<ReservationStatus> statuses = List.of(ReservationStatus.RESERVED, ReservationStatus.ACTIVE);
+        return reservationRepository
+                .findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(createdBy.trim(), statuses, now)
+                .stream()
+                .map(ReservationResponse::from)
+                .toList();
     }
 }

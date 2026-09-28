@@ -17,6 +17,7 @@ function reservationFixture(): Reservation {
     additionalEquipment: [],
     note: 'Team meeting',
     createdBy: 'Alice',
+    reservedFor: 'Team Alpha',
     createdAt: '2026-09-19T09:00:00.000Z',
   }
 }
@@ -52,6 +53,7 @@ describe('RoomDisplay smoke test', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Team meeting')).toBeInTheDocument()
     expect(screen.getByText('Booked by: Alice')).toBeInTheDocument()
+    expect(screen.getByText('Reserved for: Team Alpha')).toBeInTheDocument()
     expect(screen.getByText(formatTime(new Date(reservationFixture().startTime)))).toBeInTheDocument()
     expect(screen.getByText(formatTime(new Date(reservationFixture().endTime)))).toBeInTheDocument()
   })

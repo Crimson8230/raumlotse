@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { createReservation, getAvailableEquipment } from '../../API/reservations'
 import { ApiError, formatApiError } from '../../API/client'
 import { toDateTimeLocalValue } from '../../utils/date'
+import { useAuth } from '../../auth/useAuth'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
@@ -17,13 +18,14 @@ export interface ReservationFormProps {
 }
 
 export function ReservationForm({ room, onSaved, onCancel, initialStartTime, initialEndTime }: ReservationFormProps) {
+  const auth = useAuth()
   const [startTime, setStartTime] = useState(() => (initialStartTime ? toDateTimeLocalValue(initialStartTime) : ''))
   const [endTime, setEndTime] = useState(() => (initialEndTime ? toDateTimeLocalValue(initialEndTime) : ''))
   const [seatingArrangementId, setSeatingArrangementId] = useState(
     room.seatingArrangements.length === 1 ? room.seatingArrangements[0].id : '',
   )
   const [expectedAttendees, setExpectedAttendees] = useState<number | ''>('')
-  const [createdBy, setCreatedBy] = useState('')
+  const [reservedFor, setReservedFor] = useState(() => auth.user?.displayName ?? '')
   const [note, setNote] = useState('')
   const [availableEquipment, setAvailableEquipment] = useState<EquipmentTypeSummary[]>([])
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([])
@@ -31,6 +33,12 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
   const [error, setError] = useState<string | null>(null)
   const [isConflict, setIsConflict] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (auth.user?.displayName && !reservedFor) {
+      setReservedFor(auth.user.displayName)
+    }
+  }, [auth.user?.displayName])
 
   useEffect(() => {
     let ignore = false
@@ -50,6 +58,24 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       ignore = true
     }
   }, [room.id])
+
+  if (auth.state !== 'authenticated' || !auth.user) {
+    return (
+      <div className="panel reservation-form reservation-auth-notice">
+        <p>Bitte melden Sie sich an, um eine Reservierung vorzunehmen.</p>
+        <p>
+          <Link to="/login">Zur Anmeldung</Link>
+        </p>
+        {onCancel && (
+          <div className="actions">
+            <button type="button" onClick={onCancel}>
+              Abbrechen
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   function toggleEquipment(id: string) {
     setSelectedEquipmentIds((prev) =>
@@ -93,8 +119,13 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       return
     }
 
-    if (!createdBy.trim()) {
-      setError('Booked by is required.')
+    if (!reservedFor.trim()) {
+      setError('Reserviert für ist ein Pflichtfeld.')
+      return
+    }
+
+    if (reservedFor.trim().length > 255) {
+      setError('Reserviert für darf maximal 255 Zeichen lang sein.')
       return
     }
 
@@ -114,7 +145,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
         endTime: endIso,
         seatingArrangementId,
         expectedAttendees: attendeesNum,
-        createdBy: createdBy.trim(),
+        reservedFor: reservedFor.trim(),
         note: note.trim() || undefined,
         additionalEquipmentTypeIds:
           selectedEquipmentIds.length > 0 ? selectedEquipmentIds : undefined,
@@ -201,14 +232,14 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <div>
-        <label htmlFor="res-booked-by">Booked By</label>
+        <label htmlFor="res-reserved-for">Reserviert für</label>
         <input
-          id="res-booked-by"
+          id="res-reserved-for"
           type="text"
           required
           maxLength={255}
-          value={createdBy}
-          onChange={(e) => setCreatedBy(e.target.value)}
+          value={reservedFor}
+          onChange={(e) => setReservedFor(e.target.value)}
         />
       </div>
 

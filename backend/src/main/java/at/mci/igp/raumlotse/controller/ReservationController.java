@@ -1,5 +1,6 @@
 package at.mci.igp.raumlotse.controller;
 
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
@@ -11,6 +12,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 public class ReservationController {
@@ -33,8 +37,26 @@ public class ReservationController {
     @ResponseStatus(HttpStatus.CREATED)
     public ReservationResponse createReservation(
             @PathVariable UUID roomId,
-            @Valid @RequestBody ReservationCreateRequest request) {
-        return reservationService.createReservation(roomId, request);
+            @Valid @RequestBody ReservationCreateRequest request,
+            Authentication authentication) {
+        String userId = resolveUserId(authentication);
+        return reservationService.createReservation(roomId, request, userId);
+    }
+
+    private String resolveUserId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required.");
+        }
+        if (authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required.");
+        }
+        if (authentication.getPrincipal() instanceof AuthenticatedUser user) {
+            return user.userId().toString();
+        }
+        if (authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required.");
     }
 
     @GetMapping("/api/rooms/{roomId}/available-equipment")
@@ -85,5 +107,11 @@ public class ReservationController {
     @PostMapping("/api/reservations/expire-unattended")
     public ReservationSweepResponse expireUnattendedReservations() {
         return reservationService.sweepOverdueReservations();
+    }
+
+    @GetMapping("/api/reservations/my-upcoming")
+    public List<ReservationResponse> getMyUpcomingReservations(Authentication authentication) {
+        String userId = resolveUserId(authentication);
+        return reservationService.getMyUpcomingReservations(userId);
     }
 }
