@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse User Reservations API
+  description: Endpoints for user-integrated room reservations, ownership attribution, and personal upcoming reservation overviews.
+  version: 1.0.0
+paths:
+  /api/reservations/my-upcoming:
+    get:
+      summary: Retrieve the current authenticated user's upcoming reservations
+      description: Returns up to 10 chronologically ascending upcoming and active reservations created by the calling user.
+      operationId: getMyUpcomingReservations
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: List of upcoming reservations belonging to the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReservationResponse'
+        '401':
+          description: User is not authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/rooms/{roomId}/reservations:
+    post:
+      summary: Create a room reservation
+      description: Creates a room reservation linked to the authenticated user as createdBy and designated recipient as reservedFor.
+      operationId: createReservation
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - sessionCookie: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationCreateRequest'
+      responses:
+        '201':
+          description: Reservation created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Validation error in request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Room or seating arrangement not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Conflict (room inactive or scheduling overlap).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/reservations/{reservationId}:
+    patch:
+      summary: Update reservation metadata
+      description: Update expected attendee count, notes, and reservedFor on an existing RESERVED reservation.
+      operationId: updateReservationMetadata
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - sessionCookie: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationUpdateRequest'
+      responses:
+        '200':
+          description: Reservation updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Reservation not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Cannot edit reservation not in RESERVED status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-TOKEN
+
+  schemas:
+    ReservationCreateRequest:
+      type: object
+      required:
+        - startTime
+        - endTime
+        - seatingArrangementId
+        - expectedAttendees
+        - reservedFor
+      properties:
+        startTime:
+          type: string
+          format: date-time
+          description: ISO-8601 instant marking the start of the reservation (must be future).
+        endTime:
+          type: string
+          format: date-time
+          description: ISO-8601 instant marking the end of the reservation (must be after startTime).
+        seatingArrangementId:
+          type: string
+          format: uuid
+          description: ID of the seating layout.
+        expectedAttendees:
+          type: integer
+          minimum: 1
+          description: Number of expected participants.
+        reservedFor:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Mandatory non-blank recipient name or booking purpose.
+        note:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Optional note.
+        additionalEquipmentTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    ReservationUpdateRequest:
+      type: object
+      properties:
+        expectedAttendees:
+          type: integer
+          minimum: 1
+          nullable: true
+        reservedFor:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+        note:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    ReservationResponse:
+      type: object
+      required:
+        - id
+        - roomId
+        - roomName
+        - startTime
+        - endTime
+        - status
+        - seatingArrangement
+        - expectedAttendees
+        - additionalEquipment
+        - createdBy
+        - reservedFor
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        roomName:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [RESERVED, ACTIVE, COMPLETED, EXPIRED, CANCELLED]
+        seatingArrangement:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            maxCapacity:
+              type: integer
+        expectedAttendees:
+          type: integer
+        additionalEquipment:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              status:
+                type: string
+                enum: [ACTIVE, DEACTIVATED]
+        note:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+          description: Account identifier of the creator.
+        reservedFor:
+          type: string
+          description: Name or purpose of the booking recipient.
+        createdAt:
+          type: string
+          format: date-time
+
+    Problem:
+      type: object
+      required:
+        - status
+        - title
+        - detail
+        - code
+      properties:
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        code:
+          type: string
