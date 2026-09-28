@@ -21,6 +21,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   const [selectedBuildingId, setSelectedBuildingId] = useState(room?.building.id ?? '')
   const [selectedFloorId, setSelectedFloorId] = useState(room?.floor.id ?? '')
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>(room?.equipmentTypeIds ?? [])
+  const [notBarrierFree, setNotBarrierFree] = useState(room?.notBarrierFree ?? false)
   const [seatingArrangements, setSeatingArrangements] = useState<SeatingArrangement[]>(
     room?.seatingArrangements.length ? room.seatingArrangements : [{ name: '', maxCapacity: 0 }],
   )
@@ -123,6 +124,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       floorId: selectedFloorId,
       seatingArrangements: seatingArrangements.map((s) => ({ name: s.name, maxCapacity: Number(s.maxCapacity) })),
       equipmentTypeIds: selectedEquipmentIds,
+      notBarrierFree,
     }
 
     setSubmitting(true)
@@ -272,6 +274,21 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
           </label>
         ))}
       </fieldset>
+
+      <div>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={notBarrierFree}
+            onChange={(e) => setNotBarrierFree(e.target.checked)}
+            aria-describedby="room-not-barrier-free-help"
+          />
+          Nicht barrierefrei (Ausnahme)
+        </label>
+        <p id="room-not-barrier-free-help" className="room-form-help">
+          Nur setzen, wenn der Raum trotz Erdgeschoss oder Aufzug nicht barrierefrei ist.
+        </p>
+      </div>
 
       <fieldset>
         <legend>Seating arrangements</legend>

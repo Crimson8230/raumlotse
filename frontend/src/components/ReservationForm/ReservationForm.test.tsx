@@ -16,8 +16,8 @@ function sampleRoom(overrides: Partial<Room> = {}): Room {
   return {
     id: 'room-1',
     name: 'Room 101',
-    building: { id: 'b1', name: 'Main Building', status: 'ACTIVE' },
-    floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE' },
+    building: { id: 'b1', name: 'Main Building', status: 'ACTIVE', hasElevator: false },
+    floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false },
     status: 'ACTIVE',
     version: 0,
     seatingArrangements: [
@@ -25,6 +25,8 @@ function sampleRoom(overrides: Partial<Room> = {}): Room {
       { id: 'seat-2', name: 'Classroom', maxCapacity: 20 },
     ],
     equipmentTypeIds: [],
+    notBarrierFree: false,
+    barrierFreeReachable: false,
     ...overrides,
   }
 }
@@ -185,5 +187,35 @@ describe('ReservationForm', () => {
     const link = screen.getByRole('link', { name: /zurück zur raumübersicht/i })
     expect(link).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/rooms')
+  })
+
+  it('pre-fills start and end from ISO props as local datetime values that stay editable', async () => {
+    const user = userEvent.setup()
+    const start = new Date(2026, 9, 5, 11, 0)
+    const end = new Date(2026, 9, 5, 12, 30)
+
+    render(
+      <ReservationForm
+        room={sampleRoom()}
+        onSaved={vi.fn()}
+        initialStartTime={start.toISOString()}
+        initialEndTime={end.toISOString()}
+      />,
+    )
+
+    const startInput = screen.getByLabelText(/start time/i)
+    expect(startInput).toHaveValue('2026-10-05T11:00')
+    expect(screen.getByLabelText(/end time/i)).toHaveValue('2026-10-05T12:30')
+
+    await user.clear(startInput)
+    await user.type(startInput, '2026-10-05T11:15')
+    expect(startInput).toHaveValue('2026-10-05T11:15')
+  })
+
+  it('leaves start and end empty without pre-fill props', () => {
+    render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
+
+    expect(screen.getByLabelText(/start time/i)).toHaveValue('')
+    expect(screen.getByLabelText(/end time/i)).toHaveValue('')
   })
 })

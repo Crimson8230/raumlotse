@@ -1,11 +1,16 @@
 openapi: 3.0.3
 info:
   title: Raumlotse Room Management API
-  version: "1.0.0"
+  version: "1.1.0"
   description: >
     Endpoints for managing meeting rooms and the equipment-type catalog.
     No authentication is enforced yet (see spec.md Clarifications, 2026-09-15);
     all endpoints are usable by a single implicit administrator for now.
+    1.1.0 (feature 008, additive): barrier-free attributes `hasElevator` (Building),
+    `groundFloor` (Floor), `notBarrierFree` and derived `barrierFreeReachable` (Room).
+    New request fields are optional; on create an omitted value means false, on PUT it
+    keeps the current value. Room search endpoints are specified in
+    specs/008-room-search-filter/contracts/room-search-api.yaml.
 servers:
   - url: /api
 
@@ -687,6 +692,9 @@ components:
         status:
           type: string
           enum: [ACTIVE, DEACTIVATED]
+        hasElevator:
+          type: boolean
+          description: Since 1.1.0. Default false.
 
     BuildingRequest:
       type: object
@@ -695,6 +703,10 @@ components:
         name:
           type: string
           minLength: 1
+        hasElevator:
+          type: boolean
+          nullable: true
+          description: Since 1.1.0, optional. Create - null means false. PUT - null keeps the current value.
 
     Floor:
       type: object
@@ -710,6 +722,9 @@ components:
         status:
           type: string
           enum: [ACTIVE, DEACTIVATED]
+        groundFloor:
+          type: boolean
+          description: Since 1.1.0. Step-free entrance level; default false.
 
     FloorRequest:
       type: object
@@ -718,6 +733,10 @@ components:
         name:
           type: string
           minLength: 1
+        groundFloor:
+          type: boolean
+          nullable: true
+          description: Since 1.1.0, optional. Create - null means false. PUT - null keeps the current value.
 
     RoomSummary:
       type: object
@@ -758,6 +777,14 @@ components:
               items:
                 type: string
                 format: uuid
+            notBarrierFree:
+              type: boolean
+              description: Since 1.1.0. Administrator exclusion; default false.
+            barrierFreeReachable:
+              type: boolean
+              readOnly: true
+              description: >
+                Since 1.1.0, derived - (floor.groundFloor OR building.hasElevator) AND NOT notBarrierFree.
 
     RoomCreateRequest:
       type: object
@@ -780,6 +807,12 @@ components:
           items:
             type: string
             format: uuid
+        notBarrierFree:
+          type: boolean
+          nullable: true
+          description: >
+            Since 1.1.0, optional. Create - null means false. Update (inherited by RoomUpdateRequest) -
+            null keeps the current value.
 
     RoomUpdateRequest:
       allOf:

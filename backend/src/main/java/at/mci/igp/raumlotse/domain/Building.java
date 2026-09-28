@@ -1,5 +1,6 @@
 package at.mci.igp.raumlotse.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -22,6 +23,9 @@ public class Building {
 
     @Enumerated(EnumType.STRING)
     private EntityStatus status = EntityStatus.ACTIVE;
+
+    @Column(name = "has_elevator", nullable = false)
+    private boolean hasElevator;
 
     protected Building() {
     }
@@ -48,5 +52,13 @@ public class Building {
 
     public void setStatus(EntityStatus status) {
         this.status = status;
+    }
+
+    public boolean hasElevator() {
+        return hasElevator;
+    }
+
+    public void setHasElevator(boolean hasElevator) {
+        this.hasElevator = hasElevator;
     }
 }

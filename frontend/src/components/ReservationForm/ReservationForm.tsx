@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { createReservation, getAvailableEquipment } from '../../API/reservations'
 import { ApiError, formatApiError } from '../../API/client'
+import { toDateTimeLocalValue } from '../../utils/date'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
@@ -10,11 +11,14 @@ export interface ReservationFormProps {
   room: Room
   onSaved: (reservation: Reservation) => void
   onCancel?: () => void
+  /** ISO instants that pre-fill Start/End, e.g. from a room search window (feature 008); stay editable. */
+  initialStartTime?: string
+  initialEndTime?: string
 }
 
-export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProps) {
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
+export function ReservationForm({ room, onSaved, onCancel, initialStartTime, initialEndTime }: ReservationFormProps) {
+  const [startTime, setStartTime] = useState(() => (initialStartTime ? toDateTimeLocalValue(initialStartTime) : ''))
+  const [endTime, setEndTime] = useState(() => (initialEndTime ? toDateTimeLocalValue(initialEndTime) : ''))
   const [seatingArrangementId, setSeatingArrangementId] = useState(
     room.seatingArrangements.length === 1 ? room.seatingArrangements[0].id : '',
   )

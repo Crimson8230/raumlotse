@@ -5,6 +5,7 @@ import at.mci.igp.raumlotse.domain.ReservationStatus;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -45,6 +46,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             @Param("status") ReservationStatus status,
             @Param("graceCutoff") Instant graceCutoff,
             @Param("now") Instant now);
+
+    /**
+     * Rooms blocked in the window by the same rule as {@link #findConflictingReservations}: RESERVED or ACTIVE
+     * reservations overlapping the half-open interval [from, to) (feature 008, FR-014).
+     */
+    @Query("""
+        select distinct r.room.id from Reservation r
+        where r.status in (at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED, at.mci.igp.raumlotse.domain.ReservationStatus.ACTIVE)
+          and r.startTime < :to
+          and r.endTime > :from
+    """)
+    Set<UUID> findOccupiedRoomIds(@Param("from") Instant from, @Param("to") Instant to);
 
     List<Reservation> findByStatusAndEndTimeLessThanEqual(ReservationStatus status, Instant endTime);
 }

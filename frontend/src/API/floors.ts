@@ -5,15 +5,20 @@ export function listFloors(buildingId: string, status: StatusFilter = 'all'): Pr
   return apiRequest<Floor[]>(`/api/buildings/${buildingId}/floors?status=${status}`)
 }
 
-export function createFloor(buildingId: string, name: string): Promise<Floor> {
+export function createFloor(buildingId: string, name: string, groundFloor = false): Promise<Floor> {
   return apiRequest<Floor>(`/api/buildings/${buildingId}/floors`, {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, groundFloor }),
   })
 }
 
+/** Renames the floor; omitting `groundFloor` keeps its current value. */
+export function updateFloor(id: string, name: string, groundFloor?: boolean): Promise<Floor> {
+  return apiRequest<Floor>(`/api/floors/${id}`, { method: 'PUT', body: JSON.stringify({ name, groundFloor }) })
+}
+
 export function renameFloor(id: string, name: string): Promise<Floor> {
-  return apiRequest<Floor>(`/api/floors/${id}`, { method: 'PUT', body: JSON.stringify({ name }) })
+  return updateFloor(id, name)
 }
 
 export function deactivateFloor(id: string): Promise<Floor> {

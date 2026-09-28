@@ -5,6 +5,12 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/raumlotse}
     username: ${SPRING_DATASOURCE_USERNAME:raumlotse}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        # Loads seating arrangements and equipment for up to 100 rooms per query instead of one query per
+        # room (room search, feature 008; guarded by RoomSearchPerformanceIntegrationTest).
+        default_batch_fetch_size: 100
 server:
   servlet:
     session:

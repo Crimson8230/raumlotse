@@ -76,4 +76,67 @@ class RoomServiceTest {
 
         assertThat(checker.hasDependentHistory(roomId)).isTrue();
     }
+
+    private RoomService service() {
+        return new RoomService(
+                roomRepository, floorRepository, equipmentTypeRepository, dependentHistoryChecker, reservationRepository);
+    }
+
+    private at.mci.igp.raumlotse.dto.RoomCreateRequest createRequest(Boolean notBarrierFree) {
+        return new at.mci.igp.raumlotse.dto.RoomCreateRequest("Room 101", UUID.randomUUID(),
+                List.of(new at.mci.igp.raumlotse.dto.SeatingArrangementRequest("Theater", 40)), List.of(), notBarrierFree);
+    }
+
+    private at.mci.igp.raumlotse.dto.RoomUpdateRequest updateRequest(Boolean notBarrierFree) {
+        return new at.mci.igp.raumlotse.dto.RoomUpdateRequest("Room 101", UUID.randomUUID(),
+                List.of(new at.mci.igp.raumlotse.dto.SeatingArrangementRequest("Theater", 40)), List.of(), 0L,
+                notBarrierFree);
+    }
+
+    private void stubSelectableFloor() {
+        when(floorRepository.findById(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.Optional.of(new Floor(new Building("Main"), "1")));
+    }
+
+    @Test
+    void createWithoutNotBarrierFreeDefaultsToFalse() {
+        stubSelectableFloor();
+        when(roomRepository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service().create(createRequest(null)).isNotBarrierFree()).isFalse();
+    }
+
+    @Test
+    void createWithNotBarrierFreeStoresIt() {
+        stubSelectableFloor();
+        when(roomRepository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service().create(createRequest(true)).isNotBarrierFree()).isTrue();
+    }
+
+    private Room existingRoom(UUID id, boolean notBarrierFree) {
+        Room room = new Room("Room 101", new Floor(new Building("Main"), "1"));
+        room.setNotBarrierFree(notBarrierFree);
+        org.springframework.test.util.ReflectionTestUtils.setField(room, "version", 0L);
+        when(roomRepository.findById(id)).thenReturn(java.util.Optional.of(room));
+        return room;
+    }
+
+    @Test
+    void updateWithNullNotBarrierFreeKeepsTheCurrentValue() {
+        UUID id = UUID.randomUUID();
+        existingRoom(id, true);
+        stubSelectableFloor();
+
+        assertThat(service().update(id, updateRequest(null)).isNotBarrierFree()).isTrue();
+    }
+
+    @Test
+    void updateWithFalseClearsTheExclusion() {
+        UUID id = UUID.randomUUID();
+        existingRoom(id, true);
+        stubSelectableFloor();
+
+        assertThat(service().update(id, updateRequest(false)).isNotBarrierFree()).isFalse();
+    }
 }

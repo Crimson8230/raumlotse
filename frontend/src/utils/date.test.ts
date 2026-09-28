@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatDateTime, formatDateTimeRange, formatTime } from './date'
+import { formatDate, formatDateTime, formatDateTimeRange, formatTime, toDateTimeLocalValue } from './date'
 
 describe('date utils', () => {
   it('formats a date as DD.MM.YYYY', () => {
@@ -39,5 +39,14 @@ describe('date utils', () => {
 
   it('handles invalid time range gracefully', () => {
     expect(formatDateTimeRange('bad-start', 'bad-end')).toBe('bad-start – bad-end')
+  })
+
+  it('converts an ISO instant to a local datetime-local value', () => {
+    const d = new Date(2026, 9, 5, 9, 5) // 05 Oct 2026 09:05 local
+    expect(toDateTimeLocalValue(d.toISOString())).toBe('2026-10-05T09:05')
+  })
+
+  it('returns an empty value for an invalid instant', () => {
+    expect(toDateTimeLocalValue('not-a-date')).toBe('')
   })
 })

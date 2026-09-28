@@ -51,6 +51,7 @@ public class RoomService {
         Room room = new Room(request.name(), floor);
         room.replaceSeatingArrangements(toSeatingArrangements(request.seatingArrangements()));
         room.setEquipmentTypes(equipmentTypes);
+        room.setNotBarrierFree(Boolean.TRUE.equals(request.notBarrierFree()));
         return roomRepository.save(room);
     }
 
@@ -82,6 +83,9 @@ public class RoomService {
         room.setFloor(floor);
         room.replaceSeatingArrangements(toSeatingArrangements(request.seatingArrangements()));
         room.setEquipmentTypes(equipmentTypes);
+        if (request.notBarrierFree() != null) {
+            room.setNotBarrierFree(request.notBarrierFree());
+        }
         return room;
     }
 

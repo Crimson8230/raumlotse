@@ -1,22 +1,52 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { deactivateRoom, deleteRoom, listRooms, reactivateRoom } from '../API/rooms'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import {
+  deactivateRoom,
+  deleteRoom,
+  listRooms,
+  listSeatingArrangementNames,
+  reactivateRoom,
+  searchRooms,
+} from '../API/rooms'
+import { listBuildings } from '../API/buildings'
+import { listEquipmentTypes } from '../API/equipmentTypes'
 import { formatApiError } from '../API/client'
-import type { Room, StatusFilter } from '../types/room'
+import { RoomSearchPanel } from '../components/RoomSearch/RoomSearchPanel'
+import {
+  bookingLink,
+  parseSearchParams,
+  roomLink,
+  toApiQuery,
+  toSearchParams,
+} from '../components/RoomSearch/roomSearchParams'
+import type { Building, EquipmentType, Room, RoomSearchFormState, StatusFilter } from '../types/room'
 import './RoomListPage.css'
 
 export default function RoomListPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [status, setStatus] = useState<StatusFilter>('active')
   const [error, setError] = useState<string | null>(null)
+  const [buildings, setBuildings] = useState<Building[]>([])
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
+  const [seatingArrangementNames, setSeatingArrangementNames] = useState<string[]>([])
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const fetchRooms = useCallback(() => listRooms(status), [status])
+  // Search filters live in the URL (contracts/ui.md §1), so reload, back/forward and shared links restore them.
+  const searchKey = searchParams.toString()
+  const searchState = useMemo(() => parseSearchParams(new URLSearchParams(searchKey)), [searchKey])
+  const searching = status === 'active'
+
+  const fetchRooms = useCallback(
+    () => (searching ? searchRooms(toApiQuery(searchState)) : listRooms(status)),
+    [searching, searchState, status],
+  )
 
   const reload = useCallback(async () => {
     setRooms(await fetchRooms())
   }, [fetchRooms])
 
   useEffect(() => {
+    // `ignore` also discards a superseded search whose response arrives after a newer one.
     let ignore = false
     fetchRooms().then(
       (loaded) => {
@@ -31,6 +61,34 @@ export default function RoomListPage() {
     }
   }, [fetchRooms])
 
+  useEffect(() => {
+    let ignore = false
+    // All equipment types are needed to name deactivated equipment still assigned to rooms.
+    Promise.all([listBuildings('active'), listEquipmentTypes('all'), listSeatingArrangementNames()]).then(
+      ([loadedBuildings, loadedEquipmentTypes, loadedNames]) => {
+        if (ignore) return
+        setBuildings(loadedBuildings)
+        setEquipmentTypes(loadedEquipmentTypes)
+        setSeatingArrangementNames(loadedNames)
+      },
+      (err) => {
+        if (!ignore) setError(formatApiError(err))
+      },
+    )
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const equipmentNames = useMemo(
+    () => Object.fromEntries(equipmentTypes.map((type) => [type.id, type.name])),
+    [equipmentTypes],
+  )
+  const activeEquipmentTypes = useMemo(
+    () => equipmentTypes.filter((type) => type.status === 'ACTIVE'),
+    [equipmentTypes],
+  )
+
   async function guarded(action: () => Promise<unknown>) {
     setError(null)
     try {
@@ -39,6 +97,16 @@ export default function RoomListPage() {
     } catch (err) {
       setError(formatApiError(err))
     }
+  }
+
+  function handleSearch(state: RoomSearchFormState) {
+    setError(null)
+    setSearchParams(toSearchParams(state))
+  }
+
+  function handleReset() {
+    setError(null)
+    setSearchParams(new URLSearchParams())
   }
 
   return (
@@ -67,22 +135,60 @@ export default function RoomListPage() {
         <Link to="/rooms/new">New room</Link>
       </div>
 
+      <RoomSearchPanel
+        key={searchKey}
+        value={searchState}
+        buildings={buildings}
+        seatingArrangementNames={seatingArrangementNames}
+        equipmentTypes={activeEquipmentTypes}
+        onSearch={handleSearch}
+        onReset={handleReset}
+        disabled={!searching}
+      />
+
       {rooms.length === 0 ? (
-        <p className="status-empty">No rooms match the selected status.</p>
+        searching ? (
+          <div className="status-empty">
+            <p>Keine passenden Räume gefunden.</p>
+            <button type="button" onClick={handleReset}>
+              Filter zurücksetzen
+            </button>
+          </div>
+        ) : (
+          <p className="status-empty">No rooms match the selected status.</p>
+        )
       ) : (
         <ul className="list-plain">
           {rooms.map((room) => (
             <li key={room.id} className="panel room-list-item">
               <div>
-                <Link to={`/rooms/${room.id}`}>{room.name}</Link>
+                <Link to={roomLink(room.id, searchState)}>{room.name}</Link>
                 <span>{room.building.name}</span>
                 <span>{room.floor.name}</span>
                 <span className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                   {room.status}
                 </span>
+                <span className="room-list-detail">
+                  {room.seatingArrangements.map((s) => `${s.name} (max ${s.maxCapacity})`).join(', ')}
+                </span>
+                {room.barrierFreeReachable && <span className="room-list-detail">Barrierefrei erreichbar</span>}
+                {room.equipmentTypeIds.length > 0 && (
+                  <span className="room-list-detail">
+                    {room.equipmentTypeIds.map((id) => equipmentNames[id] ?? id).join(', ')}
+                  </span>
+                )}
               </div>
 
               <div className="actions">
+                {room.status === 'ACTIVE' && (
+                  <Link
+                    to={bookingLink(room.id, searchState)}
+                    className="room-list-book"
+                    aria-label={`${room.name} buchen`}
+                  >
+                    Buchen
+                  </Link>
+                )}
                 {room.status === 'ACTIVE' ? (
                   <button type="button" onClick={() => guarded(() => deactivateRoom(room.id))}>
                     {`Deactivate ${room.name}`}

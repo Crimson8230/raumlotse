@@ -6,6 +6,7 @@ import {
   listBuildings,
   reactivateBuilding,
   renameBuilding,
+  updateBuilding,
 } from '../../API/buildings'
 import {
   createFloor,
@@ -14,6 +15,7 @@ import {
   listFloors,
   reactivateFloor,
   renameFloor,
+  updateFloor,
 } from '../../API/floors'
 import { formatApiError } from '../../API/client'
 import type { Building, Floor } from '../../types/room'
@@ -27,8 +29,10 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
   const [buildings, setBuildings] = useState<Building[]>([])
   const [floorsByBuilding, setFloorsByBuilding] = useState<Record<string, Floor[]>>({})
   const [newBuildingName, setNewBuildingName] = useState('')
+  const [newBuildingHasElevator, setNewBuildingHasElevator] = useState(false)
   const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({})
   const [newFloorNames, setNewFloorNames] = useState<Record<string, string>>({})
+  const [newFloorGround, setNewFloorGround] = useState<Record<string, boolean>>({})
   const [floorRenameDrafts, setFloorRenameDrafts] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
@@ -89,8 +93,9 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
         onSubmit={(e) => {
           e.preventDefault()
           guarded(async () => {
-            await createBuilding(newBuildingName)
+            await createBuilding(newBuildingName, newBuildingHasElevator)
             setNewBuildingName('')
+            setNewBuildingHasElevator(false)
           })
         }}
       >
@@ -102,6 +107,14 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
             onChange={(e) => setNewBuildingName(e.target.value)}
           />
         </div>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={newBuildingHasElevator}
+            onChange={(e) => setNewBuildingHasElevator(e.target.checked)}
+          />
+          Aufzug vorhanden
+        </label>
         <button type="submit">Add building</button>
       </form>
 
@@ -118,7 +131,17 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
               <span>{building.name}</span>{' '}
               <span className={building.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                 ({building.status})
-              </span>
+              </span>{' '}
+              <span>{building.hasElevator ? 'Aufzug' : 'kein Aufzug'}</span>
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={building.hasElevator}
+                  onChange={() => guarded(() => updateBuilding(building.id, building.name, !building.hasElevator))}
+                />
+                {`Aufzug in ${building.name}`}
+              </label>
 
               <div className="inline-form">
                 <div>
@@ -161,8 +184,9 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                 onSubmit={(e) => {
                   e.preventDefault()
                   guarded(async () => {
-                    await createFloor(building.id, newFloorNames[building.id] ?? '')
+                    await createFloor(building.id, newFloorNames[building.id] ?? '', newFloorGround[building.id] ?? false)
                     setNewFloorNames((prev) => ({ ...prev, [building.id]: '' }))
+                    setNewFloorGround((prev) => ({ ...prev, [building.id]: false }))
                   })
                 }}
               >
@@ -176,6 +200,14 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                     }
                   />
                 </div>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={newFloorGround[building.id] ?? false}
+                    onChange={(e) => setNewFloorGround((prev) => ({ ...prev, [building.id]: e.target.checked }))}
+                  />
+                  Erdgeschoss (stufenloser Zugang)
+                </label>
                 <button type="submit">{`Add floor to ${building.name}`}</button>
               </form>
 
@@ -191,6 +223,21 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                       <span className={floor.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                         ({floor.status})
                       </span>
+                      {floor.groundFloor && (
+                        <>
+                          {' '}
+                          <span>Erdgeschoss</span>
+                        </>
+                      )}
+
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={floor.groundFloor}
+                          onChange={() => guarded(() => updateFloor(floor.id, floor.name, !floor.groundFloor))}
+                        />
+                        {`Erdgeschoss: ${floor.name}`}
+                      </label>
 
                       <div className="inline-form">
                         <div>

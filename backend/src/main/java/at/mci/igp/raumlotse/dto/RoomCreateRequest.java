@@ -11,7 +11,14 @@ public record RoomCreateRequest(
         @NotBlank(message = "name must not be blank") String name,
         @NotNull(message = "floorId must be provided") UUID floorId,
         @NotEmpty(message = "at least one seating arrangement is required") @Valid List<SeatingArrangementRequest> seatingArrangements,
-        List<UUID> equipmentTypeIds) {
+        List<UUID> equipmentTypeIds,
+        Boolean notBarrierFree) {
+
+    /** Pre-008 shape; {@code notBarrierFree} omitted means false. */
+    public RoomCreateRequest(String name, UUID floorId, List<SeatingArrangementRequest> seatingArrangements,
+            List<UUID> equipmentTypeIds) {
+        this(name, floorId, seatingArrangements, equipmentTypeIds, null);
+    }
 
     public List<UUID> equipmentTypeIds() {
         return equipmentTypeIds == null ? List.of() : equipmentTypeIds;

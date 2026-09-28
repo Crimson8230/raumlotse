@@ -7,12 +7,17 @@ export function listBuildings(status: StatusFilter = 'all'): Promise<Building[]>
   return apiRequest<Building[]>(`${BASE}?status=${status}`)
 }
 
-export function createBuilding(name: string): Promise<Building> {
-  return apiRequest<Building>(BASE, { method: 'POST', body: JSON.stringify({ name }) })
+export function createBuilding(name: string, hasElevator = false): Promise<Building> {
+  return apiRequest<Building>(BASE, { method: 'POST', body: JSON.stringify({ name, hasElevator }) })
+}
+
+/** Renames the building; omitting `hasElevator` keeps its current value. */
+export function updateBuilding(id: string, name: string, hasElevator?: boolean): Promise<Building> {
+  return apiRequest<Building>(`${BASE}/${id}`, { method: 'PUT', body: JSON.stringify({ name, hasElevator }) })
 }
 
 export function renameBuilding(id: string, name: string): Promise<Building> {
-  return apiRequest<Building>(`${BASE}/${id}`, { method: 'PUT', body: JSON.stringify({ name }) })
+  return updateBuilding(id, name)
 }
 
 export function deactivateBuilding(id: string): Promise<Building> {

@@ -1,5 +1,6 @@
 package at.mci.igp.raumlotse.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -29,6 +30,9 @@ public class Floor {
 
     @Enumerated(EnumType.STRING)
     private EntityStatus status = EntityStatus.ACTIVE;
+
+    @Column(name = "ground_floor", nullable = false)
+    private boolean groundFloor;
 
     protected Floor() {
     }
@@ -60,6 +64,14 @@ public class Floor {
 
     public void setStatus(EntityStatus status) {
         this.status = status;
+    }
+
+    public boolean isGroundFloor() {
+        return groundFloor;
+    }
+
+    public void setGroundFloor(boolean groundFloor) {
+        this.groundFloor = groundFloor;
     }
 
     public boolean isSelectable() {
