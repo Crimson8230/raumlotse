@@ -15,12 +15,14 @@ function sampleRoom(): Room {
   return {
     id: 'room-1',
     name: 'Room 101',
-    building: { id: 'b1', name: 'Main', status: 'ACTIVE' },
-    floor: { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE' },
+    building: { id: 'b1', name: 'Main', status: 'ACTIVE', hasElevator: false },
+    floor: { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false },
     status: 'ACTIVE',
     version: 0,
     seatingArrangements: [{ id: 'sa-1', name: 'Theater', maxCapacity: 40 }],
     equipmentTypeIds: [],
+    notBarrierFree: false,
+    barrierFreeReachable: false,
   }
 }
 

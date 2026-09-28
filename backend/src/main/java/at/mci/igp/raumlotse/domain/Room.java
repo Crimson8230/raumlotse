@@ -1,6 +1,7 @@
 package at.mci.igp.raumlotse.domain;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -39,6 +40,9 @@ public class Room {
 
     @Enumerated(EnumType.STRING)
     private EntityStatus status = EntityStatus.ACTIVE;
+
+    @Column(name = "not_barrier_free", nullable = false)
+    private boolean notBarrierFree;
 
     @Version
     private Long version;
@@ -93,6 +97,19 @@ public class Room {
 
     public void setStatus(EntityStatus status) {
         this.status = status;
+    }
+
+    public boolean isNotBarrierFree() {
+        return notBarrierFree;
+    }
+
+    public void setNotBarrierFree(boolean notBarrierFree) {
+        this.notBarrierFree = notBarrierFree;
+    }
+
+    /** Step-free reachable: ground floor or elevator in the building, unless explicitly excluded (FR-009). */
+    public boolean isBarrierFreeReachable() {
+        return (floor.isGroundFloor() || floor.getBuilding().hasElevator()) && !notBarrierFree;
     }
 
     public Long getVersion() {

@@ -37,13 +37,13 @@ public class BuildingController {
 
     @PostMapping
     public ResponseEntity<BuildingResponse> create(@Valid @RequestBody BuildingRequest request) {
-        var created = buildingService.create(request.name());
+        var created = buildingService.create(request.name(), request.hasElevator());
         return ResponseEntity.status(HttpStatus.CREATED).body(BuildingResponse.from(created));
     }
 
     @PutMapping("/{buildingId}")
     public BuildingResponse rename(@PathVariable UUID buildingId, @Valid @RequestBody BuildingRequest request) {
-        return BuildingResponse.from(buildingService.rename(buildingId, request.name()));
+        return BuildingResponse.from(buildingService.update(buildingId, request.name(), request.hasElevator()));
     }
 
     @PostMapping("/{buildingId}/deactivate")

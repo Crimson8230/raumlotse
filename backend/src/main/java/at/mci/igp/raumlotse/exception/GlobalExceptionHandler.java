@@ -11,9 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.CacheControl;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -50,12 +53,38 @@ public class GlobalExceptionHandler {
                                                 "The request conflicts with an existing record (e.g. a duplicate name)."));
         }
 
+        private static final String INVALID_FORMAT = "has an invalid format";
+
         @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<Problem> handleValidation(MethodArgumentNotValidException ex) {
-                List<Problem.FieldError> errors = ex.getBindingResult().getFieldErrors().stream()
-                                .map(fe -> new Problem.FieldError(fe.getField(), fe.getDefaultMessage()))
+                return bindingProblem(ex.getBindingResult());
+        }
+
+        /** Fallback for binding failures not raised as {@link MethodArgumentNotValidException}. */
+        @ExceptionHandler(BindException.class)
+        public ResponseEntity<Problem> handleBinding(BindException ex) {
+                return bindingProblem(ex.getBindingResult());
+        }
+
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+        public ResponseEntity<Problem> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+                log.warn("validation_failed fields={}", ex.getName());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).cacheControl(CacheControl.noStore())
+                                .body(Problem.of(400, "Validation Failed", "One or more parameters are invalid.",
+                                                List.of(new Problem.FieldError(ex.getName(), INVALID_FORMAT)),
+                                                "VALIDATION_FAILED", null));
+        }
+
+        /**
+         * Type-conversion errors carry Spring's technical text (including the rejected value), so they are
+         * replaced by a neutral message; Bean Validation messages are passed through unchanged.
+         */
+        private ResponseEntity<Problem> bindingProblem(BindingResult bindingResult) {
+                List<Problem.FieldError> errors = bindingResult.getFieldErrors().stream()
+                                .map(fe -> new Problem.FieldError(fe.getField(),
+                                                "typeMismatch".equals(fe.getCode()) ? INVALID_FORMAT : fe.getDefaultMessage()))
                                 .toList();
-                log.warn("validation_failed errors={}", errors);
+                log.warn("validation_failed fields={}", errors.stream().map(Problem.FieldError::field).toList());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).cacheControl(CacheControl.noStore())
                                 .body(Problem.of(400, "Validation Failed", "One or more fields are invalid.", errors,
                                                 "VALIDATION_FAILED", null));

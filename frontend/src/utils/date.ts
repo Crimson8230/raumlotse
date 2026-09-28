@@ -15,6 +15,13 @@ export function formatTime(d: Date): string {
   return `${hours}:${minutes}`
 }
 
+/** ISO instant → `YYYY-MM-DDTHH:mm` in local time, the value format of `<input type="datetime-local">`. */
+export function toDateTimeLocalValue(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}T${formatTime(d)}`
+}
+
 export function formatDateTime(isoString: string): string {
   const d = new Date(isoString)
   if (isNaN(d.getTime())) return isoString

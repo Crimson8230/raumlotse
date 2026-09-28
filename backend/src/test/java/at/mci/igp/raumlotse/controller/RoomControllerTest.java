@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -259,5 +260,58 @@ class RoomControllerTest {
 
                 mockMvc.perform(post("/api/rooms/" + id + "/deactivate").with(csrf()))
                                 .andExpect(status().isConflict());
+        }
+
+        @Test
+        void listWithAllStatusFilterStillWorks() throws Exception {
+                when(roomService.list(any())).thenReturn(List.of(roomWithOneSeatingArrangement()));
+
+                mockMvc.perform(get("/api/rooms?status=all"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)));
+        }
+
+        @Test
+        void malformedRoomIdReturns400ValidationProblem() throws Exception {
+                mockMvc.perform(get("/api/rooms/not-a-uuid"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                                .andExpect(jsonPath("$.errors[0].field").value("roomId"))
+                                .andExpect(jsonPath("$.errors[0].message").value("has an invalid format"));
+        }
+
+        @Test
+        void createPassesNotBarrierFreeAndReturnsDerivedReachability() throws Exception {
+                Room excluded = roomWithOneSeatingArrangement();
+                excluded.setNotBarrierFree(true);
+                org.mockito.ArgumentCaptor<at.mci.igp.raumlotse.dto.RoomCreateRequest> captor =
+                                org.mockito.ArgumentCaptor.forClass(at.mci.igp.raumlotse.dto.RoomCreateRequest.class);
+                when(roomService.create(captor.capture())).thenReturn(excluded);
+
+                mockMvc.perform(post("/api/rooms").with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                                {"name": "Room 101", "floorId": "%s", "notBarrierFree": true,
+                                                 "seatingArrangements": [{"name": "Theater", "maxCapacity": 40}]}
+                                                """.formatted(UUID.randomUUID())))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.notBarrierFree").value(true))
+                                .andExpect(jsonPath("$.barrierFreeReachable").value(false));
+
+                org.assertj.core.api.Assertions.assertThat(captor.getValue().notBarrierFree()).isTrue();
+        }
+
+        @Test
+        void responseDerivesBarrierFreeReachabilityFromFloorAndBuilding() throws Exception {
+                UUID id = UUID.randomUUID();
+                Room room = roomWithOneSeatingArrangement();
+                room.getFloor().setGroundFloor(true);
+                when(roomService.get(id)).thenReturn(room);
+
+                mockMvc.perform(get("/api/rooms/" + id))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.notBarrierFree").value(false))
+                                .andExpect(jsonPath("$.barrierFreeReachable").value(true));
         }
 }

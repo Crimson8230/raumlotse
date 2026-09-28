@@ -13,7 +13,9 @@ public record RoomResponse(
         EntityStatus status,
         long version,
         List<SeatingArrangementResponse> seatingArrangements,
-        List<UUID> equipmentTypeIds) {
+        List<UUID> equipmentTypeIds,
+        boolean notBarrierFree,
+        boolean barrierFreeReachable) {
 
     public static RoomResponse from(Room room) {
         return new RoomResponse(
@@ -24,6 +26,8 @@ public record RoomResponse(
                 room.getStatus(),
                 room.getVersion() == null ? 0 : room.getVersion(),
                 room.getSeatingArrangements().stream().map(SeatingArrangementResponse::from).toList(),
-                room.getEquipmentTypes().stream().map(at.mci.igp.raumlotse.domain.EquipmentType::getId).toList());
+                room.getEquipmentTypes().stream().map(at.mci.igp.raumlotse.domain.EquipmentType::getId).toList(),
+                room.isNotBarrierFree(),
+                room.isBarrierFreeReachable());
     }
 }

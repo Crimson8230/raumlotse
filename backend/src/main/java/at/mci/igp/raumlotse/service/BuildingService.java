@@ -25,8 +25,15 @@ public class BuildingService {
     }
 
     public Building create(String name) {
+        return create(name, null);
+    }
+
+    /** {@code hasElevator} null means false (feature 008). */
+    public Building create(String name, Boolean hasElevator) {
         requireUniqueName(name, null);
-        return buildingRepository.save(new Building(name));
+        Building building = new Building(name);
+        building.setHasElevator(Boolean.TRUE.equals(hasElevator));
+        return buildingRepository.save(building);
     }
 
     @Transactional(readOnly = true)
@@ -43,9 +50,17 @@ public class BuildingService {
     }
 
     public Building rename(UUID id, String name) {
+        return update(id, name, null);
+    }
+
+    /** Renames the building; {@code hasElevator} null keeps the current value (feature 008). */
+    public Building update(UUID id, String name, Boolean hasElevator) {
         Building building = findOrThrow(id);
         requireUniqueName(name, id);
         building.setName(name);
+        if (hasElevator != null) {
+            building.setHasElevator(hasElevator);
+        }
         return building;
     }
 

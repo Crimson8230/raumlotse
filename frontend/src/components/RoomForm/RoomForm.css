@@ -19,8 +19,7 @@
   color: var(--color-muted);
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+/* Explains a field whose meaning is not obvious from its label alone. */
+.room-form-help {
+  font-size: var(--font-size-small);
 }

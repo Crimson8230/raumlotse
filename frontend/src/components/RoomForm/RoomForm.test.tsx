@@ -20,11 +20,11 @@ const equipment = vi.mocked(equipmentApi)
 const rooms = vi.mocked(roomsApi)
 
 function building(overrides: Partial<Building> = {}): Building {
-  return { id: 'b1', name: 'Main', status: 'ACTIVE', ...overrides }
+  return { id: 'b1', name: 'Main', status: 'ACTIVE', hasElevator: false, ...overrides }
 }
 
 function floor(overrides: Partial<Floor> = {}): Floor {
-  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', ...overrides }
+  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false, ...overrides }
 }
 
 function equipmentType(overrides: Partial<EquipmentType> = {}): EquipmentType {
@@ -41,6 +41,8 @@ function room(overrides: Partial<Room> = {}): Room {
     version: 0,
     seatingArrangements: [{ id: 's1', name: 'Theater', maxCapacity: 40 }],
     equipmentTypeIds: [],
+    notBarrierFree: false,
+    barrierFreeReachable: false,
     ...overrides,
   }
 }
@@ -74,6 +76,7 @@ describe('RoomForm (create mode)', () => {
         floorId: 'f1',
         seatingArrangements: [{ name: 'Theater', maxCapacity: 40 }],
         equipmentTypeIds: ['e1'],
+        notBarrierFree: false,
       }),
     )
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(room()))
@@ -138,6 +141,7 @@ describe('RoomForm (edit mode)', () => {
         floorId: 'f1',
         seatingArrangements: [{ name: 'Theater', maxCapacity: 40 }],
         equipmentTypeIds: [],
+        notBarrierFree: false,
         version: 0,
       }),
     )
@@ -163,5 +167,49 @@ describe('RoomForm (edit mode)', () => {
     const conflictMessage = await screen.findByText(/modified by someone else/i)
     expect(conflictMessage).toHaveClass('feedback-conflict')
     expect(conflictMessage).not.toHaveClass('feedback-error')
+  })
+})
+
+describe('RoomForm (barrier-free exclusion)', () => {
+  const HELP = 'Nur setzen, wenn der Raum trotz Erdgeschoss oder Aufzug nicht barrierefrei ist.'
+
+  it('offers the exclusion unchecked by default with an explanation and sends it on create', async () => {
+    const user = userEvent.setup()
+    rooms.createRoom.mockResolvedValue(room())
+
+    render(<RoomForm onSaved={vi.fn()} />)
+
+    const exclusion = screen.getByLabelText('Nicht barrierefrei (Ausnahme)')
+    expect(exclusion).not.toBeChecked()
+    expect(screen.getByText(HELP)).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/room name/i), 'Room 101')
+    await user.selectOptions(await screen.findByLabelText(/^building/i), 'b1')
+    await user.selectOptions(await screen.findByLabelText(/^floor/i), 'f1')
+    await user.type(screen.getByLabelText(/seating arrangement name/i), 'Theater')
+    await user.type(screen.getByLabelText(/max capacity/i), '40')
+    await user.click(exclusion)
+    await user.click(screen.getByRole('button', { name: /create room/i }))
+
+    await waitFor(() =>
+      expect(rooms.createRoom).toHaveBeenCalledWith(expect.objectContaining({ notBarrierFree: true })),
+    )
+  })
+
+  it('pre-checks the exclusion when editing an excluded room and sends the change on update', async () => {
+    const user = userEvent.setup()
+    const existing = room({ notBarrierFree: true })
+    rooms.updateRoom.mockResolvedValue(existing)
+
+    render(<RoomForm room={existing} onSaved={vi.fn()} />)
+
+    const exclusion = await screen.findByLabelText('Nicht barrierefrei (Ausnahme)')
+    expect(exclusion).toBeChecked()
+    await user.click(exclusion)
+    await user.click(screen.getByRole('button', { name: /save room/i }))
+
+    await waitFor(() =>
+      expect(rooms.updateRoom).toHaveBeenCalledWith('r1', expect.objectContaining({ notBarrierFree: false })),
+    )
   })
 })

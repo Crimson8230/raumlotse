@@ -1,0 +1,51 @@
+/* Search filters wrap into as many columns as fit, so the panel stays usable at 375px (feature 002 FR-010). */
+.room-search-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: start;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.room-search-fields input,
+.room-search-fields select {
+  width: 100%;
+}
+
+.room-search-actions {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.room-search-hint {
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-small);
+}
+
+/* Equipment checkboxes take a full row and wrap, since the catalog can grow (FR-008). */
+.room-search-equipment {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.room-search-equipment legend {
+  width: 100%;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+}
+
+/* Option labels read as body text, not as the small field labels above them. */
+.room-search-fields .checkbox-label {
+  margin-bottom: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text);
+}
