@@ -70,7 +70,7 @@ backend/src/main/java/at/mci/igp/raumlotse/
 ├── repository/RoomDeviceStateRepository.java
 └── service/RoomDeviceService.java
 
-backend/src/main/resources/db/migration/V9__create_room_device_control.sql
+backend/src/main/resources/db/migration/V11__create_room_device_control.sql
 
 frontend/src/
 ├── API/roomDevices.ts

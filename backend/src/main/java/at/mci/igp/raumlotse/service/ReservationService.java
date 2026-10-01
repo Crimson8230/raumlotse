@@ -64,11 +64,11 @@ public class ReservationService {
         this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, Clock.systemUTC());
     }
 
-    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request, String createdBy) {
-        String effectiveCreatedBy = createdBy != null && !createdBy.isBlank() ? createdBy.trim() : (request.createdBy() != null ? request.createdBy().trim() : null);
-        if (effectiveCreatedBy == null || effectiveCreatedBy.isBlank()) {
-            throw new IllegalArgumentException("Creator identity ('createdBy') cannot be blank.");
+    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request, AuthenticatedUser user) {
+        if (user == null || user.userId() == null || user.displayName() == null || user.displayName().isBlank()) {
+            throw new IllegalArgumentException("Authenticated creator identity is required.");
         }
+        String effectiveCreatedBy = user.displayName().trim();
         if (request.reservedFor() == null || request.reservedFor().isBlank()) {
             throw new IllegalArgumentException("Designated person ('reservedFor') cannot be blank.");
         }
@@ -128,6 +128,7 @@ public class ReservationService {
         reservation.setExpectedAttendees(request.expectedAttendees());
         reservation.setNote(request.note());
         reservation.setCreatedBy(effectiveCreatedBy);
+        reservation.setCreatedByUserId(user.userId());
         reservation.setReservedFor(request.reservedFor().trim());
 
         if (request.additionalEquipmentTypeIds() != null && !request.additionalEquipmentTypeIds().isEmpty()) {
@@ -140,7 +141,12 @@ public class ReservationService {
     }
 
     public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request) {
-        return createReservation(roomId, request, request.createdBy());
+        String legacyOwner = request.createdBy();
+        if (legacyOwner == null || legacyOwner.isBlank()) {
+            throw new IllegalArgumentException("Creator identity ('createdBy') cannot be blank.");
+        }
+        UUID legacyUserId = UUID.nameUUIDFromBytes(legacyOwner.trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return createReservation(roomId, request, new AuthenticatedUser(legacyUserId, legacyOwner.trim()));
     }
 
     @Transactional(readOnly = true)

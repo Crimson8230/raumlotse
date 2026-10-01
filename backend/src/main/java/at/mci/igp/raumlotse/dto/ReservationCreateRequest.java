@@ -1,7 +1,9 @@
 package at.mci.igp.raumlotse.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
@@ -16,7 +18,7 @@ public record ReservationCreateRequest(
         List<UUID> additionalEquipmentTypeIds,
         @Size(max = 2000) String note,
         @NotBlank @Size(max = 255) String reservedFor,
-        @Size(max = 255) String createdBy) {
+        @JsonIgnore @Size(max = 255) String createdBy) {
 
     public ReservationCreateRequest(
             Instant startTime,

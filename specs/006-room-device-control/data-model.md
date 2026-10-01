@@ -25,7 +25,7 @@ Room Management continues to represent equipment through its existing room-equip
 
 ## RoomDeviceState
 
-Migration `V9__create_room_device_control.sql` adds the nullable ownership foreign key for historical reservations, makes the equipment code canonical and unique, and creates the unique `(room_id, kind)` state constraint. New reservations created in an authenticated request always populate both ownership fields from the server-side account context; the legacy request field is retained only for compatibility with historical service callers.
+Migration `V11__create_room_device_control.sql` adds the nullable ownership foreign key for historical reservations, makes the equipment code canonical and unique, and creates the unique `(room_id, kind)` state constraint. New reservations created in an authenticated request always populate both ownership fields from the server-side account context; the legacy request field is retained only for compatibility with historical service callers.
 
 One row represents the last confirmed operational state of one device capability in one room.
 
