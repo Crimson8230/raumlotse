@@ -21,8 +21,11 @@ public class EquipmentTypeService {
     }
 
     public EquipmentType create(String name) {
+        return create(name, null);
+    }
+    public EquipmentType create(String name, String code) {
         requireUniqueName(name, null);
-        return equipmentTypeRepository.save(new EquipmentType(name));
+        return equipmentTypeRepository.save(new EquipmentType(name, code == null || code.isBlank() ? name.trim().toUpperCase().replaceAll("[^A-Z0-9]+", "_") : code.trim().toUpperCase()));
     }
 
     @Transactional(readOnly = true)
@@ -42,6 +45,12 @@ public class EquipmentTypeService {
         EquipmentType equipmentType = findOrThrow(id);
         requireUniqueName(name, id);
         equipmentType.setName(name);
+        return equipmentType;
+    }
+
+    public EquipmentType updateCode(UUID id, String code) {
+        EquipmentType equipmentType = findOrThrow(id);
+        equipmentType.setCode(code.trim().toUpperCase());
         return equipmentType;
     }
 

@@ -68,6 +68,7 @@ export default function RoomDetailPage() {
         <h1>{room.name}</h1>
         <div>
           <Link to={`/rooms/${room.id}/display`}>Display Room Information</Link>{' '}
+          <Link to={`/rooms/${room.id}/control`}>Control Devices</Link>{' '}
           <Link to={`/rooms/${room.id}/edit`}>Edit Room</Link>
         </div>
       </div>

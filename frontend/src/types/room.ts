@@ -16,6 +16,7 @@ export interface Floor {
 export interface EquipmentType {
   id: string
   name: string
+  code?: string
   status: EntityStatus
 }
 

@@ -3,6 +3,8 @@
 ## Prerequisites
 
 - Docker Compose services are running, or the existing backend and frontend development commands are available.
+- Backend integration tests require a running Docker daemon because Testcontainers starts PostgreSQL 17.
+- Frontend validation requires Node.js/npm with the dependencies installed via `npm install` in `frontend/`.
 - A test user account exists and can log in.
 - A room exists with standard lighting and ventilation.
 - A second room or test fixture can be configured with an active `PROJECTOR` equipment assignment.
@@ -32,6 +34,13 @@ The feature tests must cover:
 9. A usability review confirms that a booking user can locate and operate an available device within 30 seconds.
 
 ## Manual end-to-end check
+
+Usability acceptance checklist (target: 30 seconds):
+
+- The booking user can identify the device-control link from the room detail view.
+- The current device state is visible without relying on color alone.
+- A single keyboard action toggles an available device and reports the confirmed result.
+- A forbidden, expired, or unavailable device state explains why control is unavailable.
 
 1. Log in as the reservation owner and open the room detail page.
 2. Open the room-device-control view while the reservation is `RESERVED`; verify that controls are unavailable.

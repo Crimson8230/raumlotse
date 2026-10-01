@@ -10,6 +10,7 @@ import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @Transactional
@@ -42,9 +44,13 @@ public class ReservationService {
     }
 
     public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request) {
-        if (request.createdBy() == null || request.createdBy().isBlank()) {
-            throw new IllegalArgumentException("Creator identity ('createdBy') cannot be blank.");
-        }
+        return createReservation(roomId, request, currentUser());
+    }
+
+    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request,
+            AuthenticatedUser authenticated) {
+        String creator = authenticated == null ? request.createdBy() : authenticated.displayName();
+        if (creator == null || creator.isBlank()) throw new IllegalArgumentException("Creator identity cannot be blank.");
         if (request.startTime() == null || request.endTime() == null) {
             throw new IllegalArgumentException("Start time and end time are required.");
         }
@@ -97,7 +103,8 @@ public class ReservationService {
         reservation.setStatus(ReservationStatus.RESERVED);
         reservation.setExpectedAttendees(request.expectedAttendees());
         reservation.setNote(request.note());
-        reservation.setCreatedBy(request.createdBy().trim());
+        reservation.setCreatedBy(creator.trim());
+        reservation.setCreatedByUserId(authenticated == null ? null : authenticated.userId());
 
         if (request.additionalEquipmentTypeIds() != null && !request.additionalEquipmentTypeIds().isEmpty()) {
             List<EquipmentType> additionalEquipment = resolveAdditionalEquipment(room, request.additionalEquipmentTypeIds());
@@ -106,6 +113,11 @@ public class ReservationService {
 
         Reservation saved = reservationRepository.save(reservation);
         return ReservationResponse.from(saved);
+    }
+
+    private AuthenticatedUser currentUser() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser user ? user : null;
     }
 
     @Transactional(readOnly = true)

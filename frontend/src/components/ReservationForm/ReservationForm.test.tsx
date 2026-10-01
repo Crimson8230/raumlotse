@@ -60,7 +60,7 @@ describe('ReservationForm', () => {
     expect(screen.getByLabelText(/start time/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/end time/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/attendees/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/booked by/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/booked by/i)).toHaveValue('Current signed-in account')
 
     const select = screen.getByLabelText(/seating arrangement/i) as HTMLSelectElement
     expect(select.value).toBe('seat-1')
@@ -95,7 +95,6 @@ describe('ReservationForm', () => {
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
     await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
     await user.type(screen.getByLabelText(/attendees/i), '30')
-    await user.type(screen.getByLabelText(/booked by/i), 'Jane Doe')
     await user.type(screen.getByLabelText(/notes/i), 'Department Sync')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
@@ -104,7 +103,6 @@ describe('ReservationForm', () => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
         seatingArrangementId: 'seat-1',
         expectedAttendees: 30,
-        createdBy: 'Jane Doe',
         note: 'Department Sync',
       }))
       expect(onSaved).toHaveBeenCalledWith(res)
@@ -131,7 +129,6 @@ describe('ReservationForm', () => {
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
     await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
     await user.type(screen.getByLabelText(/attendees/i), '30')
-    await user.type(screen.getByLabelText(/booked by/i), 'Jane Doe')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
 

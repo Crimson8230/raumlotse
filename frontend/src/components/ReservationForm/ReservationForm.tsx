@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { createReservation, getAvailableEquipment } from '../../API/reservations'
 import { formatApiError } from '../../API/client'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
+import { AuthContext } from '../../auth/authContext'
 
 export interface ReservationFormProps {
   room: Room
@@ -12,13 +13,13 @@ export interface ReservationFormProps {
 }
 
 export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProps) {
+  const auth = useContext(AuthContext)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [seatingArrangementId, setSeatingArrangementId] = useState(
     room.seatingArrangements.length === 1 ? room.seatingArrangements[0].id : '',
   )
   const [expectedAttendees, setExpectedAttendees] = useState<number | ''>('')
-  const [createdBy, setCreatedBy] = useState('')
   const [note, setNote] = useState('')
   const [availableEquipment, setAvailableEquipment] = useState<EquipmentTypeSummary[]>([])
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([])
@@ -86,11 +87,6 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
       return
     }
 
-    if (!createdBy.trim()) {
-      setError('Booked by is required.')
-      return
-    }
-
     const startIso =
       startTime.includes('Z') || startTime.includes('+')
         ? startTime
@@ -107,7 +103,6 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
         endTime: endIso,
         seatingArrangementId,
         expectedAttendees: attendeesNum,
-        createdBy: createdBy.trim(),
         note: note.trim() || undefined,
         additionalEquipmentTypeIds:
           selectedEquipmentIds.length > 0 ? selectedEquipmentIds : undefined,
@@ -127,6 +122,11 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
           {error}
         </p>
       )}
+
+      <div>
+        <label htmlFor="res-booked-by">Booked By</label>
+        <input id="res-booked-by" type="text" value={auth?.user?.displayName ?? 'Current signed-in account'} readOnly />
+      </div>
 
       <div>
         <label htmlFor="res-start-time">Start Time</label>
@@ -182,18 +182,6 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
           onChange={(e) =>
             setExpectedAttendees(e.target.value === '' ? '' : parseInt(e.target.value, 10))
           }
-        />
-      </div>
-
-      <div>
-        <label htmlFor="res-booked-by">Booked By</label>
-        <input
-          id="res-booked-by"
-          type="text"
-          required
-          maxLength={255}
-          value={createdBy}
-          onChange={(e) => setCreatedBy(e.target.value)}
         />
       </div>
 

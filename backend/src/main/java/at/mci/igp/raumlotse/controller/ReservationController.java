@@ -4,6 +4,7 @@ import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.service.ReservationService;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 @RestController
 public class ReservationController {
@@ -32,7 +34,11 @@ public class ReservationController {
     @ResponseStatus(HttpStatus.CREATED)
     public ReservationResponse createReservation(
             @PathVariable UUID roomId,
-            @Valid @RequestBody ReservationCreateRequest request) {
+            @Valid @RequestBody ReservationCreateRequest request,
+            Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser user) {
+            return reservationService.createReservation(roomId, request, user);
+        }
         return reservationService.createReservation(roomId, request);
     }
 

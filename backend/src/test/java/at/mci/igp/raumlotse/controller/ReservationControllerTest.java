@@ -90,7 +90,7 @@ class ReservationControllerTest {
     }
 
     @Test
-    void createReservation_blankCreatedBy_returns400() throws Exception {
+    void createReservation_clientOwnerIdentityIsNoLongerRequired() throws Exception {
         UUID roomId = UUID.randomUUID();
         UUID layoutId = UUID.randomUUID();
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
@@ -107,7 +107,7 @@ class ReservationControllerTest {
                                   "createdBy": "   "
                                 }
                                 """.formatted(start, end, layoutId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated());
     }
 
     @Test

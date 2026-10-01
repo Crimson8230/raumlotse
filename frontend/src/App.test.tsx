@@ -8,6 +8,12 @@ import type { Room } from './types/room'
 
 vi.mock('./API/rooms')
 vi.mock('./API/reservations')
+vi.mock('./API/auth', () => ({
+  authApi: {
+    refreshCsrfToken: vi.fn().mockResolvedValue(undefined),
+    me: vi.fn().mockResolvedValue({ userId: 'user-1', displayName: 'Test User' }),
+  },
+}))
 
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)

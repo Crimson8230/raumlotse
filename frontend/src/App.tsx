@@ -11,6 +11,7 @@ import RoomDisplayPage from './pages/RoomDisplayPage'
 import { RequireAdmin } from './auth/RequireAdmin'
 import UserRoleListPage from './pages/UserRoleListPage'
 import UserRolePage from './pages/UserRolePage'
+import RoomDeviceControlPage from './pages/RoomDeviceControlPage'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/rooms/new" element={<RoomFormPage />} />
           <Route path="/rooms/:roomId" element={<RoomDetailPage />} />
           <Route path="/rooms/:roomId/display" element={<RoomDisplayPage />} />
+          <Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} />
           <Route path="/rooms/:roomId/edit" element={<RoomFormPage />} />
         </Route>
       </Routes>

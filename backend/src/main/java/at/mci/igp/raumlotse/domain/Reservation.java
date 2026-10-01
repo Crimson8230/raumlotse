@@ -57,6 +57,9 @@ public class Reservation {
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
+    @Column(name = "created_by_user_id")
+    private UUID createdByUserId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -148,6 +151,14 @@ public class Reservation {
 
     public void setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public UUID getCreatedByUserId() { return createdByUserId; }
+    public void setCreatedByUserId(UUID createdByUserId) {
+        if (this.createdByUserId != null && !this.createdByUserId.equals(createdByUserId)) {
+            throw new IllegalStateException("Reservation ownership is immutable.");
+        }
+        this.createdByUserId = createdByUserId;
     }
 
     public Instant getCreatedAt() {

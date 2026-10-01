@@ -8,9 +8,9 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 [P] Verify the existing backend test profile, authenticated-user fixtures, and PostgreSQL/Flyway test setup in `backend/src/test/` and document fixture extensions in `specs/006-room-device-control/quickstart.md`
-- [ ] T002 [P] Verify the existing frontend API-client, auth-provider, and route-test helpers in `frontend/src/API/client.ts`, `frontend/src/auth/`, and `frontend/src/test/` for authenticated device-control tests
-- [ ] T003 [P] Validate the OpenAPI contract structure and status-code examples in `specs/006-room-device-control/contracts/room-device-control-api.yaml` before implementing REST endpoints
+- [X] T001 [P] Verify the existing backend test profile, authenticated-user fixtures, and PostgreSQL/Flyway test setup in `backend/src/test/` and document fixture extensions in `specs/006-room-device-control/quickstart.md`
+- [X] T002 [P] Verify the existing frontend API-client, auth-provider, and route-test helpers in `frontend/src/API/client.ts`, `frontend/src/auth/`, and `frontend/src/test/` for authenticated device-control tests
+- [X] T003 [P] Validate the OpenAPI contract structure and status-code examples in `specs/006-room-device-control/contracts/room-device-control-api.yaml` before implementing REST endpoints
 
 ---
 
@@ -20,21 +20,21 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete.
 
-- [ ] T004 [P] Add failing repository/service tests for owner matching, `ACTIVE` status, room association, and the exact predicate `startTime <= now < endTime` in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceAuthorizationTest.java`
-- [ ] T005 [P] Add failing migration/entity mapping tests for reservation owner IDs, canonical equipment code `PROJECTOR`, and one unique device state per room/kind in `backend/src/test/java/at/mci/igp/raumlotse/repository/RoomDeviceStateRepositoryTest.java`
-- [ ] T006 [P] Add failing frontend type/API contract tests for device capability and command shapes in `frontend/src/API/roomDevices.test.ts` and `frontend/src/types/roomDevice.test.ts`
-- [ ] T007 Add Flyway migration `backend/src/main/resources/db/migration/V9__create_room_device_control.sql` with nullable historical `reservation.created_by_user_id`, unique `equipment_type.code`, and `room_device_state` keyed uniquely by `(room_id, kind)`; preserve existing reservation status constraints
-- [ ] T008 Add `RoomDeviceKind` and `RoomDeviceState` JPA types in `backend/src/main/java/at/mci/igp/raumlotse/domain/RoomDeviceKind.java` and `backend/src/main/java/at/mci/igp/raumlotse/domain/RoomDeviceState.java`, including UUID room relation, `enabled`, boolean `state`, and `updatedAt`
-- [ ] T009 Extend `backend/src/main/java/at/mci/igp/raumlotse/domain/Reservation.java` with immutable `createdByUserId` ownership and extend `backend/src/main/java/at/mci/igp/raumlotse/domain/EquipmentType.java` with unique canonical `code`; keep `createdBy` as the display/audit snapshot
-- [ ] T010 Extend reservation creation in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to derive `createdByUserId` and `createdBy` from the authenticated `AuthenticatedUser`, reject missing ownership for new reservations, and never accept a client-supplied owner identity
-- [ ] T011 Add `RoomDeviceStateRepository` in `backend/src/main/java/at/mci/igp/raumlotse/repository/RoomDeviceStateRepository.java` with room/kind lookup and unique-state query; add an eligible-reservation query to `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java` filtering by owner, room, `ACTIVE`, and `startTime <= now < endTime`
-- [ ] T012 Add typed device DTOs `RoomDeviceResponse` and `RoomDeviceCommandRequest` in `backend/src/main/java/at/mci/igp/raumlotse/dto/`, enforcing a required boolean command state and enum values `LIGHTING`, `VENTILATION`, and `PROJECTOR`
-- [ ] T013 Implement shared authorization and capability resolution in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`: authenticate the current account, require matching owner and room, require `ACTIVE`, enforce `[startTime, endTime)`, expose default lighting/ventilation, and derive projector presence from active equipment code `PROJECTOR`
-- [ ] T045 [P] Add failing gateway tests for acknowledged commands, simulated device failure, and unchanged persisted state after failure in `backend/src/test/java/at/mci/igp/raumlotse/service/PersistedRoomDeviceGatewayTest.java`
-- [ ] T046 [P] Add failing reservation-owner integration tests proving the authenticated account supplies immutable `createdByUserId`/`createdBy` and client input cannot select another owner in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationOwnershipTest.java`
-- [ ] T047 Extend `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java`, `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`, and `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationCreateRequest.java` so the authenticated `AuthenticatedUser` supplies immutable `createdByUserId`/`createdBy` and client input cannot select another owner
-- [ ] T048 Update `frontend/src/components/ReservationForm/ReservationForm.tsx`, `frontend/src/components/ReservationForm/ReservationForm.test.tsx`, and `frontend/src/auth/useAuth.ts` so reservation creation no longer submits arbitrary owner identity and relies on the authenticated account context
-- [ ] T049 Add the `RoomDeviceGateway` interface and deterministic persisted-state implementation in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceGateway.java` and `backend/src/main/java/at/mci/igp/raumlotse/service/PersistedRoomDeviceGateway.java`; define acknowledgement and failure behavior without a vendor dependency
+- [X] T004 [P] Add failing repository/service tests for owner matching, `ACTIVE` status, room association, and the exact predicate `startTime <= now < endTime` in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceAuthorizationTest.java`
+- [X] T005 [P] Add failing migration/entity mapping tests for reservation owner IDs, canonical equipment code `PROJECTOR`, and one unique device state per room/kind in `backend/src/test/java/at/mci/igp/raumlotse/repository/RoomDeviceStateRepositoryTest.java`
+- [X] T006 [P] Add failing frontend type/API contract tests for device capability and command shapes in `frontend/src/API/roomDevices.test.ts` and `frontend/src/types/roomDevice.test.ts`
+- [X] T007 Add Flyway migration `backend/src/main/resources/db/migration/V9__create_room_device_control.sql` with nullable historical `reservation.created_by_user_id`, unique `equipment_type.code`, and `room_device_state` keyed uniquely by `(room_id, kind)`; preserve existing reservation status constraints
+- [X] T008 Add `RoomDeviceKind` and `RoomDeviceState` JPA types in `backend/src/main/java/at/mci/igp/raumlotse/domain/RoomDeviceKind.java` and `backend/src/main/java/at/mci/igp/raumlotse/domain/RoomDeviceState.java`, including UUID room relation, `enabled`, boolean `state`, and `updatedAt`
+- [X] T009 Extend `backend/src/main/java/at/mci/igp/raumlotse/domain/Reservation.java` with immutable `createdByUserId` ownership and extend `backend/src/main/java/at/mci/igp/raumlotse/domain/EquipmentType.java` with unique canonical `code`; keep `createdBy` as the display/audit snapshot
+- [X] T010 Extend reservation creation in `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java` to derive `createdByUserId` and `createdBy` from the authenticated `AuthenticatedUser`, reject missing ownership for new reservations, and never accept a client-supplied owner identity
+- [X] T011 Add `RoomDeviceStateRepository` in `backend/src/main/java/at/mci/igp/raumlotse/repository/RoomDeviceStateRepository.java` with room/kind lookup and unique-state query; add an eligible-reservation query to `backend/src/main/java/at/mci/igp/raumlotse/repository/ReservationRepository.java` filtering by owner, room, `ACTIVE`, and `startTime <= now < endTime`
+- [X] T012 Add typed device DTOs `RoomDeviceResponse` and `RoomDeviceCommandRequest` in `backend/src/main/java/at/mci/igp/raumlotse/dto/`, enforcing a required boolean command state and enum values `LIGHTING`, `VENTILATION`, and `PROJECTOR`
+- [X] T013 Implement shared authorization and capability resolution in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`: authenticate the current account, require matching owner and room, require `ACTIVE`, enforce `[startTime, endTime)`, expose default lighting/ventilation, and derive projector presence from active equipment code `PROJECTOR`
+- [X] T045 [P] Add failing gateway tests for acknowledged commands, simulated device failure, and unchanged persisted state after failure in `backend/src/test/java/at/mci/igp/raumlotse/service/PersistedRoomDeviceGatewayTest.java`
+- [X] T046 [P] Add failing reservation-owner integration tests proving the authenticated account supplies immutable `createdByUserId`/`createdBy` and client input cannot select another owner in `backend/src/test/java/at/mci/igp/raumlotse/controller/ReservationOwnershipTest.java`
+- [X] T047 Extend `backend/src/main/java/at/mci/igp/raumlotse/controller/ReservationController.java`, `backend/src/main/java/at/mci/igp/raumlotse/service/ReservationService.java`, and `backend/src/main/java/at/mci/igp/raumlotse/dto/ReservationCreateRequest.java` so the authenticated `AuthenticatedUser` supplies immutable `createdByUserId`/`createdBy` and client input cannot select another owner
+- [X] T048 Update `frontend/src/components/ReservationForm/ReservationForm.tsx`, `frontend/src/components/ReservationForm/ReservationForm.test.tsx`, and `frontend/src/auth/useAuth.ts` so reservation creation no longer submits arbitrary owner identity and relies on the authenticated account context
+- [X] T049 Add the `RoomDeviceGateway` interface and deterministic persisted-state implementation in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceGateway.java` and `backend/src/main/java/at/mci/igp/raumlotse/service/PersistedRoomDeviceGateway.java`; define acknowledgement and failure behavior without a vendor dependency
 
 **Checkpoint**: Database model, authenticated ownership, capability identity, and reusable authorization predicate are available.
 
@@ -48,20 +48,20 @@
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Add failing backend service tests for default lighting/ventilation availability, successful state persistence, owner-only access, and no mutation after rejected commands in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceServiceTest.java`
-- [ ] T015 [P] [US1] Add failing backend controller contract tests for `GET /api/rooms/{roomId}/device-controls` and `POST /api/rooms/{roomId}/device-controls/{kind}` in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomDeviceControllerTest.java`
-- [ ] T016 [P] [US1] Add failing frontend API tests for loading capabilities and posting boolean device state commands in `frontend/src/API/roomDevices.test.ts`
-- [ ] T017 [P] [US1] Add failing component tests for default device rendering, current state display, successful toggle feedback, forbidden state, and command failure in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.test.tsx`
+- [X] T014 [P] [US1] Add failing backend service tests for default lighting/ventilation availability, successful state persistence, owner-only access, and no mutation after rejected commands in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceServiceTest.java`
+- [X] T015 [P] [US1] Add failing backend controller contract tests for `GET /api/rooms/{roomId}/device-controls` and `POST /api/rooms/{roomId}/device-controls/{kind}` in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomDeviceControllerTest.java`
+- [X] T016 [P] [US1] Add failing frontend API tests for loading capabilities and posting boolean device state commands in `frontend/src/API/roomDevices.test.ts`
+- [X] T017 [P] [US1] Add failing component tests for default device rendering, current state display, successful toggle feedback, forbidden state, and command failure in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement `getControls` and `setState` in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`, initializing missing lighting/ventilation state to off and persisting only acknowledged state changes
-- [ ] T019 [US1] Implement `RoomDeviceController` in `backend/src/main/java/at/mci/igp/raumlotse/controller/RoomDeviceController.java` with the two paths from `specs/006-room-device-control/contracts/room-device-control-api.yaml`
-- [ ] T020 [US1] Add structured authorization, unavailable-device, and operation-failure mappings in `backend/src/main/java/at/mci/igp/raumlotse/exception/GlobalExceptionHandler.java` without logging credentials, owner IDs, or command payloads
-- [ ] T021 [US1] Implement typed client functions and response types in `frontend/src/API/roomDevices.ts` and `frontend/src/types/roomDevice.ts`, preserving shared `apiRequest` error behavior
-- [ ] T022 [US1] Implement `RoomDeviceControls` in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and `frontend/src/components/RoomDeviceControls/RoomDeviceControls.css` with loading, unavailable, forbidden, command-failure, and current-state views
-- [ ] T023 [US1] Add `RoomDeviceControlPage` in `frontend/src/pages/RoomDeviceControlPage.tsx`, register `/rooms/:roomId/control` in `frontend/src/App.tsx`, and add an entry link from `frontend/src/pages/RoomDetailPage.tsx`
-- [ ] T024 [US1] Run US1 backend tests, frontend tests, TypeScript build, and ESLint; refactor only after new tests pass in `backend/` and `frontend/`
+- [X] T018 [US1] Implement `getControls` and `setState` in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`, initializing missing lighting/ventilation state to off and persisting only acknowledged state changes
+- [X] T019 [US1] Implement `RoomDeviceController` in `backend/src/main/java/at/mci/igp/raumlotse/controller/RoomDeviceController.java` with the two paths from `specs/006-room-device-control/contracts/room-device-control-api.yaml`
+- [X] T020 [US1] Add structured authorization, unavailable-device, and operation-failure mappings in `backend/src/main/java/at/mci/igp/raumlotse/exception/GlobalExceptionHandler.java` without logging credentials, owner IDs, or command payloads
+- [X] T021 [US1] Implement typed client functions and response types in `frontend/src/API/roomDevices.ts` and `frontend/src/types/roomDevice.ts`, preserving shared `apiRequest` error behavior
+- [X] T022 [US1] Implement `RoomDeviceControls` in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and `frontend/src/components/RoomDeviceControls/RoomDeviceControls.css` with loading, unavailable, forbidden, command-failure, and current-state views
+- [X] T023 [US1] Add `RoomDeviceControlPage` in `frontend/src/pages/RoomDeviceControlPage.tsx`, register `/rooms/:roomId/control` in `frontend/src/App.tsx`, and add an entry link from `frontend/src/pages/RoomDetailPage.tsx`
+- [X] T024 [US1] Run US1 backend tests, frontend tests, TypeScript build, and ESLint; refactor only after new tests pass in `backend/` and `frontend/`
 
 **Checkpoint**: User Story 1 is independently usable as the MVP for lighting and ventilation.
 
@@ -75,17 +75,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T025 [P] [US3] Add failing boundary tests for exact start success, exact end rejection, before-start rejection, midnight-spanning reservations, and injected `Instant` in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceAuthorizationTest.java`
-- [ ] T026 [P] [US3] Add failing lifecycle tests proving `RESERVED`, `COMPLETED`, `EXPIRED`, and `CANCELLED` reservations cannot read or mutate device state in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceAuthorizationTest.java`
-- [ ] T027 [P] [US3] Add failing security tests proving a different authenticated user cannot use room, reservation, or device identifiers to control the room in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomDeviceSecurityTest.java`
-- [ ] T028 [P] [US3] Add failing page tests for time-expired/forbidden responses and disabling/reloading controls after a reservation becomes invalid in `frontend/src/pages/RoomDeviceControlPage.test.tsx`
+- [X] T025 [P] [US3] Add failing boundary tests for exact start success, exact end rejection, before-start rejection, midnight-spanning reservations, and injected `Instant` in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceAuthorizationTest.java`
+- [X] T026 [P] [US3] Add failing lifecycle tests proving `RESERVED`, `COMPLETED`, `EXPIRED`, and `CANCELLED` reservations cannot read or mutate device state in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceAuthorizationTest.java`
+- [X] T027 [P] [US3] Add failing security tests proving a different authenticated user cannot use room, reservation, or device identifiers to control the room in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomDeviceSecurityTest.java`
+- [X] T028 [P] [US3] Add failing page tests for time-expired/forbidden responses and disabling/reloading controls after a reservation becomes invalid in `frontend/src/pages/RoomDeviceControlPage.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Inject a testable clock into `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java` and ensure every GET/POST authorization check uses one captured `Instant now` with `startTime <= now < endTime`
-- [ ] T030 [US3] Ensure reservation cancellation, completion, expiry, and owner changes cannot leave an authorization cache in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`; re-query eligibility on every command
-- [ ] T031 [US3] Map `401`/`403`/`409` responses to explicit safe UI states in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and prevent retries from mutating state after authorization failure
-- [ ] T032 [US3] Run the complete US3 boundary/security suite and verify no rejected request changes `room_device_state` in `backend/src/test/java/at/mci/igp/raumlotse/`
+- [X] T029 [US3] Inject a testable clock into `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java` and ensure every GET/POST authorization check uses one captured `Instant now` with `startTime <= now < endTime`
+- [X] T030 [US3] Ensure reservation cancellation, completion, expiry, and owner changes cannot leave an authorization cache in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`; re-query eligibility on every command
+- [X] T031 [US3] Map `401`/`403`/`409` responses to explicit safe UI states in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and prevent retries from mutating state after authorization failure
+- [X] T032 [US3] Run the complete US3 boundary/security suite and verify no rejected request changes `room_device_state` in `backend/src/test/java/at/mci/igp/raumlotse/`
 
 **Checkpoint**: All authorization and temporal restrictions are enforced server-side and independently verified.
 
@@ -99,16 +99,16 @@
 
 ### Tests for User Story 2
 
-- [ ] T033 [P] [US2] Add failing backend tests for active projector discovery, absent/deactivated projector omission, manually submitted projector-kind rejection, and configuration removal in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceProjectorTest.java`
-- [ ] T034 [P] [US2] Add failing frontend tests for conditional projector rendering and the unavailable-projector explanation in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.test.tsx`
+- [X] T033 [P] [US2] Add failing backend tests for active projector discovery, absent/deactivated projector omission, manually submitted projector-kind rejection, and configuration removal in `backend/src/test/java/at/mci/igp/raumlotse/service/RoomDeviceProjectorTest.java`
+- [X] T034 [P] [US2] Add failing frontend tests for conditional projector rendering and the unavailable-projector explanation in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Extend `RoomDeviceService` and `RoomDeviceStateRepository` in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java` and `backend/src/main/java/at/mci/igp/raumlotse/repository/RoomDeviceStateRepository.java` to expose projector only for active room equipment code `PROJECTOR` and reject other projector commands with the documented problem response
-- [ ] T036 [US2] Update Room Management equipment DTOs, validation, and catalog handling in `backend/src/main/java/at/mci/igp/raumlotse/dto/EquipmentTypeRequest.java`, `backend/src/main/java/at/mci/igp/raumlotse/dto/EquipmentTypeResponse.java`, `backend/src/main/java/at/mci/igp/raumlotse/service/EquipmentTypeService.java`, and `backend/src/main/java/at/mci/igp/raumlotse/controller/EquipmentTypeController.java` so `code` is persisted and displayed safely
-- [ ] T037 [US2] Update frontend room/equipment types and forms in `frontend/src/types/room.ts`, `frontend/src/components/EquipmentCatalog/EquipmentCatalog.tsx`, and `frontend/src/components/EquipmentCatalog/EquipmentCatalog.test.tsx` to preserve and submit the canonical equipment code
-- [ ] T038 [US2] Update `RoomDeviceControls` tests and UI copy in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and `frontend/src/components/RoomDeviceControls/RoomDeviceControls.test.tsx` so projector controls appear only in the API response and absent projector state is clearly explained
-- [ ] T039 [US2] Run US2 backend and frontend tests plus the manual projector add/remove scenario in `specs/006-room-device-control/quickstart.md`
+- [X] T035 [US2] Extend `RoomDeviceService` and `RoomDeviceStateRepository` in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java` and `backend/src/main/java/at/mci/igp/raumlotse/repository/RoomDeviceStateRepository.java` to expose projector only for active room equipment code `PROJECTOR` and reject other projector commands with the documented problem response
+- [X] T036 [US2] Update Room Management equipment DTOs, validation, and catalog handling in `backend/src/main/java/at/mci/igp/raumlotse/dto/EquipmentTypeRequest.java`, `backend/src/main/java/at/mci/igp/raumlotse/dto/EquipmentTypeResponse.java`, `backend/src/main/java/at/mci/igp/raumlotse/service/EquipmentTypeService.java`, and `backend/src/main/java/at/mci/igp/raumlotse/controller/EquipmentTypeController.java` so `code` is persisted and displayed safely
+- [X] T037 [US2] Update frontend room/equipment types and forms in `frontend/src/types/room.ts`, `frontend/src/components/EquipmentCatalog/EquipmentCatalog.tsx`, and `frontend/src/components/EquipmentCatalog/EquipmentCatalog.test.tsx` to preserve and submit the canonical equipment code
+- [X] T038 [US2] Update `RoomDeviceControls` tests and UI copy in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and `frontend/src/components/RoomDeviceControls/RoomDeviceControls.test.tsx` so projector controls appear only in the API response and absent projector state is clearly explained
+- [X] T039 [US2] Run US2 backend and frontend tests plus the manual projector add/remove scenario in `specs/006-room-device-control/quickstart.md`
 
 **Checkpoint**: User Stories 1 and 2 work independently; projector presence is controlled solely by Room Management.
 
@@ -116,13 +116,13 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T040 [P] Add API error/status examples and ownership migration notes to `specs/006-room-device-control/contracts/room-device-control-api.yaml` and `specs/006-room-device-control/data-model.md`
-- [ ] T041 [P] Add accessibility labels, keyboard operation, and non-color-only state indicators in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and `frontend/src/components/RoomDeviceControls/RoomDeviceControls.css`
-- [ ] T042 [P] Add structured device-command failure logging and verify logs contain no credentials, user identifiers, or command payloads in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`
+- [X] T040 [P] Add API error/status examples and ownership migration notes to `specs/006-room-device-control/contracts/room-device-control-api.yaml` and `specs/006-room-device-control/data-model.md`
+- [X] T041 [P] Add accessibility labels, keyboard operation, and non-color-only state indicators in `frontend/src/components/RoomDeviceControls/RoomDeviceControls.tsx` and `frontend/src/components/RoomDeviceControls/RoomDeviceControls.css`
+- [X] T042 [P] Add structured device-command failure logging and verify logs contain no credentials, user identifiers, or command payloads in `backend/src/main/java/at/mci/igp/raumlotse/service/RoomDeviceService.java`
 - [ ] T043 Run the complete validation sequence from `specs/006-room-device-control/quickstart.md` and record environment-specific prerequisites
-- [ ] T044 [P] Add explicit response-time assertions for SC-005/SC-006 and a 30-second usability checklist for SC-003 in `frontend/src/pages/RoomDeviceControlPage.test.tsx` and `specs/006-room-device-control/quickstart.md`
-- [ ] T050 [P] Add backend response-time assertions for SC-005/SC-006 in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomDevicePerformanceTest.java`, retaining the 30-second usability checklist in `frontend/src/pages/RoomDeviceControlPage.test.tsx` and `specs/006-room-device-control/quickstart.md`
-- [ ] T051 Review changed files for Constitution compliance and update `specs/006-room-device-control/plan.md` only if implementation decisions materially diverge from the design
+- [X] T044 [P] Add explicit response-time assertions for SC-005/SC-006 and a 30-second usability checklist for SC-003 in `frontend/src/pages/RoomDeviceControlPage.test.tsx` and `specs/006-room-device-control/quickstart.md`
+- [X] T050 [P] Add backend response-time assertions for SC-005/SC-006 in `backend/src/test/java/at/mci/igp/raumlotse/controller/RoomDevicePerformanceTest.java`, retaining the 30-second usability checklist in `frontend/src/pages/RoomDeviceControlPage.test.tsx` and `specs/006-room-device-control/quickstart.md`
+- [X] T051 Review changed files for Constitution compliance and update `specs/006-room-device-control/plan.md` only if implementation decisions materially diverge from the design
 
 ---
 

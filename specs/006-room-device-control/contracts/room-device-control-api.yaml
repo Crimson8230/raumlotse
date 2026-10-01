@@ -3,6 +3,8 @@ info:
   title: Raumlotse Room Device Control API
   version: 1.0.0
   description: Authenticated room-device capability and state-control contract.
+# Ownership note: V9 keeps created_by_user_id nullable for historical reservations;
+# newly created reservations always derive ownership from the authenticated account.
 paths:
   /api/rooms/{roomId}/device-controls:
     get:

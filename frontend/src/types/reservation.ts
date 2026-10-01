@@ -10,6 +10,7 @@ export interface EquipmentTypeSummary {
   id: string
   name: string
   status: 'ACTIVE' | 'DEACTIVATED'
+  code?: string
 }
 
 export interface Reservation {
@@ -23,7 +24,7 @@ export interface Reservation {
   expectedAttendees: number
   additionalEquipment: EquipmentTypeSummary[]
   note?: string | null
-  createdBy: string
+  createdBy?: string
   createdAt: string
 }
 
@@ -34,7 +35,6 @@ export interface ReservationCreatePayload {
   expectedAttendees: number
   additionalEquipmentTypeIds?: string[]
   note?: string
-  createdBy: string
 }
 
 export interface ReservationUpdatePayload {
