@@ -61,6 +61,7 @@ describe('RoomDisplayPage', () => {
         additionalEquipment: [],
         note: 'Team meeting',
         createdBy: 'Alice',
+        reservedFor: 'Team Alpha',
         createdAt: '2026-09-19T09:00:00.000Z',
       },
     ])
@@ -113,6 +114,62 @@ describe('RoomDisplayPage', () => {
     })
 
     expect(clock.textContent).not.toBe(initialClock)
+  })
+
+  it('refreshes room reservations every 30 seconds and reflects an active transition', async () => {
+    vi.useRealTimers()
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(new Date('2026-09-20T10:00:00.000Z'))
+    rooms.getRoom.mockResolvedValue(sampleRoom)
+    reservations.listRoomReservations
+      .mockResolvedValueOnce([
+        {
+          id: 'res-1',
+          roomId: 'room-1',
+          roomName: 'Room 101',
+          startTime: '2026-09-20T10:01:00.000Z',
+          endTime: '2026-09-20T11:30:00.000Z',
+          status: 'RESERVED',
+          seatingArrangement: { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
+          expectedAttendees: 20,
+          additionalEquipment: [],
+          note: null,
+          createdBy: 'Alice',
+          reservedFor: 'Team Alpha',
+          createdAt: '2026-09-19T09:00:00.000Z',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'res-1',
+          roomId: 'room-1',
+          roomName: 'Room 101',
+          startTime: '2026-09-20T10:01:00.000Z',
+          endTime: '2026-09-20T11:30:00.000Z',
+          status: 'ACTIVE',
+          seatingArrangement: { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
+          expectedAttendees: 20,
+          additionalEquipment: [],
+          note: null,
+          createdBy: 'Alice',
+          reservedFor: 'Team Alpha',
+          createdAt: '2026-09-19T09:00:00.000Z',
+        },
+      ])
+
+    renderPage()
+
+    expect(await screen.findByRole('status', { name: 'Reserved' })).toBeInTheDocument()
+
+    await act(async () => {
+      vi.setSystemTime(new Date('2026-09-20T10:01:00.000Z'))
+      vi.advanceTimersByTime(30_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(reservations.listRoomReservations).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole('status', { name: 'Reserved and Occupied' })).toBeInTheDocument()
   })
 
 })

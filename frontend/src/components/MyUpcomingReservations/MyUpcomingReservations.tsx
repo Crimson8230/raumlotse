@@ -12,8 +12,6 @@ export function MyUpcomingReservations() {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    setError(null)
 
     getMyUpcomingReservations()
       .then((data) => {

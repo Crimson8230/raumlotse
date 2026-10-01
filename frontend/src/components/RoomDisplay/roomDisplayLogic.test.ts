@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Reservation } from '../../types/reservation'
-import { getNotePreview, selectCurrentReservation } from './roomDisplayLogic'
+import {
+  deriveRoomDisplayStatus,
+  getNotePreview,
+  selectNextReservation,
+  selectCurrentReservation,
+} from './roomDisplayLogic'
 
 const now = new Date('2026-09-20T10:00:00.000Z')
 
@@ -17,6 +22,7 @@ function reservationFixture(overrides: Partial<Reservation> = {}): Reservation {
     additionalEquipment: [],
     note: 'Current reservation',
     createdBy: 'Alice',
+    reservedFor: 'Team Alpha',
     createdAt: '2026-09-19T09:00:00.000Z',
     ...overrides,
   }
@@ -85,6 +91,98 @@ describe('selectCurrentReservation', () => {
         'room-1',
       ),
     ).toBeNull()
+  })
+})
+
+describe('deriveRoomDisplayStatus', () => {
+  it('derives AVAILABLE when no current or future reservation exists', () => {
+    expect(deriveRoomDisplayStatus([], now, 'room-1')).toBe('AVAILABLE')
+  })
+
+  it('derives RESERVED for a future RESERVED reservation', () => {
+    const future = reservationFixture({
+      id: 'future',
+      status: 'RESERVED',
+      startTime: '2026-09-20T11:00:00.000Z',
+      endTime: '2026-09-20T12:00:00.000Z',
+    })
+
+    expect(deriveRoomDisplayStatus([future], now, 'room-1')).toBe('RESERVED')
+  })
+
+  it('gives current ACTIVE occupancy precedence over future RESERVED bookings', () => {
+    const active = reservationFixture({ id: 'active', status: 'ACTIVE' })
+    const future = reservationFixture({
+      id: 'future',
+      status: 'RESERVED',
+      startTime: '2026-09-20T11:00:00.000Z',
+      endTime: '2026-09-20T12:00:00.000Z',
+    })
+
+    expect(deriveRoomDisplayStatus([future, active], now, 'room-1')).toBe('OCCUPIED')
+  })
+
+  it('excludes terminal, wrong-room, and already ended records', () => {
+    const records = [
+      reservationFixture({ id: 'completed', status: 'COMPLETED' }),
+      reservationFixture({ id: 'cancelled', status: 'CANCELLED' }),
+      reservationFixture({ id: 'expired', status: 'EXPIRED' }),
+      reservationFixture({ id: 'wrong-room', roomId: 'room-2', status: 'ACTIVE' }),
+      reservationFixture({ id: 'ended', endTime: '2026-09-20T10:00:00.000Z' }),
+    ]
+
+    expect(deriveRoomDisplayStatus(records, now, 'room-1')).toBe('AVAILABLE')
+  })
+})
+
+describe('selectNextReservation', () => {
+  it('selects the earliest future RESERVED reservation for the room', () => {
+    const later = reservationFixture({
+      id: 'later',
+      status: 'RESERVED',
+      startTime: '2026-09-20T12:00:00.000Z',
+      endTime: '2026-09-20T13:00:00.000Z',
+    })
+    const earliest = reservationFixture({
+      id: 'earliest',
+      status: 'RESERVED',
+      startTime: '2026-09-20T11:00:00.000Z',
+      endTime: '2026-09-20T12:00:00.000Z',
+    })
+
+    expect(selectNextReservation([later, earliest], now, 'room-1')).toBe(earliest)
+  })
+
+  it('uses the smallest id for equal start times and excludes non-RESERVED records', () => {
+    const sameStartHigherId = reservationFixture({
+      id: 'res-b',
+      status: 'RESERVED',
+      startTime: '2026-09-20T11:00:00.000Z',
+      endTime: '2026-09-20T12:00:00.000Z',
+    })
+    const sameStartLowerId = reservationFixture({
+      id: 'res-a',
+      status: 'RESERVED',
+      startTime: '2026-09-20T11:00:00.000Z',
+      endTime: '2026-09-20T12:00:00.000Z',
+    })
+    const active = reservationFixture({
+      id: 'active',
+      status: 'ACTIVE',
+      startTime: '2026-09-20T11:30:00.000Z',
+      endTime: '2026-09-20T12:30:00.000Z',
+    })
+
+    expect(selectNextReservation([active, sameStartHigherId, sameStartLowerId], now, 'room-1')).toBe(
+      sameStartLowerId,
+    )
+  })
+
+  it('returns null when no future RESERVED reservation exists', () => {
+    const current = reservationFixture({ status: 'ACTIVE' })
+    const cancelled = reservationFixture({ id: 'cancelled', status: 'CANCELLED' })
+
+    expect(selectNextReservation([current, cancelled], now, 'room-1')).toBeNull()
   })
 })
 
