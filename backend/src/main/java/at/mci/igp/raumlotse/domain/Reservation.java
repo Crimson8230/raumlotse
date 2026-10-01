@@ -54,6 +54,9 @@ public class Reservation {
     @Column(name = "note")
     private String note;
 
+    @Column(name = "reserved_for", nullable = false)
+    private String reservedFor;
+
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
@@ -143,6 +146,14 @@ public class Reservation {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getReservedFor() {
+        return reservedFor;
+    }
+
+    public void setReservedFor(String reservedFor) {
+        this.reservedFor = reservedFor;
     }
 
     public String getCreatedBy() {

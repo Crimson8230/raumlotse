@@ -16,6 +16,7 @@ import at.mci.igp.raumlotse.domain.Room;
 import at.mci.igp.raumlotse.domain.SeatingArrangement;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
+import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
@@ -23,7 +24,10 @@ import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
 import at.mci.igp.raumlotse.repository.SeatingArrangementRepository;
 import java.lang.reflect.Field;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 @ExtendWith(MockitoExtension.class)
 class ReservationServiceTest {
@@ -50,6 +55,8 @@ class ReservationServiceTest {
     private EquipmentTypeRepository equipmentTypeRepository;
 
     private ReservationService reservationService;
+    private Clock clock;
+    private Instant fixedNow;
 
     private Room activeRoom;
     private SeatingArrangement seatingArrangement;
@@ -58,11 +65,14 @@ class ReservationServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        fixedNow = Instant.parse("2026-09-23T10:10:00Z");
+        clock = Clock.fixed(fixedNow, ZoneOffset.UTC);
         reservationService = new ReservationService(
                 reservationRepository,
                 roomRepository,
                 seatingArrangementRepository,
-                equipmentTypeRepository);
+                equipmentTypeRepository,
+                clock);
 
         roomId = UUID.randomUUID();
         seatingArrangementId = UUID.randomUUID();
@@ -358,6 +368,24 @@ class ReservationServiceTest {
                 .hasMessageContaining("RESERVED");
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = ReservationStatus.class, names = {"EXPIRED", "COMPLETED", "CANCELLED"})
+    void updateReservationMetadata_terminalStates_throwsConflict(ReservationStatus terminalStatus) throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "room", activeRoom);
+        setField(r, "seatingArrangement", seatingArrangement);
+        setField(r, "status", terminalStatus);
+
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+
+        ReservationUpdateRequest update = new ReservationUpdateRequest(20, "Attempted update");
+        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Only reservations in RESERVED status can be edited");
+    }
+
     @Test
     void activateReservation_fromReserved_success() throws Exception {
         UUID resId = UUID.randomUUID();
@@ -369,6 +397,7 @@ class ReservationServiceTest {
         setField(r, "expectedAttendees", 20);
         setField(r, "createdBy", "Alice");
         setField(r, "createdAt", Instant.now());
+        setField(r, "endTime", fixedNow.plus(Duration.ofHours(1)));
 
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -463,5 +492,139 @@ class ReservationServiceTest {
 
         assertThatThrownBy(() -> reservationService.cancelReservation(resId))
                 .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void expireUnattendedReservations_transitionsOverdueToExpired() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "room", activeRoom);
+        setField(r, "status", ReservationStatus.RESERVED);
+        setField(r, "startTime", fixedNow.minus(Duration.ofMinutes(6)));
+        setField(r, "endTime", fixedNow.plus(Duration.ofMinutes(30)));
+        setField(r, "createdAt", fixedNow.minus(Duration.ofHours(1)));
+
+        when(reservationRepository.findUnattendedReservationsForExpiration(
+                eq(ReservationStatus.RESERVED),
+                eq(fixedNow.minus(Duration.ofMinutes(5))),
+                eq(fixedNow)))
+                .thenReturn(List.of(r));
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        int expiredCount = reservationService.expireUnattendedReservations();
+
+        assertThat(expiredCount).isEqualTo(1);
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.EXPIRED);
+        assertThat(r.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void activateReservation_rejectsWhenAlreadyExpired() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "status", ReservationStatus.EXPIRED);
+
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> reservationService.activateReservation(resId))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("EXPIRED");
+    }
+
+    @Test
+    void activateReservation_rejectsWhenEndTimeHasElapsed() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "status", ReservationStatus.RESERVED);
+        setField(r, "startTime", fixedNow.minus(Duration.ofMinutes(15)));
+        setField(r, "endTime", fixedNow.minus(Duration.ofMinutes(1)));
+
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> reservationService.activateReservation(resId))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("elapsed");
+    }
+
+    @Test
+    void completeOverdueActiveReservations_transitionsActiveToCompleted() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "room", activeRoom);
+        setField(r, "status", ReservationStatus.ACTIVE);
+        setField(r, "startTime", fixedNow.minus(Duration.ofHours(2)));
+        setField(r, "endTime", fixedNow.minus(Duration.ofMinutes(10)));
+        setField(r, "createdAt", fixedNow.minus(Duration.ofHours(3)));
+
+        when(reservationRepository.findByStatusAndEndTimeLessThanEqual(
+                eq(ReservationStatus.ACTIVE),
+                eq(fixedNow)))
+                .thenReturn(List.of(r));
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        int completedCount = reservationService.completeOverdueActiveReservations();
+
+        assertThat(completedCount).isEqualTo(1);
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.COMPLETED);
+        assertThat(r.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void sweepOverdueReservations_sweepsBothUnattendedAndActive() throws Exception {
+        when(reservationRepository.findUnattendedReservationsForExpiration(any(), any(), any()))
+                .thenReturn(List.of());
+        when(reservationRepository.findByStatusAndEndTimeLessThanEqual(any(), any()))
+                .thenReturn(List.of());
+
+        ReservationSweepResponse response = reservationService.sweepOverdueReservations();
+
+        assertThat(response.expiredCount()).isEqualTo(0);
+        assertThat(response.completedCount()).isEqualTo(0);
+    }
+
+    @Test
+    void expireUnattendedReservations_boundaryExactCutoff() {
+        // Cutoff calculated as clock.instant().minus(CHECK_IN_GRACE_PERIOD)
+        // For a booking starting at fixedNow - 5m, cutoff is exactly startTime.
+        // The repository is queried with graceCutoff = fixedNow - 5m.
+        // We verify that the exact boundary passes the expected cutoff timestamp to repository.
+        reservationService.expireUnattendedReservations();
+
+        Instant expectedCutoff = fixedNow.minus(Duration.ofMinutes(5));
+        org.mockito.Mockito.verify(reservationRepository).findUnattendedReservationsForExpiration(
+                eq(ReservationStatus.RESERVED),
+                eq(expectedCutoff),
+                eq(fixedNow));
+    }
+
+    @Test
+    void expireUnattendedReservations_handlesOptimisticLockFailureGracefully() throws Exception {
+        UUID resId1 = UUID.randomUUID();
+        Reservation r1 = new Reservation();
+        setField(r1, "id", resId1);
+        setField(r1, "room", activeRoom);
+        setField(r1, "status", ReservationStatus.RESERVED);
+
+        UUID resId2 = UUID.randomUUID();
+        Reservation r2 = new Reservation();
+        setField(r2, "id", resId2);
+        setField(r2, "room", activeRoom);
+        setField(r2, "status", ReservationStatus.RESERVED);
+
+        when(reservationRepository.findUnattendedReservationsForExpiration(any(), any(), any()))
+                .thenReturn(List.of(r1, r2));
+
+        // First reservation throws optimistic lock conflict (e.g. concurrent activation), second succeeds
+        when(reservationRepository.save(r1)).thenThrow(new OptimisticLockingFailureException("concurrent update"));
+        when(reservationRepository.save(r2)).thenReturn(r2);
+
+        int count = reservationService.expireUnattendedReservations();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(r2.getStatus()).isEqualTo(ReservationStatus.EXPIRED);
     }
 }

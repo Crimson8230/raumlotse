@@ -1,0 +1,209 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Room Search API
+  version: 1.0.0
+  description: |
+    Room search with filters (feature 008) plus the additive, backward-compatible changes to the
+    room-management contract (specs/001-room-management/contracts/openapi.yaml) needed for the
+    barrier-free filter. All endpoints require an authenticated session (401 `AUTH_REQUIRED` otherwise);
+    unsafe methods additionally require the CSRF header, as for every other endpoint.
+
+    Additive changes to existing schemas (no field removed or renamed, all new request fields optional):
+      - Building / BuildingRequest: `hasElevator`
+      - Floor / FloorRequest: `groundFloor`
+      - Room / RoomCreateRequest / RoomUpdateRequest: `notBarrierFree`
+      - Room (response only): derived `barrierFreeReachable`
+    On PUT /api/buildings/{id}, PUT /api/floors/{id} and PUT /api/rooms/{id}, an omitted (null) new
+    field means "keep the current value". On create, an omitted field means `false`.
+servers:
+  - url: /api
+paths:
+  /rooms/search:
+    get:
+      summary: Search active rooms by filters
+      description: |
+        Returns fully active rooms (room, floor, and building ACTIVE) that satisfy every given filter
+        (AND). All parameters are optional; with none, all fully active rooms are returned. Sorted by
+        building name, then room name (case-insensitive). See data-model.md for the matching rule.
+      parameters:
+        - name: minPersons
+          in: query
+          schema: { type: integer, minimum: 1 }
+          description: Some seating arrangement has maxCapacity >= minPersons.
+        - name: maxPersons
+          in: query
+          schema: { type: integer, minimum: 1 }
+          description: Some seating arrangement has maxCapacity <= maxPersons. Must be >= minPersons if both given.
+        - name: buildingId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: seatingArrangement
+          in: query
+          schema: { type: string, maxLength: 100 }
+          description: |
+            Case-insensitive, trimmed match on a seating arrangement name. Combined with minPersons/maxPersons,
+            a single arrangement must satisfy all of them (FR-007).
+        - name: equipmentTypeId
+          in: query
+          style: form
+          explode: true
+          schema:
+            type: array
+            items: { type: string, format: uuid }
+          description: Repeatable; the room must have all listed equipment types assigned.
+        - name: barrierFree
+          in: query
+          schema: { type: boolean, default: false }
+          description: If true, only rooms with barrierFreeReachable = true.
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+          description: Start of the time window (ISO-8601 instant). Requires `to`.
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+          description: |
+            End of the time window, strictly after `from`. Requires `from`. Rooms with a RESERVED or ACTIVE
+            reservation overlapping [from, to) are excluded.
+      responses:
+        "200":
+          description: Matching rooms (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+        "400":
+          description: |
+            Invalid filters: non-positive or non-numeric person count, minPersons > maxPersons, only one of
+            from/to given, `to` not after `from`, malformed UUID or instant.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /rooms/search/seating-arrangements:
+    get:
+      summary: Distinct seating arrangement names of fully active rooms
+      description: Case-insensitively distinct names, sorted alphabetically; used as options for the layout filter.
+      responses:
+        "200":
+          description: Names
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+              example: ["Classroom", "Theater", "U-Shape"]
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+components:
+  schemas:
+    Building:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string, enum: [ACTIVE, DEACTIVATED] }
+        hasElevator:
+          type: boolean
+          description: New in 008. Default false.
+
+    BuildingRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        hasElevator:
+          type: boolean
+          nullable: true
+          description: New in 008, optional. Create - null means false. PUT - null means unchanged.
+
+    Floor:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string, enum: [ACTIVE, DEACTIVATED] }
+        groundFloor:
+          type: boolean
+          description: New in 008. Default false.
+
+    FloorRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        groundFloor:
+          type: boolean
+          nullable: true
+          description: New in 008, optional. Create - null means false. PUT - null means unchanged.
+
+    SeatingArrangement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        maxCapacity: { type: integer, minimum: 1 }
+
+    Room:
+      type: object
+      description: Same shape as GET /api/rooms/{roomId} in feature 001, plus the two new fields.
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        building: { $ref: "#/components/schemas/Building" }
+        floor: { $ref: "#/components/schemas/Floor" }
+        status: { type: string, enum: [ACTIVE, DEACTIVATED] }
+        version: { type: integer }
+        seatingArrangements:
+          type: array
+          items: { $ref: "#/components/schemas/SeatingArrangement" }
+        equipmentTypeIds:
+          type: array
+          items: { type: string, format: uuid }
+        notBarrierFree:
+          type: boolean
+          description: New in 008. Administrator exclusion; default false.
+        barrierFreeReachable:
+          type: boolean
+          readOnly: true
+          description: |
+            New in 008, derived - (floor.groundFloor OR building.hasElevator) AND NOT notBarrierFree.
+
+    RoomCreateRequestAdditions:
+      type: object
+      description: Field added to RoomCreateRequest (feature 001). Null means false.
+      properties:
+        notBarrierFree: { type: boolean, nullable: true }
+
+    RoomUpdateRequestAdditions:
+      type: object
+      description: Field added to RoomUpdateRequest (feature 001). Null means unchanged.
+      properties:
+        notBarrierFree: { type: boolean, nullable: true }
+
+    Problem:
+      type: object
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string, example: VALIDATION_FAILED }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

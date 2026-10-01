@@ -15,5 +15,17 @@ public record ReservationCreateRequest(
         @NotNull @Min(1) Integer expectedAttendees,
         List<UUID> additionalEquipmentTypeIds,
         @Size(max = 2000) String note,
+        @NotBlank @Size(max = 255) String reservedFor,
         @Size(max = 255) String createdBy) {
+
+    public ReservationCreateRequest(
+            Instant startTime,
+            Instant endTime,
+            UUID seatingArrangementId,
+            Integer expectedAttendees,
+            List<UUID> additionalEquipmentTypeIds,
+            String note,
+            String reservedFor) {
+        this(startTime, endTime, seatingArrangementId, expectedAttendees, additionalEquipmentTypeIds, note, reservedFor, reservedFor);
+    }
 }

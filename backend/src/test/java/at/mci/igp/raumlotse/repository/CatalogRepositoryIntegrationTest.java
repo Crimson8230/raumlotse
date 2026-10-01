@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +48,14 @@ class CatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private RoomService roomService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private Boolean column(String table, String column, UUID id) {
+        return jdbcTemplate.queryForObject(
+                "select " + column + " from " + table + " where id = ?", Boolean.class, id);
+    }
 
     @Test
     void buildingNameUniquenessIsCaseInsensitiveAtTheDbLevel() {
@@ -131,5 +140,39 @@ class CatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
                 .isInstanceOf(ConflictException.class);
 
         assertThatCode(() -> equipmentTypeService.deactivate(equipmentType.getId())).doesNotThrowAnyException();
+    }
+
+    @Test
+    void barrierFreeAttributesDefaultToFalseInTheDatabase() {
+        var building = buildingService.create("Defaults " + UUID.randomUUID());
+        var floor = floorService.create(building.getId(), "EG");
+        var room = roomService.create(new RoomCreateRequest("Default room", floor.getId(),
+                List.of(new SeatingArrangementRequest("Theater", 10)), List.of()));
+        buildingRepository.flush();
+
+        assertThat(column("building", "has_elevator", building.getId())).isFalse();
+        assertThat(column("floor", "ground_floor", floor.getId())).isFalse();
+        assertThat(column("room", "not_barrier_free", room.getId())).isFalse();
+    }
+
+    @Test
+    void barrierFreeAttributesRoundTripAndNullKeepsTheCurrentValue() {
+        var building = buildingService.create("Aufzug " + UUID.randomUUID(), true);
+        var floor = floorService.create(building.getId(), "EG", true);
+        buildingRepository.flush();
+        assertThat(column("building", "has_elevator", building.getId())).isTrue();
+        assertThat(column("floor", "ground_floor", floor.getId())).isTrue();
+
+        buildingService.update(building.getId(), building.getName() + " neu", null);
+        floorService.update(floor.getId(), "Erdgeschoss", null);
+        buildingRepository.flush();
+        assertThat(column("building", "has_elevator", building.getId())).isTrue();
+        assertThat(column("floor", "ground_floor", floor.getId())).isTrue();
+
+        buildingService.update(building.getId(), building.getName(), false);
+        floorService.update(floor.getId(), "Erdgeschoss", false);
+        buildingRepository.flush();
+        assertThat(column("building", "has_elevator", building.getId())).isFalse();
+        assertThat(column("floor", "ground_floor", floor.getId())).isFalse();
     }
 }

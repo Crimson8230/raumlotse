@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatDateTime, formatDateTimeRange, formatTime } from './date'
+import { formatDate, formatDateTime, formatDateTimeRange, formatDuration, formatTime, toDateTimeLocalValue } from './date'
 
 describe('date utils', () => {
   it('formats a date as DD.MM.YYYY', () => {
@@ -40,4 +40,39 @@ describe('date utils', () => {
   it('handles invalid time range gracefully', () => {
     expect(formatDateTimeRange('bad-start', 'bad-end')).toBe('bad-start – bad-end')
   })
+
+  it('converts an ISO instant to a local datetime-local value', () => {
+    const d = new Date(2026, 9, 5, 9, 5) // 05 Oct 2026 09:05 local
+    expect(toDateTimeLocalValue(d.toISOString())).toBe('2026-10-05T09:05')
+  })
+
+  it('returns an empty value for an invalid instant', () => {
+    expect(toDateTimeLocalValue('not-a-date')).toBe('')
+  })
+
+  it('formats short duration under 60 minutes in minutes', () => {
+    const start = new Date(2026, 9, 1, 10, 0).toISOString()
+    const end = new Date(2026, 9, 1, 10, 45).toISOString()
+    expect(formatDuration(start, end)).toBe('45 Min.')
+  })
+
+  it('formats full hours duration', () => {
+    const start = new Date(2026, 9, 1, 10, 0).toISOString()
+    const end = new Date(2026, 9, 1, 12, 0).toISOString()
+    expect(formatDuration(start, end)).toBe('2 Std.')
+  })
+
+  it('formats hours and minutes duration', () => {
+    const start = new Date(2026, 9, 1, 10, 0).toISOString()
+    const end = new Date(2026, 9, 1, 11, 30).toISOString()
+    expect(formatDuration(start, end)).toBe('1 Std. 30 Min.')
+  })
+
+  it('handles invalid or non-positive durations gracefully', () => {
+    expect(formatDuration('bad-start', 'bad-end')).toBe('0 Min.')
+    const start = new Date(2026, 9, 1, 11, 0).toISOString()
+    const end = new Date(2026, 9, 1, 10, 0).toISOString()
+    expect(formatDuration(start, end)).toBe('0 Min.')
+  })
 })
+

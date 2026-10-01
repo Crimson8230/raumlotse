@@ -1,6 +1,9 @@
-import { useContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { createReservation, getAvailableEquipment } from '../../API/reservations'
-import { formatApiError } from '../../API/client'
+import { ApiError, formatApiError } from '../../API/client'
+import { toDateTimeLocalValue } from '../../utils/date'
+import { useAuth } from '../../auth/useAuth'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
@@ -10,22 +13,33 @@ export interface ReservationFormProps {
   room: Room
   onSaved: (reservation: Reservation) => void
   onCancel?: () => void
+  /** ISO instants that pre-fill Start/End, e.g. from a room search window (feature 008); stay editable. */
+  initialStartTime?: string
+  initialEndTime?: string
 }
 
-export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProps) {
-  const auth = useContext(AuthContext)
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
+export function ReservationForm({ room, onSaved, onCancel, initialStartTime, initialEndTime }: ReservationFormProps) {
+  const auth = useAuth()
+  const [startTime, setStartTime] = useState(() => (initialStartTime ? toDateTimeLocalValue(initialStartTime) : ''))
+  const [endTime, setEndTime] = useState(() => (initialEndTime ? toDateTimeLocalValue(initialEndTime) : ''))
   const [seatingArrangementId, setSeatingArrangementId] = useState(
     room.seatingArrangements.length === 1 ? room.seatingArrangements[0].id : '',
   )
   const [expectedAttendees, setExpectedAttendees] = useState<number | ''>('')
+  const [reservedFor, setReservedFor] = useState(() => auth.user?.displayName ?? '')
   const [note, setNote] = useState('')
   const [availableEquipment, setAvailableEquipment] = useState<EquipmentTypeSummary[]>([])
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([])
   const [loadingEquipment, setLoadingEquipment] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isConflict, setIsConflict] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (auth.user?.displayName && !reservedFor) {
+      setReservedFor(auth.user.displayName)
+    }
+  }, [auth.user?.displayName])
 
   useEffect(() => {
     let ignore = false
@@ -46,6 +60,24 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
     }
   }, [room.id])
 
+  if (auth.state !== 'authenticated' || !auth.user) {
+    return (
+      <div className="panel reservation-form reservation-auth-notice">
+        <p>Bitte melden Sie sich an, um eine Reservierung vorzunehmen.</p>
+        <p>
+          <Link to="/login">Zur Anmeldung</Link>
+        </p>
+        {onCancel && (
+          <div className="actions">
+            <button type="button" onClick={onCancel}>
+              Abbrechen
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   function toggleEquipment(id: string) {
     setSelectedEquipmentIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
@@ -55,6 +87,7 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setIsConflict(false)
 
     const selectedArrangement = room.seatingArrangements.find(
       (sa) => sa.id === seatingArrangementId,
@@ -87,6 +120,16 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
       return
     }
 
+    if (!reservedFor.trim()) {
+      setError('Reserviert für ist ein Pflichtfeld.')
+      return
+    }
+
+    if (reservedFor.trim().length > 255) {
+      setError('Reserviert für darf maximal 255 Zeichen lang sein.')
+      return
+    }
+
     const startIso =
       startTime.includes('Z') || startTime.includes('+')
         ? startTime
@@ -103,6 +146,7 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
         endTime: endIso,
         seatingArrangementId,
         expectedAttendees: attendeesNum,
+        reservedFor: reservedFor.trim(),
         note: note.trim() || undefined,
         additionalEquipmentTypeIds:
           selectedEquipmentIds.length > 0 ? selectedEquipmentIds : undefined,
@@ -110,6 +154,9 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
       onSaved(saved)
     } catch (err) {
       setError(formatApiError(err))
+      if (err instanceof ApiError && err.status === 409) {
+        setIsConflict(true)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -118,9 +165,14 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
   return (
     <form onSubmit={handleSubmit} noValidate className="panel reservation-form">
       {error && (
-        <p role="alert" className="feedback-error">
-          {error}
-        </p>
+        <div role="alert" className={isConflict ? 'feedback-conflict' : 'feedback-error'}>
+          <p>{error}</p>
+          {isConflict && (
+            <p>
+              <Link to="/rooms">Zurück zur Raumübersicht</Link>
+            </p>
+          )}
+        </div>
       )}
 
       <div>
@@ -182,6 +234,18 @@ export function ReservationForm({ room, onSaved, onCancel }: ReservationFormProp
           onChange={(e) =>
             setExpectedAttendees(e.target.value === '' ? '' : parseInt(e.target.value, 10))
           }
+        />
+      </div>
+
+      <div>
+        <label htmlFor="res-reserved-for">Reserviert für</label>
+        <input
+          id="res-reserved-for"
+          type="text"
+          required
+          maxLength={255}
+          value={reservedFor}
+          onChange={(e) => setReservedFor(e.target.value)}
         />
       </div>
 

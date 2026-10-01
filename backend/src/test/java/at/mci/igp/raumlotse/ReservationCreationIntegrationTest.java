@@ -83,6 +83,25 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createsReservationWithAuthenticatedUserAndReservedFor() {
+        Room room = createTestRoom("Room User Test");
+        UUID arrangementId = room.getSeatingArrangements().get(0).getId();
+        UUID userId = UUID.randomUUID();
+
+        Instant start = Instant.now().plus(4, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        Instant end = start.plus(2, ChronoUnit.HOURS);
+
+        ReservationCreateRequest request = new ReservationCreateRequest(
+                start, end, arrangementId, 15, List.of(), "Team Sync", "Web Team", null);
+
+        ReservationResponse response = reservationService.createReservation(room.getId(), request, userId.toString());
+
+        assertThat(response.id()).isNotNull();
+        assertThat(response.createdBy()).isEqualTo(userId.toString());
+        assertThat(response.reservedFor()).isEqualTo("Web Team");
+    }
+
+    @Test
     void concurrentOverlappingReservationAttemptsAreSerialized() throws Exception {
         Room room = createTestRoom("Room 202");
         UUID arrangementId = room.getSeatingArrangements().get(0).getId();

@@ -45,7 +45,7 @@ class FloorControllerTest {
     @Test
     void createUnderBuildingReturns201() throws Exception {
         UUID buildingId = UUID.randomUUID();
-        when(floorService.create(eq(buildingId), eq("1"))).thenReturn(floorOf(new Building("Main"), "1"));
+        when(floorService.create(eq(buildingId), eq("1"), org.mockito.ArgumentMatchers.isNull())).thenReturn(floorOf(new Building("Main"), "1"));
 
         mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +57,7 @@ class FloorControllerTest {
     @Test
     void createUnderDeactivatedBuildingReturns400() throws Exception {
         UUID buildingId = UUID.randomUUID();
-        when(floorService.create(eq(buildingId), eq("1")))
+        when(floorService.create(eq(buildingId), eq("1"), org.mockito.ArgumentMatchers.isNull()))
                 .thenThrow(new IllegalArgumentException(
                         "Building 'Main' is not active; a floor can only be created under an active building."));
 
@@ -81,7 +81,7 @@ class FloorControllerTest {
     @Test
     void createWithDuplicateNameInBuildingReturns409() throws Exception {
         UUID buildingId = UUID.randomUUID();
-        when(floorService.create(eq(buildingId), eq("1")))
+        when(floorService.create(eq(buildingId), eq("1"), org.mockito.ArgumentMatchers.isNull()))
                 .thenThrow(new ConflictException("A floor named '1' already exists in this building."));
 
         mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
@@ -93,7 +93,7 @@ class FloorControllerTest {
     @Test
     void renameReturns200() throws Exception {
         UUID floorId = UUID.randomUUID();
-        when(floorService.rename(eq(floorId), eq("Ground"))).thenReturn(floorOf(new Building("Main"), "Ground"));
+        when(floorService.update(eq(floorId), eq("Ground"), org.mockito.ArgumentMatchers.isNull())).thenReturn(floorOf(new Building("Main"), "Ground"));
 
         mockMvc.perform(put("/api/floors/" + floorId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -137,5 +137,56 @@ class FloorControllerTest {
 
         mockMvc.perform(delete("/api/floors/" + floorId).with(csrf()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void createGroundFloorPassesTheFlag() throws Exception {
+        UUID buildingId = UUID.randomUUID();
+        Floor ground = floorOf(new Building("Main"), "EG");
+        ground.setGroundFloor(true);
+        when(floorService.create(eq(buildingId), eq("EG"), eq(true))).thenReturn(ground);
+
+        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"EG\",\"groundFloor\":true}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groundFloor").value(true));
+    }
+
+    @Test
+    void createWithoutGroundFloorFlagReturnsFalse() throws Exception {
+        UUID buildingId = UUID.randomUUID();
+        when(floorService.create(eq(buildingId), eq("EG"), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(floorOf(new Building("Main"), "EG"));
+
+        mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"EG\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groundFloor").value(false));
+    }
+
+    @Test
+    void updateWithoutGroundFloorFlagPassesNullMeaningUnchanged() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(floorService.update(eq(id), eq("Erdgeschoss"), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(floorOf(new Building("Main"), "Erdgeschoss"));
+
+        mockMvc.perform(put("/api/floors/" + id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Erdgeschoss\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateWithGroundFloorFlagPassesTheValue() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(floorService.update(eq(id), eq("EG"), eq(false))).thenReturn(floorOf(new Building("Main"), "EG"));
+
+        mockMvc.perform(put("/api/floors/" + id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"EG\",\"groundFloor\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundFloor").value(false));
     }
 }

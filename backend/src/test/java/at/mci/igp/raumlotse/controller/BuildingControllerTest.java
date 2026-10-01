@@ -40,7 +40,7 @@ class BuildingControllerTest {
 
     @Test
     void createReturns201() throws Exception {
-        when(buildingService.create("Main")).thenReturn(new Building("Main"));
+        when(buildingService.create(eq("Main"), org.mockito.ArgumentMatchers.isNull())).thenReturn(new Building("Main"));
 
         mockMvc.perform(post("/api/buildings").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -51,7 +51,7 @@ class BuildingControllerTest {
 
     @Test
     void createWithDuplicateNameReturns409() throws Exception {
-        when(buildingService.create(eq("Main")))
+        when(buildingService.create(eq("Main"), org.mockito.ArgumentMatchers.isNull()))
                 .thenThrow(new ConflictException("A building named 'Main' already exists."));
 
         mockMvc.perform(post("/api/buildings").with(csrf())
@@ -63,7 +63,7 @@ class BuildingControllerTest {
     @Test
     void renameReturns200() throws Exception {
         UUID id = UUID.randomUUID();
-        when(buildingService.rename(eq(id), eq("Main Building"))).thenReturn(new Building("Main Building"));
+        when(buildingService.update(eq(id), eq("Main Building"), org.mockito.ArgumentMatchers.isNull())).thenReturn(new Building("Main Building"));
 
         mockMvc.perform(put("/api/buildings/" + id).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,5 +110,54 @@ class BuildingControllerTest {
 
         mockMvc.perform(delete("/api/buildings/" + id).with(csrf()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void createWithElevatorPassesTheFlag() throws Exception {
+        Building withElevator = new Building("Haus 1");
+        withElevator.setHasElevator(true);
+        when(buildingService.create(eq("Haus 1"), eq(true))).thenReturn(withElevator);
+
+        mockMvc.perform(post("/api/buildings").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Haus 1\",\"hasElevator\":true}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.hasElevator").value(true));
+    }
+
+    @Test
+    void createWithoutElevatorFlagReturnsFalse() throws Exception {
+        when(buildingService.create(eq("Haus 1"), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(new Building("Haus 1"));
+
+        mockMvc.perform(post("/api/buildings").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Haus 1\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.hasElevator").value(false));
+    }
+
+    @Test
+    void updateWithoutElevatorFlagPassesNullMeaningUnchanged() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(buildingService.update(eq(id), eq("Haus 1b"), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(new Building("Haus 1b"));
+
+        mockMvc.perform(put("/api/buildings/" + id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Haus 1b\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateWithElevatorFlagPassesTheValue() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(buildingService.update(eq(id), eq("Haus 1"), eq(false))).thenReturn(new Building("Haus 1"));
+
+        mockMvc.perform(put("/api/buildings/" + id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Haus 1\",\"hasElevator\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasElevator").value(false));
     }
 }

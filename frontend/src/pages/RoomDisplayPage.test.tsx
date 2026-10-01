@@ -15,12 +15,14 @@ const reservations = vi.mocked(reservationsApi)
 const sampleRoom: Room = {
   id: 'room-1',
   name: 'Room 101',
-  building: { id: 'b1', name: 'Main Building', status: 'ACTIVE' },
-  floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE' },
+  building: { id: 'b1', name: 'Main Building', status: 'ACTIVE', hasElevator: false },
+  floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false },
   status: 'ACTIVE',
   version: 0,
   seatingArrangements: [{ id: 'seat-1', name: 'Theater', maxCapacity: 40 }],
   equipmentTypeIds: [],
+  notBarrierFree: false,
+  barrierFreeReachable: false,
 }
 
 beforeEach(() => {

@@ -30,6 +30,7 @@ export function ReservationList({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editAttendees, setEditAttendees] = useState<number | ''>(1)
   const [editNote, setEditNote] = useState<string>('')
+  const [editReservedFor, setEditReservedFor] = useState<string>('')
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
@@ -65,6 +66,7 @@ export function ReservationList({
     setEditingId(res.id)
     setEditAttendees(res.expectedAttendees)
     setEditNote(res.note ?? '')
+    setEditReservedFor(res.reservedFor ?? '')
     setError(null)
   }
 
@@ -86,12 +88,23 @@ export function ReservationList({
       return
     }
 
+    if (!editReservedFor.trim()) {
+      setError('Reserviert für ist ein Pflichtfeld.')
+      return
+    }
+
+    if (editReservedFor.trim().length > 255) {
+      setError('Reserviert für darf maximal 255 Zeichen lang sein.')
+      return
+    }
+
     setActionInProgress(res.id)
     setError(null)
     try {
       await updateReservationMetadata(res.id, {
         expectedAttendees: attendeesNum,
         note: editNote.trim() || undefined,
+        reservedFor: editReservedFor.trim(),
       })
       setEditingId(null)
       await reload()
@@ -157,6 +170,9 @@ export function ReservationList({
                     <strong>Attendees:</strong> {res.expectedAttendees}
                   </p>
                   <p>
+                    <strong>Reserviert für:</strong> {res.reservedFor}
+                  </p>
+                  <p>
                     <strong>Booked by:</strong> {res.createdBy}
                   </p>
                   <p className="reservation-created-at">
@@ -178,6 +194,7 @@ export function ReservationList({
                 {isEditing ? (
                   <form
                     className="reservation-edit-form"
+                    noValidate
                     onSubmit={(e) => {
                       e.preventDefault()
                       handleSaveEdit(res)
@@ -197,6 +214,17 @@ export function ReservationList({
                             e.target.value === '' ? '' : parseInt(e.target.value, 10),
                           )
                         }
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`edit-reserved-for-${res.id}`}>Reserviert für</label>
+                      <input
+                        id={`edit-reserved-for-${res.id}`}
+                        type="text"
+                        required
+                        maxLength={255}
+                        value={editReservedFor}
+                        onChange={(e) => setEditReservedFor(e.target.value)}
                       />
                     </div>
                     <div>

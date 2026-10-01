@@ -11,6 +11,7 @@ vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 
 vi.mock('./API/client', () => ({
   ApiError: class ApiError extends Error { readonly status: number; constructor(status: number) { super(); this.status = status } },
   clearCsrfToken: vi.fn(),
+  apiRequest: vi.fn().mockResolvedValue([]),
 }))
 
 describe('protected routes', () => {

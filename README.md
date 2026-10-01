@@ -14,6 +14,8 @@ For local Compose use, copy `.env.example` to `.env`, replace every placeholder,
 
 The first feature, **room management**, is implemented: administrators can maintain a catalog of buildings and their floors, an equipment catalog (projector, whiteboard, ...), and rooms (name, floor, seating arrangements with capacities, assigned equipment). Rooms, buildings, floors, and equipment types can each be created, renamed, deactivated/reactivated, and deleted. See [`specs/001-room-management/`](specs/001-room-management/) for the full specification, data model, and API contract.
 
+**Room search** is implemented on the "Räume" page (`/rooms`): signed-in users filter active rooms by minimum/maximum number of persons, building, seating arrangement, equipment from the catalog, barrier-free reachability, and a date/time window that excludes rooms already booked then. Filters are kept in the URL, and a result opened from a time-window search pre-fills the booking form. A room counts as barrier-free reachable if it is on a floor marked as ground floor or in a building with an elevator, unless an administrator marked the room itself as not barrier-free. These three attributes default to `false` for existing data, so no room is reported as barrier-free until an administrator records elevator or ground-floor information. See [`specs/008-room-search-filter/`](specs/008-room-search-filter/).
+
 Available backend endpoints:
 
 ```text
@@ -21,6 +23,8 @@ GET  /api/health
 
 GET    /api/rooms
 POST   /api/rooms
+GET    /api/rooms/search
+GET    /api/rooms/search/seating-arrangements
 GET    /api/rooms/{roomId}
 PUT    /api/rooms/{roomId}
 DELETE /api/rooms/{roomId}
@@ -49,7 +53,7 @@ POST   /api/equipment-types/{equipmentTypeId}/deactivate
 POST   /api/equipment-types/{equipmentTypeId}/reactivate
 ```
 
-The full, versioned contract (request/response shapes, status codes) lives in [`specs/001-room-management/contracts/openapi.yaml`](specs/001-room-management/contracts/openapi.yaml).
+The full, versioned contract (request/response shapes, status codes) lives in [`specs/001-room-management/contracts/openapi.yaml`](specs/001-room-management/contracts/openapi.yaml); the search endpoints are specified in [`specs/008-room-search-filter/contracts/room-search-api.yaml`](specs/008-room-search-filter/contracts/room-search-api.yaml).
 
 `GET /api/health` still returns:
 
@@ -95,7 +99,6 @@ The full, versioned contract (request/response shapes, status codes) lives in [`
 ### Planned
 
 - Authentication/authorization (room management is currently unauthenticated by design — see `specs/001-room-management/spec.md`)
-- Room search and reservation workflow
 
 ## Requirements
 

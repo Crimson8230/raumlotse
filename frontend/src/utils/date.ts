@@ -15,6 +15,13 @@ export function formatTime(d: Date): string {
   return `${hours}:${minutes}`
 }
 
+/** ISO instant → `YYYY-MM-DDTHH:mm` in local time, the value format of `<input type="datetime-local">`. */
+export function toDateTimeLocalValue(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}T${formatTime(d)}`
+}
+
 export function formatDateTime(isoString: string): string {
   const d = new Date(isoString)
   if (isNaN(d.getTime())) return isoString
@@ -39,3 +46,23 @@ export function formatDateTimeRange(startIso: string, endIso: string): string {
 
   return `${formatDate(startDate)}, ${formatTime(startDate)} – ${formatDate(endDate)}, ${formatTime(endDate)}`
 }
+
+export function formatDuration(startIso: string, endIso: string): string {
+  const start = new Date(startIso).getTime()
+  const end = new Date(endIso).getTime()
+  if (isNaN(start) || isNaN(end) || end <= start) {
+    return '0 Min.'
+  }
+  const totalMinutes = Math.round((end - start) / (1000 * 60))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours === 0) {
+    return `${minutes} Min.`
+  }
+  if (minutes === 0) {
+    return `${hours} Std.`
+  }
+  return `${hours} Std. ${minutes} Min.`
+}
+

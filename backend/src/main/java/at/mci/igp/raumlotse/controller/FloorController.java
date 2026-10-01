@@ -36,13 +36,13 @@ public class FloorController {
 
     @PostMapping("/api/buildings/{buildingId}/floors")
     public ResponseEntity<FloorResponse> create(@PathVariable UUID buildingId, @Valid @RequestBody FloorRequest request) {
-        var created = floorService.create(buildingId, request.name());
+        var created = floorService.create(buildingId, request.name(), request.groundFloor());
         return ResponseEntity.status(HttpStatus.CREATED).body(FloorResponse.from(created));
     }
 
     @PutMapping("/api/floors/{floorId}")
     public FloorResponse rename(@PathVariable UUID floorId, @Valid @RequestBody FloorRequest request) {
-        return FloorResponse.from(floorService.rename(floorId, request.name()));
+        return FloorResponse.from(floorService.update(floorId, request.name(), request.groundFloor()));
     }
 
     @PostMapping("/api/floors/{floorId}/deactivate")

@@ -7,6 +7,14 @@ export function listRooms(status: StatusFilter = 'active'): Promise<Room[]> {
   return apiRequest<Room[]>(`${BASE}?status=${status}`)
 }
 
+export function searchRooms(query: URLSearchParams): Promise<Room[]> {
+  return apiRequest<Room[]>(`${BASE}/search?${query.toString()}`)
+}
+
+export function listSeatingArrangementNames(): Promise<string[]> {
+  return apiRequest<string[]>(`${BASE}/search/seating-arrangements`)
+}
+
 export function getRoom(id: string): Promise<Room> {
   return apiRequest<Room>(`${BASE}/${id}`)
 }

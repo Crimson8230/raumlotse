@@ -13,11 +13,11 @@ const buildings = vi.mocked(buildingsApi)
 const floors = vi.mocked(floorsApi)
 
 function building(overrides: Partial<Building> = {}): Building {
-  return { id: 'b1', name: 'Main', status: 'ACTIVE', ...overrides }
+  return { id: 'b1', name: 'Main', status: 'ACTIVE', hasElevator: false, ...overrides }
 }
 
 function floor(overrides: Partial<Floor> = {}): Floor {
-  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', ...overrides }
+  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false, ...overrides }
 }
 
 beforeEach(() => {
@@ -39,13 +39,13 @@ describe('BuildingCatalog', () => {
     await user.type(screen.getByLabelText(/new building name/i), 'Main')
     await user.click(screen.getByRole('button', { name: /add building/i }))
 
-    await waitFor(() => expect(buildings.createBuilding).toHaveBeenCalledWith('Main'))
+    await waitFor(() => expect(buildings.createBuilding).toHaveBeenCalledWith('Main', false))
     await screen.findByText('Main')
 
     await user.type(screen.getByLabelText(/new floor name/i), '1')
     await user.click(screen.getByRole('button', { name: /add floor/i }))
 
-    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1'))
+    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1', false))
   })
 
   it('renames a building and a floor', async () => {
@@ -100,5 +100,51 @@ describe('BuildingCatalog', () => {
 
     await screen.findByText(/still has one or more floors/i)
     expect(screen.getByText('Main')).toBeInTheDocument()
+  })
+
+  it('creates a building with an elevator when "Aufzug vorhanden" is checked', async () => {
+    const user = userEvent.setup()
+    buildings.createBuilding.mockResolvedValue(building({ hasElevator: true }))
+
+    render(<BuildingCatalog />)
+
+    await user.type(screen.getByLabelText(/new building name/i), 'Main')
+    await user.click(screen.getByLabelText('Aufzug vorhanden'))
+    await user.click(screen.getByRole('button', { name: /add building/i }))
+
+    await waitFor(() => expect(buildings.createBuilding).toHaveBeenCalledWith('Main', true))
+  })
+
+  it('shows and toggles the elevator of a building', async () => {
+    const user = userEvent.setup()
+    buildings.listBuildings.mockResolvedValue([building({ hasElevator: false })])
+    buildings.updateBuilding.mockResolvedValue(building({ hasElevator: true }))
+
+    render(<BuildingCatalog />)
+
+    expect(await screen.findByText('kein Aufzug')).toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: 'Aufzug in Main' }))
+
+    await waitFor(() => expect(buildings.updateBuilding).toHaveBeenCalledWith('b1', 'Main', true))
+  })
+
+  it('creates a ground floor and toggles the ground-floor mark of a floor', async () => {
+    const user = userEvent.setup()
+    buildings.listBuildings.mockResolvedValue([building()])
+    floors.listFloors.mockResolvedValue([floor({ name: 'EG', groundFloor: true })])
+    floors.createFloor.mockResolvedValue(floor())
+    floors.updateFloor.mockResolvedValue(floor({ name: 'EG', groundFloor: false }))
+
+    render(<BuildingCatalog />)
+    await screen.findByText('Main')
+
+    expect(screen.getByText('Erdgeschoss')).toBeInTheDocument()
+    await user.type(screen.getByLabelText(/new floor name/i), '1. OG')
+    await user.click(screen.getByLabelText('Erdgeschoss (stufenloser Zugang)'))
+    await user.click(screen.getByRole('button', { name: /add floor/i }))
+    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1. OG', true))
+
+    await user.click(screen.getByRole('checkbox', { name: 'Erdgeschoss: EG' }))
+    await waitFor(() => expect(floors.updateFloor).toHaveBeenCalledWith('f1', 'EG', false))
   })
 })

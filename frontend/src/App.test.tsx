@@ -8,12 +8,9 @@ import type { Room } from './types/room'
 
 vi.mock('./API/rooms')
 vi.mock('./API/reservations')
-vi.mock('./API/auth', () => ({
-  authApi: {
-    refreshCsrfToken: vi.fn().mockResolvedValue(undefined),
-    me: vi.fn().mockResolvedValue({ userId: 'user-1', displayName: 'Test User' }),
-  },
-}))
+const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
+vi.mock('./API/auth', () => ({ authApi: auth }))
+vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 'ok' }) }))
 
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
@@ -21,16 +18,20 @@ const reservations = vi.mocked(reservationsApi)
 const sampleRoom: Room = {
   id: 'room-1',
   name: 'Room 101',
-  building: { id: 'b1', name: 'Main Building', status: 'ACTIVE' },
-  floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE' },
+  building: { id: 'b1', name: 'Main Building', status: 'ACTIVE', hasElevator: false },
+  floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false },
   status: 'ACTIVE',
   version: 0,
   seatingArrangements: [],
   equipmentTypeIds: [],
+  notBarrierFree: false,
+  barrierFreeReachable: false,
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
+  auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Admin' })
+  auth.refreshCsrfToken.mockResolvedValue(undefined)
   rooms.getRoom.mockResolvedValue(sampleRoom)
   reservations.listRoomReservations.mockResolvedValue([])
   reservations.getAvailableEquipment.mockResolvedValue([])

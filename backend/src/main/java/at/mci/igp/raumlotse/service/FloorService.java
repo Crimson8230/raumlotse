@@ -28,6 +28,11 @@ public class FloorService {
     }
 
     public Floor create(UUID buildingId, String name) {
+        return create(buildingId, name, null);
+    }
+
+    /** {@code groundFloor} null means false (feature 008). */
+    public Floor create(UUID buildingId, String name, Boolean groundFloor) {
         Building building = buildingRepository.findById(buildingId)
                 .orElseThrow(() -> new NotFoundException("Building " + buildingId + " not found."));
         if (building.getStatus() != EntityStatus.ACTIVE) {
@@ -35,7 +40,9 @@ public class FloorService {
                     "Building '" + building.getName() + "' is not active; a floor can only be created under an active building.");
         }
         requireUniqueName(buildingId, name, null);
-        return floorRepository.save(new Floor(building, name));
+        Floor floor = new Floor(building, name);
+        floor.setGroundFloor(Boolean.TRUE.equals(groundFloor));
+        return floorRepository.save(floor);
     }
 
     @Transactional(readOnly = true)
@@ -56,9 +63,17 @@ public class FloorService {
     }
 
     public Floor rename(UUID id, String name) {
+        return update(id, name, null);
+    }
+
+    /** Renames the floor; {@code groundFloor} null keeps the current value (feature 008). */
+    public Floor update(UUID id, String name, Boolean groundFloor) {
         Floor floor = findOrThrow(id);
         requireUniqueName(floor.getBuilding().getId(), name, id);
         floor.setName(name);
+        if (groundFloor != null) {
+            floor.setGroundFloor(groundFloor);
+        }
         return floor;
     }
 

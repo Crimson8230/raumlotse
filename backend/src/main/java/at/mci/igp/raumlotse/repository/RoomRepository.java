@@ -21,6 +21,29 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
 
     boolean existsByFloorId(UUID floorId);
 
+    // Search candidates (feature 008): room, floor, and building all active. Two methods instead of a nullable
+    // parameter avoid null-typed parameter binding issues in Hibernate.
+    @Query("""
+        select r from Room r
+        join fetch r.floor f
+        join fetch f.building b
+        where r.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+          and f.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+          and b.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+    """)
+    List<Room> findSearchCandidates();
+
+    @Query("""
+        select r from Room r
+        join fetch r.floor f
+        join fetch f.building b
+        where r.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+          and f.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+          and b.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+          and b.id = :buildingId
+    """)
+    List<Room> findSearchCandidatesInBuilding(@Param("buildingId") UUID buildingId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Room r where r.id = :id")
     Optional<Room> findByIdForUpdate(@Param("id") UUID id);

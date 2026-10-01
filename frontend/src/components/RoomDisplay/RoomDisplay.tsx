@@ -38,6 +38,7 @@ export function RoomDisplay({
         <section className="room-display-reservation" aria-labelledby="room-display-reservation-title">
           <h2 id="room-display-reservation-title">Current reservation</h2>
           <p className="room-display-booked-by">Booked by: {reservation.createdBy}</p>
+          <p className="room-display-reserved-for">Reserved for: {reservation.reservedFor}</p>
           <dl className="room-display-details">
             <dt>Note</dt>
             <dd className="room-display-note" aria-label="Reservation note">
