@@ -76,7 +76,7 @@ class ReservationControllerTest {
                 "Projektgruppe Web",
                 Instant.now());
 
-        when(reservationService.createReservation(eq(roomId), any(), eq(userId.toString()))).thenReturn(response);
+        when(reservationService.createReservation(eq(roomId), any(), eq(new AuthenticatedUser(userId, "Max Mustermann")))).thenReturn(response);
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf()).with(actor)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +117,7 @@ class ReservationControllerTest {
                                   "reservedFor": "   "
                                 }
                                 """.formatted(start, end, layoutId)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

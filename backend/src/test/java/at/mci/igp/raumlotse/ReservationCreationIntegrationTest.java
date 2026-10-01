@@ -7,6 +7,7 @@ import at.mci.igp.raumlotse.domain.ReservationStatus;
 import at.mci.igp.raumlotse.domain.Room;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.dto.RoomCreateRequest;
 import at.mci.igp.raumlotse.dto.SeatingArrangementRequest;
 import at.mci.igp.raumlotse.exception.ConflictException;
@@ -14,6 +15,7 @@ import at.mci.igp.raumlotse.service.BuildingService;
 import at.mci.igp.raumlotse.service.FloorService;
 import at.mci.igp.raumlotse.service.ReservationService;
 import at.mci.igp.raumlotse.service.RoomService;
+import at.mci.igp.raumlotse.repository.ReservationRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -33,6 +35,9 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ReservationService reservationService;
+
+    @Autowired
+    private ReservationRepository reservationRepository;
 
     @Autowired
     private RoomService roomService;
@@ -94,11 +99,14 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
         ReservationCreateRequest request = new ReservationCreateRequest(
                 start, end, arrangementId, 15, List.of(), "Team Sync", "Web Team", null);
 
-        ReservationResponse response = reservationService.createReservation(room.getId(), request, userId.toString());
+        ReservationResponse response = reservationService.createReservation(
+                room.getId(), request, new AuthenticatedUser(userId, "Verified owner"));
 
         assertThat(response.id()).isNotNull();
-        assertThat(response.createdBy()).isEqualTo(userId.toString());
+        assertThat(response.createdBy()).isEqualTo("Verified owner");
         assertThat(response.reservedFor()).isEqualTo("Web Team");
+        assertThat(reservationRepository.findById(response.id()).orElseThrow().getCreatedByUserId())
+                .isEqualTo(userId);
     }
 
     @Test
