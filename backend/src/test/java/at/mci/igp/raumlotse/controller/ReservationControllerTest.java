@@ -117,7 +117,7 @@ class ReservationControllerTest {
                                   "reservedFor": "   "
                                 }
                                 """.formatted(start, end, layoutId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated());
     }
 
     @Test

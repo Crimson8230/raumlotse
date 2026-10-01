@@ -1,0 +1,4 @@
+.room-device-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
+.room-device-card { border: 1px solid #ccd3dc; border-radius: .5rem; padding: 1rem; }
+.room-device-card button { min-height: 2.75rem; }
+.device-unavailable { color: #5b6470; }

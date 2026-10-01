@@ -11,6 +11,7 @@ import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
@@ -29,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @Transactional

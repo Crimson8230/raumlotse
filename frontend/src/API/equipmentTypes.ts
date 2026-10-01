@@ -7,12 +7,12 @@ export function listEquipmentTypes(status: StatusFilter = 'all'): Promise<Equipm
   return apiRequest<EquipmentType[]>(`${BASE}?status=${status}`)
 }
 
-export function createEquipmentType(name: string): Promise<EquipmentType> {
-  return apiRequest<EquipmentType>(BASE, { method: 'POST', body: JSON.stringify({ name }) })
+export function createEquipmentType(name: string, code?: string): Promise<EquipmentType> {
+  return apiRequest<EquipmentType>(BASE, { method: 'POST', body: JSON.stringify({ name, code }) })
 }
 
-export function renameEquipmentType(id: string, name: string): Promise<EquipmentType> {
-  return apiRequest<EquipmentType>(`${BASE}/${id}`, { method: 'PUT', body: JSON.stringify({ name }) })
+export function renameEquipmentType(id: string, name: string, code?: string): Promise<EquipmentType> {
+  return apiRequest<EquipmentType>(`${BASE}/${id}`, { method: 'PUT', body: JSON.stringify({ name, code }) })
 }
 
 export function deactivateEquipmentType(id: string): Promise<EquipmentType> {

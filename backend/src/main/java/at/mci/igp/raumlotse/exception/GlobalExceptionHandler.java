@@ -37,6 +37,20 @@ public class GlobalExceptionHandler {
                                 .body(Problem.of(409, "Conflict", ex.getMessage()));
         }
 
+        @ExceptionHandler(DeviceOperationException.class)
+        public ResponseEntity<Problem> handleDeviceOperation(DeviceOperationException ex) {
+                log.warn("device_command_failed status=503");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                                .body(Problem.of(503, "Device Unavailable", "The device did not acknowledge the command.", "DEVICE_OPERATION_FAILED"));
+        }
+
+        @ExceptionHandler(DeviceAccessDeniedException.class)
+        public ResponseEntity<Problem> handleDeviceAccessDenied(DeviceAccessDeniedException ex) {
+                log.warn("device_authorization_denied status=403");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(Problem.of(403, "Forbidden", "You do not have an active reservation for this room.", "DEVICE_ACCESS_DENIED"));
+        }
+
         @ExceptionHandler(OptimisticLockingFailureException.class)
         public ResponseEntity<Problem> handleOptimisticLocking(OptimisticLockingFailureException ex) {
                 log.warn("stale_write detail={}", ex.getMessage());

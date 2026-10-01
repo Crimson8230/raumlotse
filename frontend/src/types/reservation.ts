@@ -10,6 +10,7 @@ export interface EquipmentTypeSummary {
   id: string
   name: string
   status: 'ACTIVE' | 'DEACTIVATED'
+  code?: string
 }
 
 export interface Reservation {

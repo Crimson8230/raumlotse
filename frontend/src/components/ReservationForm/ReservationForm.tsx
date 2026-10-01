@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/useAuth'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
+import { AuthContext } from '../../auth/authContext'
 
 export interface ReservationFormProps {
   room: Room
@@ -173,6 +174,11 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
           )}
         </div>
       )}
+
+      <div>
+        <label htmlFor="res-booked-by">Booked By</label>
+        <input id="res-booked-by" type="text" value={auth?.user?.displayName ?? 'Current signed-in account'} readOnly />
+      </div>
 
       <div>
         <label htmlFor="res-start-time">Start Time</label>
