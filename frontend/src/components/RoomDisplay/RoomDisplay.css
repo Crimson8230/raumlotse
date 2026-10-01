@@ -45,6 +45,28 @@
   gap: 1.5rem;
 }
 
+.room-display-next-reservation {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #cbd5e1;
+}
+
+.room-display-next-reservation h2,
+.room-display-next-reservation p {
+  margin: 0;
+}
+
+.room-display-next-reservation h2 {
+  font-size: 1.5rem;
+}
+
+.room-display-next-reservation p {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .room-display-reservation h2 {
   font-size: 1.5rem;
 }
@@ -86,4 +108,48 @@
 
 .room-display-state-error {
   color: #9f1239;
+}
+
+.room-display-status {
+  width: fit-content;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.room-display-next-reservation-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+  overflow: visible;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.room-display-next-reservation-line span {
+  flex: 0 0 auto;
+}
+
+.room-display-next-reservation-line span:nth-child(2) {
+  flex-shrink: 0;
+}
+
+.room-display-status-available {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.room-display-status-reserved {
+  color: #854d0e;
+  background: #fef9c3;
+}
+
+.room-display-status-occupied {
+  color: #991b1b;
+  background: #fee2e2;
 }

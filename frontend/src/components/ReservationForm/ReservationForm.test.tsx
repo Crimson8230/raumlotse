@@ -53,6 +53,7 @@ function sampleReservation(): Reservation {
     additionalEquipment: [],
     note: 'Department Sync',
     createdBy: 'Jane Doe',
+    reservedFor: 'Jane Doe',
     createdAt: '2026-09-19T10:00:00Z',
   }
 }
@@ -67,7 +68,7 @@ beforeEach(() => {
 })
 
 describe('ReservationForm', () => {
-  it('pre-fills reservedFor input with authenticated user display name and omits manual createdBy input', async () => {
+  it('pre-fills reservedFor input and shows the authenticated creator as read-only', async () => {
     mockAuthState = {
       state: 'authenticated',
       user: { userId: 'user-1', displayName: 'Max Mustermann' },
@@ -76,7 +77,9 @@ describe('ReservationForm', () => {
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i) as HTMLInputElement
     expect(reservedForInput).toBeInTheDocument()
     expect(reservedForInput.value).toBe('Max Mustermann')
-    expect(screen.queryByLabelText(/booked by/i)).not.toBeInTheDocument()
+    const bookedByInput = screen.getByLabelText(/booked by/i) as HTMLInputElement
+    expect(bookedByInput).toHaveValue('Max Mustermann')
+    expect(bookedByInput).toHaveAttribute('readonly')
   })
 
   it('allows overwriting reservedFor with custom text and submits it', async () => {

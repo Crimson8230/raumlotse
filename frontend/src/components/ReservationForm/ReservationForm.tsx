@@ -7,7 +7,6 @@ import { useAuth } from '../../auth/useAuth'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
 import './ReservationForm.css'
-import { AuthContext } from '../../auth/authContext'
 
 export interface ReservationFormProps {
   room: Room
@@ -34,12 +33,6 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
   const [error, setError] = useState<string | null>(null)
   const [isConflict, setIsConflict] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (auth.user?.displayName && !reservedFor) {
-      setReservedFor(auth.user.displayName)
-    }
-  }, [auth.user?.displayName])
 
   useEffect(() => {
     let ignore = false
