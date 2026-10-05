@@ -1,8 +1,11 @@
 package at.mci.igp.raumlotse.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import at.mci.igp.raumlotse.domain.EntityStatus;
 import at.mci.igp.raumlotse.domain.ReservationStatus;
 import at.mci.igp.raumlotse.dto.EquipmentTypeResponse;
+import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.SeatingArrangementResponse;
@@ -23,6 +27,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -30,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 import at.mci.igp.raumlotse.config.SecurityConfig;
 import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -46,8 +52,50 @@ class ReservationControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    void reservationCreateRequestDeserializerDefaultsOmittedNotificationToFalse() {
+        var request = objectMapper.readValue("""
+                {"startTime":"2026-10-06T10:00:00Z","endTime":"2026-10-06T11:00:00Z",
+                 "seatingArrangementId":"00000000-0000-4000-8000-000000000001",
+                 "expectedAttendees":4,"reservedFor":"Team"}
+                """, ReservationCreateRequest.class);
+        assertThat(request.emailNotification()).isFalse();
+    }
+
     @MockitoBean
     private ReservationService reservationService;
+
+    @Test
+    void createReservation_bindsNotificationAsExplicitOptInWithFalseDefault() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        UUID layoutId = UUID.randomUUID();
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        Instant end = start.plus(1, ChronoUnit.HOURS);
+        var response = new ReservationResponse(
+                UUID.randomUUID(), roomId, "Room", start, end, ReservationStatus.RESERVED,
+                new SeatingArrangementResponse(layoutId, "Board", 8), 4, List.of(), null,
+                "User", "Team", Instant.now());
+        when(reservationService.createReservation(eq(roomId), any(), any())).thenReturn(response);
+
+        for (String notificationProperty : List.of("", ",\"emailNotification\":false", ",\"emailNotification\":true")) {
+            mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"startTime":"%s","endTime":"%s","seatingArrangementId":"%s",
+                                     "expectedAttendees":4,"reservedFor":"Team"%s}
+                                    """.formatted(start, end, layoutId, notificationProperty)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.emailNotification").doesNotExist());
+        }
+
+        var request = ArgumentCaptor.forClass(ReservationCreateRequest.class);
+        verify(reservationService, times(3)).createReservation(eq(roomId), request.capture(), any());
+        assertThat(request.getAllValues().stream().map(ReservationCreateRequest::emailNotification).toList())
+                .containsExactly(false, false, true);
+    }
 
     @Test
     void createReservation_authenticatedUser_assignsCreatedByAndReservedFor() throws Exception {

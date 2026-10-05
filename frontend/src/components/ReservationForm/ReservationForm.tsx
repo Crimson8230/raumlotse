@@ -6,6 +6,7 @@ import { toDateTimeLocalValue } from '../../utils/date'
 import { useAuth } from '../../auth/useAuth'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
+import { reservationFormSchema } from './reservationFormSchema'
 import './ReservationForm.css'
 
 export interface ReservationFormProps {
@@ -29,6 +30,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
   const [note, setNote] = useState('')
   const [availableEquipment, setAvailableEquipment] = useState<EquipmentTypeSummary[]>([])
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([])
+  const [emailNotification, setEmailNotification] = useState(false)
   const [loadingEquipment, setLoadingEquipment] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isConflict, setIsConflict] = useState(false)
@@ -123,27 +125,40 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       return
     }
 
-    const startIso =
-      startTime.includes('Z') || startTime.includes('+')
+    let startIso: string
+    let endIso: string
+    try {
+      startIso = startTime.includes('Z') || startTime.includes('+')
         ? startTime
         : new Date(startTime).toISOString()
-    const endIso =
-      endTime.includes('Z') || endTime.includes('+')
+      endIso = endTime.includes('Z') || endTime.includes('+')
         ? endTime
         : new Date(endTime).toISOString()
+    } catch {
+      setError('Please check the reservation details and try again.')
+      return
+    }
+
+    const payload = {
+      startTime: startIso,
+      endTime: endIso,
+      seatingArrangementId,
+      expectedAttendees: attendeesNum,
+      reservedFor: reservedFor.trim(),
+      note: note.trim() || undefined,
+      additionalEquipmentTypeIds:
+        selectedEquipmentIds.length > 0 ? selectedEquipmentIds : undefined,
+      emailNotification,
+    }
+    const parsed = reservationFormSchema.safeParse(payload)
+    if (!parsed.success) {
+      setError('Please check the reservation details and try again.')
+      return
+    }
 
     setSubmitting(true)
     try {
-      const saved = await createReservation(room.id, {
-        startTime: startIso,
-        endTime: endIso,
-        seatingArrangementId,
-        expectedAttendees: attendeesNum,
-        reservedFor: reservedFor.trim(),
-        note: note.trim() || undefined,
-        additionalEquipmentTypeIds:
-          selectedEquipmentIds.length > 0 ? selectedEquipmentIds : undefined,
-      })
+      const saved = await createReservation(room.id, parsed.data)
       onSaved(saved)
     } catch (err) {
       setError(formatApiError(err))
@@ -276,6 +291,18 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
           </div>
         )}
       </fieldset>
+
+      <div className="reservation-email-notification">
+        <label htmlFor="res-email-notification">
+          <input
+            id="res-email-notification"
+            type="checkbox"
+            checked={emailNotification}
+            onChange={(event) => setEmailNotification(event.target.checked)}
+          />
+          <span>Email Notification</span>
+        </label>
+      </div>
 
       <div className="actions">
         <button type="submit" disabled={submitting}>

@@ -31,6 +31,13 @@ services:
       db:
         condition: service_healthy
 
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: raumlotse-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   backend:
     build:
       context: ./backend
@@ -47,9 +54,27 @@ services:
       AUTH_FIXTURE_EMAIL: ${AUTH_FIXTURE_EMAIL:-}
       AUTH_FIXTURE_DISPLAY_NAME: ${AUTH_FIXTURE_DISPLAY_NAME:-}
       AUTH_FIXTURE_PASSWORD: ${AUTH_FIXTURE_PASSWORD:-}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@raumlotse.local}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_CONNECTION_TIMEOUT: ${MAIL_CONNECTION_TIMEOUT:-5s}
+      MAIL_READ_TIMEOUT: ${MAIL_READ_TIMEOUT:-5s}
+      MAIL_WRITE_TIMEOUT: ${MAIL_WRITE_TIMEOUT:-5s}
+      MAIL_CONNECTION_TIMEOUT_MS: ${MAIL_CONNECTION_TIMEOUT_MS:-5000}
+      MAIL_READ_TIMEOUT_MS: ${MAIL_READ_TIMEOUT_MS:-5000}
+      MAIL_WRITE_TIMEOUT_MS: ${MAIL_WRITE_TIMEOUT_MS:-5000}
+      MAIL_POLL_DELAY: ${MAIL_POLL_DELAY:-1s}
+      MAIL_BATCH_SIZE: ${MAIL_BATCH_SIZE:-20}
+      MAIL_STALE_THRESHOLD: ${MAIL_STALE_THRESHOLD:-30s}
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
 volumes:
   postgres_data:

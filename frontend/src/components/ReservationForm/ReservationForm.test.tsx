@@ -20,6 +20,10 @@ vi.mock('../../auth/useAuth', () => ({
 }))
 
 const reservations = vi.mocked(reservationsApi)
+const SEAT_ONE_ID = '00000000-0000-4000-8000-000000000001'
+const SEAT_TWO_ID = '00000000-0000-4000-8000-000000000002'
+const EQUIPMENT_ONE_ID = '00000000-0000-4000-8000-000000000003'
+const EQUIPMENT_TWO_ID = '00000000-0000-4000-8000-000000000004'
 
 function sampleRoom(overrides: Partial<Room> = {}): Room {
   return {
@@ -30,8 +34,8 @@ function sampleRoom(overrides: Partial<Room> = {}): Room {
     status: 'ACTIVE',
     version: 0,
     seatingArrangements: [
-      { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
-      { id: 'seat-2', name: 'Classroom', maxCapacity: 20 },
+      { id: SEAT_ONE_ID, name: 'Theater', maxCapacity: 40 },
+      { id: SEAT_TWO_ID, name: 'Classroom', maxCapacity: 20 },
     ],
     equipmentTypeIds: [],
     notBarrierFree: false,
@@ -48,7 +52,7 @@ function sampleReservation(): Reservation {
     startTime: '2026-10-01T10:00:00Z',
     endTime: '2026-10-01T11:30:00Z',
     status: 'RESERVED',
-    seatingArrangement: { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
+    seatingArrangement: { id: SEAT_ONE_ID, name: 'Theater', maxCapacity: 40 },
     expectedAttendees: 30,
     additionalEquipment: [],
     note: 'Department Sync',
@@ -95,7 +99,7 @@ describe('ReservationForm', () => {
 
     await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
     await user.type(screen.getByLabelText(/attendees/i), '30')
 
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
@@ -106,7 +110,7 @@ describe('ReservationForm', () => {
 
     await waitFor(() => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
-        seatingArrangementId: 'seat-1',
+        seatingArrangementId: SEAT_ONE_ID,
         expectedAttendees: 30,
         reservedFor: 'Projektgruppe Web',
       }))
@@ -127,7 +131,7 @@ describe('ReservationForm', () => {
 
     await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
     await user.type(screen.getByLabelText(/attendees/i), '30')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
@@ -154,7 +158,7 @@ describe('ReservationForm', () => {
 
   it('renders form inputs and auto-selects layout when room has only one arrangement', async () => {
     const singleLayoutRoom = sampleRoom({
-      seatingArrangements: [{ id: 'seat-1', name: 'Theater', maxCapacity: 40 }],
+      seatingArrangements: [{ id: SEAT_ONE_ID, name: 'Theater', maxCapacity: 40 }],
     })
 
     render(<ReservationForm room={singleLayoutRoom} onSaved={vi.fn()} />)
@@ -165,7 +169,7 @@ describe('ReservationForm', () => {
     expect(screen.getByLabelText(/reserviert für|reserved for/i)).toBeInTheDocument()
 
     const select = screen.getByLabelText(/seating arrangement/i) as HTMLSelectElement
-    expect(select.value).toBe('seat-1')
+    expect(select.value).toBe(SEAT_ONE_ID)
   })
 
   it('validates attendee count against chosen seating arrangement capacity', async () => {
@@ -175,7 +179,7 @@ describe('ReservationForm', () => {
     const attendeesInput = screen.getByLabelText(/attendees/i)
     const select = screen.getByLabelText(/seating arrangement/i)
 
-    await user.selectOptions(select, 'seat-2') // maxCapacity: 20
+    await user.selectOptions(select, SEAT_TWO_ID) // maxCapacity: 20
     await user.type(attendeesInput, '25')
 
     const submitBtn = screen.getByRole('button', { name: /confirm reservation/i })
@@ -195,7 +199,7 @@ describe('ReservationForm', () => {
 
     await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
     await user.type(screen.getByLabelText(/attendees/i), '30')
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
     await user.clear(reservedForInput)
@@ -206,7 +210,7 @@ describe('ReservationForm', () => {
 
     await waitFor(() => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
-        seatingArrangementId: 'seat-1',
+        seatingArrangementId: SEAT_ONE_ID,
         expectedAttendees: 30,
         reservedFor: 'Jane Doe',
         note: 'Department Sync',
@@ -219,8 +223,8 @@ describe('ReservationForm', () => {
     const user = userEvent.setup()
     const onSaved = vi.fn()
     reservations.getAvailableEquipment.mockResolvedValue([
-      { id: 'eq-1', name: 'Microphone', status: 'ACTIVE' },
-      { id: 'eq-2', name: 'Projector', status: 'ACTIVE' },
+      { id: EQUIPMENT_ONE_ID, name: 'Microphone', status: 'ACTIVE' },
+      { id: EQUIPMENT_TWO_ID, name: 'Projector', status: 'ACTIVE' },
     ])
     reservations.createReservation.mockResolvedValue(sampleReservation())
 
@@ -233,14 +237,14 @@ describe('ReservationForm', () => {
 
     await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
     await user.type(screen.getByLabelText(/attendees/i), '30')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
 
     await waitFor(() => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
-        additionalEquipmentTypeIds: ['eq-1'],
+        additionalEquipmentTypeIds: [EQUIPMENT_ONE_ID],
       }))
     })
   })
@@ -273,7 +277,7 @@ describe('ReservationForm', () => {
 
     await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
     await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), 'seat-1')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
     await user.type(screen.getByLabelText(/attendees/i), '30')
 
     await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
@@ -315,5 +319,30 @@ describe('ReservationForm', () => {
 
     expect(screen.getByLabelText(/start time/i)).toHaveValue('')
     expect(screen.getByLabelText(/end time/i)).toHaveValue('')
+  })
+
+  it('starts Email Notification unchecked and submits its final visible value', async () => {
+    const user = userEvent.setup()
+    reservations.createReservation.mockResolvedValue(sampleReservation())
+    const { unmount } = render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
+    const checkbox = screen.getByRole('checkbox', { name: 'Email Notification' })
+    const submit = screen.getByRole('button', { name: /confirm reservation/i })
+    expect(checkbox).not.toBeChecked()
+    expect(checkbox.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await user.click(checkbox)
+    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/attendees/i), '4')
+    await user.click(submit)
+
+    await waitFor(() => expect(reservations.createReservation).toHaveBeenCalledWith(
+      'room-1', expect.objectContaining({ emailNotification: true }),
+    ))
+
+    unmount()
+    render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
+    expect(screen.getByRole('checkbox', { name: 'Email Notification' })).not.toBeChecked()
   })
 })

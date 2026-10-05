@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import at.mci.igp.raumlotse.domain.ReservationStatus;
 import at.mci.igp.raumlotse.domain.Room;
+import at.mci.igp.raumlotse.domain.UserAccount;
 import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.AuthenticatedUser;
@@ -16,6 +17,7 @@ import at.mci.igp.raumlotse.service.FloorService;
 import at.mci.igp.raumlotse.service.ReservationService;
 import at.mci.igp.raumlotse.service.RoomService;
 import at.mci.igp.raumlotse.repository.ReservationRepository;
+import at.mci.igp.raumlotse.repository.UserAccountRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
@@ -38,6 +41,9 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ReservationRepository reservationRepository;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
     @Autowired
     private RoomService roomService;
@@ -88,16 +94,20 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @Transactional
     void createsReservationWithAuthenticatedUserAndReservedFor() {
         Room room = createTestRoom("Room User Test");
         UUID arrangementId = room.getSeatingArrangements().get(0).getId();
-        UUID userId = UUID.randomUUID();
+        UUID userId = userAccountRepository.saveAndFlush(new UserAccount(
+                "reservation-owner-" + UUID.randomUUID() + "@example.test",
+                "Verified owner",
+                "{pbkdf2-sha256-600000-v1}" + "x".repeat(40))).getId();
 
         Instant start = Instant.now().plus(4, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
         ReservationCreateRequest request = new ReservationCreateRequest(
-                start, end, arrangementId, 15, List.of(), "Team Sync", "Web Team", null);
+                start, end, arrangementId, 15, List.of(), "Team Sync", "Web Team");
 
         ReservationResponse response = reservationService.createReservation(
                 room.getId(), request, new AuthenticatedUser(userId, "Verified owner"));

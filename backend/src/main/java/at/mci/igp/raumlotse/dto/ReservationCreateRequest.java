@@ -1,6 +1,6 @@
 package at.mci.igp.raumlotse.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +18,12 @@ public record ReservationCreateRequest(
         List<UUID> additionalEquipmentTypeIds,
         @Size(max = 2000) String note,
         @NotBlank @Size(max = 255) String reservedFor,
-        @JsonIgnore @Size(max = 255) String createdBy) {
+        Boolean emailNotification) {
+
+    @JsonCreator
+    public ReservationCreateRequest {
+        emailNotification = Boolean.TRUE.equals(emailNotification);
+    }
 
     public ReservationCreateRequest(
             Instant startTime,
@@ -28,6 +33,11 @@ public record ReservationCreateRequest(
             List<UUID> additionalEquipmentTypeIds,
             String note,
             String reservedFor) {
-        this(startTime, endTime, seatingArrangementId, expectedAttendees, additionalEquipmentTypeIds, note, reservedFor, reservedFor);
+        this(startTime, endTime, seatingArrangementId, expectedAttendees, additionalEquipmentTypeIds, note,
+                reservedFor, Boolean.FALSE);
+    }
+
+    public String createdBy() {
+        return reservedFor;
     }
 }
