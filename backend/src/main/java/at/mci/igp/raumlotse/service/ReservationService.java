@@ -42,6 +42,7 @@ public class ReservationService {
     private final RoomRepository roomRepository;
     private final EquipmentTypeRepository equipmentTypeRepository;
     private final Clock clock;
+    private final BookingConfirmationQueueService confirmationQueue;
 
     @Autowired
     public ReservationService(
@@ -49,11 +50,22 @@ public class ReservationService {
             RoomRepository roomRepository,
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository,
-            Clock clock) {
+            Clock clock,
+            BookingConfirmationQueueService confirmationQueue) {
         this.reservationRepository = reservationRepository;
         this.roomRepository = roomRepository;
         this.equipmentTypeRepository = equipmentTypeRepository;
         this.clock = clock;
+        this.confirmationQueue = confirmationQueue;
+    }
+
+    public ReservationService(
+            ReservationRepository reservationRepository,
+            RoomRepository roomRepository,
+            SeatingArrangementRepository seatingArrangementRepository,
+            EquipmentTypeRepository equipmentTypeRepository,
+            Clock clock) {
+        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, clock, null);
     }
 
     public ReservationService(
@@ -61,10 +73,16 @@ public class ReservationService {
             RoomRepository roomRepository,
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository) {
-        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, Clock.systemUTC());
+        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository,
+                Clock.systemUTC(), null);
     }
 
     public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request, AuthenticatedUser user) {
+        return createReservation(roomId, request, user, true);
+    }
+
+    private ReservationResponse createReservation(
+            UUID roomId, ReservationCreateRequest request, AuthenticatedUser user, boolean honorNotificationChoice) {
         if (user == null || user.userId() == null || user.displayName() == null || user.displayName().isBlank()) {
             throw new IllegalArgumentException("Authenticated creator identity is required.");
         }
@@ -128,7 +146,9 @@ public class ReservationService {
         reservation.setExpectedAttendees(request.expectedAttendees());
         reservation.setNote(request.note());
         reservation.setCreatedBy(effectiveCreatedBy);
-        reservation.setCreatedByUserId(user.userId());
+        if (honorNotificationChoice) {
+            reservation.setCreatedByUserId(user.userId());
+        }
         reservation.setReservedFor(request.reservedFor().trim());
 
         if (request.additionalEquipmentTypeIds() != null && !request.additionalEquipmentTypeIds().isEmpty()) {
@@ -137,6 +157,12 @@ public class ReservationService {
         }
 
         Reservation saved = reservationRepository.save(reservation);
+        if (honorNotificationChoice && Boolean.TRUE.equals(request.emailNotification())) {
+            if (confirmationQueue == null) {
+                throw new IllegalStateException("Booking confirmation queue is unavailable.");
+            }
+            confirmationQueue.enqueue(saved);
+        }
         return ReservationResponse.from(saved);
     }
 
@@ -146,7 +172,7 @@ public class ReservationService {
             throw new IllegalArgumentException("Creator identity ('createdBy') cannot be blank.");
         }
         UUID legacyUserId = UUID.nameUUIDFromBytes(legacyOwner.trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        return createReservation(roomId, request, new AuthenticatedUser(legacyUserId, legacyOwner.trim()));
+        return createReservation(roomId, request, new AuthenticatedUser(legacyUserId, legacyOwner.trim()), false);
     }
 
     @Transactional(readOnly = true)

@@ -1,0 +1,175 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Booking Confirmation Contract
+  version: 1.1.0
+  description: >-
+    Records the reservation-create API opt-in and its conditional asynchronous
+    booking-confirmation side effect. No public notification-status endpoint is added.
+paths:
+  /api/rooms/{roomId}/reservations:
+    post:
+      summary: Create a room reservation and optionally queue its confirmation
+      description: >-
+        Creates a RESERVED room reservation for the authenticated user. On the
+        same successful commit, the system creates exactly one pending booking
+        confirmation only when emailNotification is true. A false or omitted
+        value creates no confirmation. SMTP delivery occurs asynchronously and
+        never changes the HTTP response or reservation state. Validation failures,
+        authentication failures, missing resources, conflicts, and transaction
+        rollbacks create no confirmation regardless of the opt-in value.
+      operationId: createReservation
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationCreateRequest'
+      responses:
+        '201':
+          description: >-
+            Reservation committed successfully. When emailNotification was true,
+            one pending confirmation was committed with it. Delivery is asynchronous;
+            this response does not expose notification state or claim SMTP success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Invalid request; no reservation or confirmation is created.
+        '401':
+          description: Authentication required; no confirmation is created.
+        '404':
+          description: Room, layout, or equipment not found; no confirmation is created.
+        '409':
+          description: Room inactive or time conflict; no confirmation is created.
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-TOKEN
+  schemas:
+    ReservationCreateRequest:
+      type: object
+      required:
+        - startTime
+        - endTime
+        - seatingArrangementId
+        - expectedAttendees
+        - reservedFor
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        seatingArrangementId:
+          type: string
+          format: uuid
+        expectedAttendees:
+          type: integer
+          minimum: 1
+        reservedFor:
+          type: string
+          minLength: 1
+          maxLength: 255
+        emailNotification:
+          type: boolean
+          default: false
+          description: >-
+            Per-booking opt-in. True requests one confirmation after successful
+            commit; false or omission creates the reservation without confirmation.
+        note:
+          type: string
+          nullable: true
+          maxLength: 2000
+        additionalEquipmentTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ReservationResponse:
+      type: object
+      description: Existing reservation response; no mail status field is added.
+      required:
+        - id
+        - roomId
+        - roomName
+        - startTime
+        - endTime
+        - status
+        - createdBy
+        - reservedFor
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        roomName:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [RESERVED, ACTIVE, COMPLETED, EXPIRED, CANCELLED]
+        createdBy:
+          type: string
+        reservedFor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+x-email-contract:
+  trigger: Successful commit of a newly created RESERVED reservation whose request has emailNotification=true
+  recipient: Current email of the authenticated account referenced by createdByUserId
+  mediaType: text/plain
+  charset: UTF-8
+  language: de
+  subject: 'Raumlotse: Buchung bestätigt – {roomName}'
+  bodyFields:
+    - label: Raum
+      value: roomName
+    - label: Beginn
+      value: 'startTime formatted as dd.MM.yyyy HH:mm Europe/Berlin'
+    - label: Ende
+      value: 'endTime formatted as dd.MM.yyyy HH:mm Europe/Berlin'
+  excludedContent:
+    - password or credentials
+    - reservation note
+    - expected attendee count
+    - reservedFor
+  duplicatePolicy: One logical confirmation and at most one SMTP submission attempt per reservation
+  sentSemantics: SENT means the configured SMTP service accepted the message for delivery; it does not assert inbox delivery
+  failureSemantics: Delivery failure is terminal for the confirmation and never changes the reservation
+
+x-ui-contract:
+  control: checkbox
+  label: Email Notification
+  location: Before the Confirm Reservation action in the booking form
+  initialValue: false
+  scope: Current booking attempt only; the value is not inherited by later forms
+  submitBehavior: The final visible value is sent as emailNotification

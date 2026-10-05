@@ -6,7 +6,7 @@ The system is designed to integrate with university infrastructure and suggest s
 
 ## Current Status
 
-The project contains a Spring Boot backend with a real persistence layer, a React frontend, a Docker-based PostgreSQL setup, and pgAdmin for local database inspection.
+The project contains a Spring Boot backend with a real persistence layer, a React frontend, a Docker-based PostgreSQL setup, pgAdmin for local database inspection, and Mailpit for local email capture.
 
 Email/password sign-in is available at `/login`. All application API routes require an authenticated session except `GET /api/health` and the CSRF/login bootstrap endpoints. Sessions expire after 30 minutes of inactivity; the browser stores the session in an HttpOnly, same-site cookie. Production must run over HTTPS and set `SESSION_COOKIE_SECURE=true`.
 
@@ -15,6 +15,8 @@ For local Compose use, copy `.env.example` to `.env`, replace every placeholder,
 The first feature, **room management**, is implemented: administrators can maintain a catalog of buildings and their floors, an equipment catalog (projector, whiteboard, ...), and rooms (name, floor, seating arrangements with capacities, assigned equipment). Rooms, buildings, floors, and equipment types can each be created, renamed, deactivated/reactivated, and deleted. See [`specs/001-room-management/`](specs/001-room-management/) for the full specification, data model, and API contract.
 
 **Room search** is implemented on the "Räume" page (`/rooms`): signed-in users filter active rooms by minimum/maximum number of persons, building, seating arrangement, equipment from the catalog, barrier-free reachability, and a date/time window that excludes rooms already booked then. Filters are kept in the URL, and a result opened from a time-window search pre-fills the booking form. A room counts as barrier-free reachable if it is on a floor marked as ground floor or in a building with an elevator, unless an administrator marked the room itself as not barrier-free. These three attributes default to `false` for existing data, so no room is reported as barrier-free until an administrator records elevator or ground-floor information. See [`specs/008-room-search-filter/`](specs/008-room-search-filter/).
+
+**Optional booking confirmations** are available per reservation. `Email Notification` starts unchecked on every booking form; only the final checked state requests a confirmation. Omitted and explicit `false` API values remain backward-compatible opt-out. Requested confirmations are stored in a durable database queue and delivered asynchronously, so SMTP failure never rolls back or changes a successful reservation. Local delivery is captured by Mailpit. Spring Mail is kept behind a small gateway so message formatting and failure behavior stay independently testable.
 
 Available backend endpoints:
 
@@ -125,7 +127,7 @@ Start the backend services:
 docker compose up --build
 ```
 
-This starts PostgreSQL, pgAdmin, and the Spring Boot backend.
+This starts PostgreSQL, pgAdmin, Mailpit, and the Spring Boot backend.
 
 Start the frontend in a second terminal:
 
@@ -142,6 +144,7 @@ Frontend:     http://localhost:5173
 Backend:      http://localhost:8080
 Health check: http://localhost:8080/api/health
 pgAdmin:      http://localhost:8081
+Mailpit:      http://localhost:8025
 PostgreSQL:   localhost:5432
 ```
 
@@ -149,10 +152,7 @@ During local frontend development, Vite proxies requests from `/api` to `http://
 
 ## pgAdmin Login
 
-```text
-Email:    admin@admin.com
-Password: admin
-```
+Use `PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` from your untracked `.env` file.
 
 The PostgreSQL server is preconfigured in pgAdmin through `docker-config/pgadmin_servers.json`.
 
@@ -161,7 +161,7 @@ The PostgreSQL server is preconfigured in pgAdmin through `docker-config/pgadmin
 ```text
 Database: raumlotse
 User:     raumlotse
-Password: raumlotse
+Password: value of POSTGRES_PASSWORD in your untracked .env
 Host:     localhost
 Port:     5432
 ```
@@ -173,6 +173,14 @@ jdbc:postgresql://db:5432/raumlotse
 ```
 
 On startup, the backend applies its Flyway migrations automatically against this database (creating the `building`, `floor`, `room`, `seating_arrangement`, and `equipment_type` tables, and seeding the equipment catalog with `Projector` and `Whiteboard`).
+
+## Booking Confirmation Email
+
+Local Compose exposes Mailpit SMTP on `localhost:1025` and its browser UI on `http://localhost:8025`; it does not send mail to the internet. Production must provide `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, and `MAIL_SMTP_STARTTLS` as appropriate for its SMTP service. Keep credentials outside tracked files.
+
+SMTP connection/read/write timeouts are finite and configured through `MAIL_CONNECTION_TIMEOUT`, `MAIL_READ_TIMEOUT`, and `MAIL_WRITE_TIMEOUT` for typed validation plus the corresponding `_MS` values for Jakarta Mail. `MAIL_STALE_THRESHOLD` must exceed every SMTP timeout. Polling is bounded by `MAIL_POLL_DELAY` (at most one second) and `MAIL_BATCH_SIZE` (1–100).
+
+The database queue permits one logical confirmation and at most one SMTP submission attempt per opted-in reservation. Failed submissions are terminal and are not retried automatically.
 
 > **Note**: Spring Boot 4.1.1 does **not** auto-configure Flyway (unlike earlier Spring Boot versions — there is no `FlywayAutoConfiguration` on the classpath). Migrations are triggered manually by a `Flyway` bean in `backend/src/main/java/at/mci/igp/raumlotse/config/FlywayConfig.java`. If you ever see a backend error like `relation "..." does not exist`, check that this bean actually ran (look for Flyway log lines on startup) before assuming a connection/port problem — see `specs/001-room-management/research.md` §1 for the full story.
 

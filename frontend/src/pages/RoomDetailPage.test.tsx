@@ -19,6 +19,7 @@ vi.mock('../auth/useAuth', () => ({
 
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
+const SEATING_ID = '00000000-0000-4000-8000-000000000001'
 
 function sampleRoom(): Room {
   return {
@@ -28,7 +29,7 @@ function sampleRoom(): Room {
     floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false },
     status: 'ACTIVE',
     version: 0,
-    seatingArrangements: [{ id: 'seat-1', name: 'Theater', maxCapacity: 40 }],
+    seatingArrangements: [{ id: SEATING_ID, name: 'Theater', maxCapacity: 40 }],
     equipmentTypeIds: [],
     notBarrierFree: false,
     barrierFreeReachable: false,
@@ -86,7 +87,7 @@ describe('RoomDetailPage', () => {
         startTime: '2026-10-01T10:00:00Z',
         endTime: '2026-10-01T11:00:00Z',
         status: 'RESERVED',
-        seatingArrangement: { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
+        seatingArrangement: { id: SEATING_ID, name: 'Theater', maxCapacity: 40 },
         expectedAttendees: 25,
         additionalEquipment: [],
         note: null,
@@ -165,7 +166,7 @@ describe('RoomDetailPage', () => {
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       status: 'RESERVED',
-      seatingArrangement: { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
+      seatingArrangement: { id: SEATING_ID, name: 'Theater', maxCapacity: 40 },
       expectedAttendees: 10,
       additionalEquipment: [],
       note: null,

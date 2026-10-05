@@ -11,6 +11,26 @@ spring:
         # Loads seating arrangements and equipment for up to 100 rooms per query instead of one query per
         # room (room search, feature 008; guarded by RoomSearchPerformanceIntegrationTest).
         default_batch_fetch_size: 100
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:5000}
+      mail.smtp.timeout: ${MAIL_READ_TIMEOUT_MS:5000}
+      mail.smtp.writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
+booking-confirmation:
+  sender: ${MAIL_FROM:noreply@raumlotse.local}
+  zone: Europe/Berlin
+  poll-delay: ${MAIL_POLL_DELAY:1s}
+  batch-size: ${MAIL_BATCH_SIZE:20}
+  stale-threshold: ${MAIL_STALE_THRESHOLD:30s}
+  connection-timeout: ${MAIL_CONNECTION_TIMEOUT:5s}
+  read-timeout: ${MAIL_READ_TIMEOUT:5s}
+  write-timeout: ${MAIL_WRITE_TIMEOUT:5s}
 server:
   servlet:
     session:

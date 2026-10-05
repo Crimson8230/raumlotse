@@ -35,6 +35,7 @@ export interface ReservationCreatePayload {
   seatingArrangementId: string
   expectedAttendees: number
   reservedFor: string
+  emailNotification: boolean
   additionalEquipmentTypeIds?: string[]
   note?: string
   createdBy?: string
