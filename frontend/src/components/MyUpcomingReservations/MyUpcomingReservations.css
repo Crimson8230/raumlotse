@@ -20,25 +20,36 @@
 .upcoming-reservations-table th,
 .upcoming-reservations-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 1px solid var(--color-hairline);
 }
 
 .upcoming-reservations-table th {
-  background-color: var(--color-bg-subtle, #f8fafc);
+  background-color: var(--color-surface);
   font-weight: 600;
 }
 
 .upcoming-reservations-table tr:hover {
-  background-color: var(--color-bg-hover, #f1f5f9);
+  background-color: var(--color-hover);
 }
 
 .my-upcoming-reservations .empty-state {
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-muted);
   font-style: italic;
   margin: 0.5rem 0;
 }
 
 .my-upcoming-reservations .loading-state {
-  color: var(--color-info, #0284c7);
+  color: var(--color-primary);
   margin: 0.5rem 0;
+}
+
+.upcoming-reservations-table td:first-child,
+.upcoming-reservations-table td:nth-child(3) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.upcoming-reservations-table td a {
+  font-family: var(--font-serif);
+  font-weight: 600;
 }

@@ -38,7 +38,7 @@
   min-height: 24px;
   padding: 2px 6px;
   border: 2px solid var(--color-primary);
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--color-surface);
   color: var(--color-text);
   font-size: var(--font-size-small);

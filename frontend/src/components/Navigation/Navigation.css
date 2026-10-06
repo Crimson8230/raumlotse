@@ -1,13 +1,22 @@
 .nav {
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-background);
+}
+
+.nav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
 }
 
 .nav-list {
   display: flex;
   gap: var(--space-4);
-  width: min(1120px, calc(100% - 32px));
-  margin: 0 auto;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -16,24 +25,72 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-3) var(--space-1);
-  border-bottom: 2px solid transparent;
+  padding: var(--space-3) var(--space-1) 12px;
+  border-bottom: 3px solid transparent;
   color: var(--color-muted);
   font-size: var(--font-size-body);
   text-decoration: none;
 }
 
 .nav-link:hover {
+  background: transparent;
   color: var(--color-text);
 }
 
 .nav-link[aria-current='page'] {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+  color: var(--color-text);
+  font-weight: 700;
+  border-bottom-color: var(--color-text);
 }
 
 .nav-icon {
   flex: none;
+}
+
+.nav-admin-mode {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.nav-admin-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+/* Administrationsmodus = invertierte Anzeige: die ganze Leiste kippt auf Tinte. Blau auf Tinte hätte nur 2:1,
+   deshalb ist der Fokusring hier Papierfarbe. */
+.nav-admin {
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.nav-admin .nav-link,
+.nav-admin .nav-link:hover,
+.nav-admin .nav-link[aria-current='page'] {
+  color: var(--color-background);
+}
+
+.nav-admin .nav-link[aria-current='page'] {
+  border-bottom-color: var(--color-background);
+}
+
+.nav-admin button {
+  border-color: var(--color-background);
+  color: var(--color-background);
+}
+
+.nav-admin button:hover:not(:disabled) {
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+.nav-admin :focus-visible {
+  outline-color: var(--color-background);
 }
 
 @media (max-width: 480px) {

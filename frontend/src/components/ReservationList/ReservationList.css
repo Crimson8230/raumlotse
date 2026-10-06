@@ -29,35 +29,51 @@
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  font-size: var(--font-size-small);
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.status-reserved {
-  background-color: #e0f2fe;
-  color: #0369a1;
+/* Zustand = Muster + Wort: reserviert = Schraffur-Marke, aktiv = volle Tinte, abgeschlossen/abgelaufen = gepunktet,
+   storniert = Siegelrot. Der Text liegt nie auf der Schraffur (Lesbarkeit), die Marke steht davor. */
+.status-badge.status-reserved {
+  background: var(--color-busy);
+  color: var(--color-text);
 }
 
-.status-active {
-  background-color: #dcfce7;
-  color: #15803d;
+.status-badge.status-reserved::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--hatch), var(--color-busy);
+  vertical-align: baseline;
 }
 
-.status-completed {
-  background-color: #f1f5f9;
-  color: #475569;
+.status-badge.status-active {
+  background: var(--color-text);
+  color: var(--color-background);
 }
 
-.status-expired {
-  background-color: #fef3c7;
-  color: #b45309;
+.status-badge.status-completed {
+  border-style: dotted;
+  color: var(--color-muted);
 }
 
-.status-cancelled {
-  background-color: #fee2e2;
-  color: #b91c1c;
+.status-badge.status-expired {
+  border-style: dotted;
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.status-badge.status-cancelled {
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
 .reservation-details {
@@ -71,7 +87,7 @@
 }
 
 .reservation-created-at {
-  color: #64748b;
+  color: var(--color-muted);
 }
 
 .reservation-actions {
@@ -87,14 +103,12 @@
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-hairline);
 }
 
-.btn-danger {
-  color: #dc2626;
-  border-color: #fca5a5;
-}
-
-.btn-danger:hover {
-  background-color: #fee2e2;
+/* Zeiten und Zahlen: Mono, tabellarisch. */
+.reservation-time,
+.reservation-created-at {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
