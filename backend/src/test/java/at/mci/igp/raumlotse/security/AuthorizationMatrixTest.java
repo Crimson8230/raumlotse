@@ -87,7 +87,8 @@ class AuthorizationMatrixTest {
                 "POST /api/connections", "PUT /api/connections/{connectionId}",
                 "DELETE /api/connections/{connectionId}", "PUT /api/connections/{connectionId}/points/{mapId}",
                 "DELETE /api/connections/{connectionId}/points/{mapId}",
-                "GET /api/admin/users", "GET /api/admin/users/{id}/roles", "PUT /api/admin/users/{id}/roles");
+                "GET /api/admin/users", "GET /api/admin/users/{id}/roles", "PUT /api/admin/users/{id}/roles",
+                "GET /api/admin/statistics");
     }
 
     @AfterEach
