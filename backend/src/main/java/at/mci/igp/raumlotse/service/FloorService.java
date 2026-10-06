@@ -6,6 +6,7 @@ import at.mci.igp.raumlotse.domain.Floor;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.repository.BuildingRepository;
+import at.mci.igp.raumlotse.repository.FloorMapRepository;
 import at.mci.igp.raumlotse.repository.FloorRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
 import java.util.List;
@@ -20,11 +21,14 @@ public class FloorService {
     private final FloorRepository floorRepository;
     private final BuildingRepository buildingRepository;
     private final RoomRepository roomRepository;
+    private final FloorMapRepository floorMapRepository;
 
-    public FloorService(FloorRepository floorRepository, BuildingRepository buildingRepository, RoomRepository roomRepository) {
+    public FloorService(FloorRepository floorRepository, BuildingRepository buildingRepository,
+            RoomRepository roomRepository, FloorMapRepository floorMapRepository) {
         this.floorRepository = floorRepository;
         this.buildingRepository = buildingRepository;
         this.roomRepository = roomRepository;
+        this.floorMapRepository = floorMapRepository;
     }
 
     public Floor create(UUID buildingId, String name) {
@@ -99,6 +103,10 @@ public class FloorService {
         if (roomRepository.existsByFloorId(id)) {
             throw new ConflictException(
                     "Floor '" + floor.getName() + "' is referenced by one or more rooms; deactivate it instead.");
+        }
+        if (floorMapRepository.existsByFloorId(id)) {
+            throw new ConflictException(
+                    "Floor '" + floor.getName() + "' has a map; delete the map first.");
         }
         floorRepository.delete(floor);
     }

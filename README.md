@@ -10,13 +10,15 @@ The project contains a Spring Boot backend with a real persistence layer, a Reac
 
 Email/password sign-in is available at `/login`. All application API routes require an authenticated session except `GET /api/health` and the CSRF/login bootstrap endpoints. Sessions expire after 30 minutes of inactivity; the browser stores the session in an HttpOnly, same-site cookie. Production must run over HTTPS and set `SESSION_COOKIE_SECURE=true`.
 
-For local Compose use, copy `.env.example` to `.env`, replace every placeholder, and keep `.env` untracked. `AUTH_ATTEMPT_HMAC_KEY` must be a stable base64-encoded secret containing at least 32 random bytes; do not regenerate it on application restart. Local fixture account creation is opt-in through the `local-auth-fixture` Spring profile and requires `AUTH_FIXTURE_EMAIL`, `AUTH_FIXTURE_DISPLAY_NAME`, and `AUTH_FIXTURE_PASSWORD`. It never resets an existing account password. Never enable that profile against production data.
+For local Compose use, copy `.env.example` to `.env`, replace every placeholder, and keep `.env` untracked. `AUTH_ATTEMPT_HMAC_KEY` must be a stable base64-encoded secret containing at least 32 random bytes; do not regenerate it on application restart. Local fixture account creation is opt-in through the `local-auth-fixture` Spring profile and requires `AUTH_FIXTURE_EMAIL`, `AUTH_FIXTURE_DISPLAY_NAME`, and `AUTH_FIXTURE_PASSWORD`. It never resets an existing account password. The fixture account becomes `ADMIN` on startup as long as it has no role assignment at all; roles changed later (for example via `/admin/users`) are never overwritten. Never enable that profile against production data.
 
 The first feature, **room management**, is implemented: administrators can maintain a catalog of buildings and their floors, an equipment catalog (projector, whiteboard, ...), and rooms (name, floor, seating arrangements with capacities, assigned equipment). Rooms, buildings, floors, and equipment types can each be created, renamed, deactivated/reactivated, and deleted. See [`specs/001-room-management/`](specs/001-room-management/) for the full specification, data model, and API contract.
 
 **Room search** is implemented on the "Räume" page (`/rooms`): signed-in users filter active rooms by minimum/maximum number of persons, building, seating arrangement, equipment from the catalog, barrier-free reachability, and a date/time window that excludes rooms already booked then. Filters are kept in the URL, and a result opened from a time-window search pre-fills the booking form. A room counts as barrier-free reachable if it is on a floor marked as ground floor or in a building with an elevator, unless an administrator marked the room itself as not barrier-free. These three attributes default to `false` for existing data, so no room is reported as barrier-free until an administrator records elevator or ground-floor information. See [`specs/008-room-search-filter/`](specs/008-room-search-filter/).
 
 **Optional booking confirmations** are available per reservation. `Email Notification` starts unchecked on every booking form; only the final checked state requests a confirmation. Omitted and explicit `false` API values remain backward-compatible opt-out. Requested confirmations are stored in a durable database queue and delivered asynchronously, so SMTP failure never rolls back or changes a successful reservation. Local delivery is captured by Mailpit. Spring Mail is kept behind a small gateway so message formatting and failure behavior stay independently testable.
+
+**Room map placement** (`/maps`): administrators upload one PNG/JPEG floor plan per floor (max. 10 MB), place rooms of that floor on it by clicking, move them by dragging (or with the arrow keys), and define named stairs/elevator connections with one point per map so later routes can cross floors. Positions are stored as fractions of the image size, so they stay correct at any zoom level or resolution. All signed-in users can view maps; only administrators can change them. Placing displays on the map, route calculation, and the one-time-code login for displays are separate, later features. See [`specs/012-room-map-placement/`](specs/012-room-map-placement/) and its [API contract](specs/012-room-map-placement/contracts/room-map-api.yaml).
 
 Available backend endpoints:
 
@@ -53,6 +55,22 @@ PUT    /api/equipment-types/{equipmentTypeId}
 DELETE /api/equipment-types/{equipmentTypeId}
 POST   /api/equipment-types/{equipmentTypeId}/deactivate
 POST   /api/equipment-types/{equipmentTypeId}/reactivate
+
+GET    /api/maps
+GET    /api/maps/{mapId}
+DELETE /api/maps/{mapId}
+GET    /api/maps/{mapId}/image
+GET    /api/maps/{mapId}/unplaced-rooms
+PUT    /api/maps/{mapId}/placements/{roomId}
+DELETE /api/maps/{mapId}/placements/{roomId}
+PUT    /api/floors/{floorId}/map
+
+GET    /api/connections
+POST   /api/connections
+PUT    /api/connections/{connectionId}
+DELETE /api/connections/{connectionId}
+PUT    /api/connections/{connectionId}/points/{mapId}
+DELETE /api/connections/{connectionId}/points/{mapId}
 ```
 
 The full, versioned contract (request/response shapes, status codes) lives in [`specs/001-room-management/contracts/openapi.yaml`](specs/001-room-management/contracts/openapi.yaml); the search endpoints are specified in [`specs/008-room-search-filter/contracts/room-search-api.yaml`](specs/008-room-search-filter/contracts/room-search-api.yaml).

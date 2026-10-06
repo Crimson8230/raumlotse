@@ -1,4 +1,4 @@
-import { Building2, DoorOpen, Home } from 'lucide-react'
+import { Building2, DoorOpen, Home, Map } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../auth/authContext'
@@ -15,6 +15,7 @@ const items: NavItem[] = [
   { label: 'Home', path: '/', icon: Home },
   { label: 'Standorte', path: '/locations', icon: Building2 },
   { label: 'Räume', path: '/rooms', icon: DoorOpen },
+  { label: 'Karten', path: '/maps', icon: Map },
 ]
 
 export function Navigation() {

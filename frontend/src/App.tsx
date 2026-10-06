@@ -13,6 +13,7 @@ import UserRoleListPage from './pages/UserRoleListPage'
 import UserRolePage from './pages/UserRolePage'
 import RoomDeviceControlPage from './pages/RoomDeviceControlPage'
 import AdminStatisticsPage from './pages/AdminStatisticsPage'
+import MapPage from './pages/MapPage'
 
 function App() {
   return (
@@ -29,6 +30,8 @@ function App() {
 
           <Route path="/" element={<HomePage />} />
           <Route path="/locations" element={<LocationCatalogPage />} />
+          <Route path="/maps" element={<MapPage />} />
+          <Route path="/maps/:mapId" element={<MapPage />} />
           <Route path="/rooms" element={<RoomListPage />} />
           <Route path="/rooms/new" element={<RoomFormPage />} />
           <Route path="/rooms/:roomId" element={<RoomDetailPage />} />

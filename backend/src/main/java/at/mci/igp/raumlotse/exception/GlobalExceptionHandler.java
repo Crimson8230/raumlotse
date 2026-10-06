@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -35,6 +36,22 @@ public class GlobalExceptionHandler {
                 log.warn("conflict detail={}", ex.getMessage());
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                                 .body(Problem.of(409, "Conflict", ex.getMessage()));
+        }
+
+        @ExceptionHandler(MapRequestException.class)
+        public ResponseEntity<Problem> handleMapRequest(MapRequestException ex) {
+                log.warn("map_request_rejected code={} status={}", ex.getCode(), ex.getStatus().value());
+                return ResponseEntity.status(ex.getStatus()).cacheControl(CacheControl.noStore())
+                                .body(Problem.of(ex.getStatus().value(), ex.getStatus().getReasonPhrase(),
+                                                ex.getMessage(), ex.getCode()));
+        }
+
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
+        public ResponseEntity<Problem> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+                log.warn("map_request_rejected code=MAP_IMAGE_TOO_LARGE status=413");
+                return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).cacheControl(CacheControl.noStore())
+                                .body(Problem.of(413, "Content Too Large", "The image is larger than 10 MB.",
+                                                "MAP_IMAGE_TOO_LARGE"));
         }
 
         @ExceptionHandler(DeviceOperationException.class)

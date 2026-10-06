@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { ApiError, formatApiError } from './client'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ApiError, apiRequest, clearCsrfToken, formatApiError } from './client'
 
 describe('formatApiError', () => {
   it('returns the general detail message when there are no field errors', () => {
@@ -26,5 +26,28 @@ describe('formatApiError', () => {
 
   it('falls back to a generic message for a non-ApiError, non-Error value', () => {
     expect(formatApiError('boom')).toBe('Something went wrong.')
+  })
+})
+
+describe('apiRequest multipart bodies', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    clearCsrfToken()
+  })
+
+  it('does not force a JSON content type for form data so the browser sets the boundary', async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url === '/api/auth/csrf'
+        ? new Response(JSON.stringify({ token: 't', headerName: 'X-CSRF-TOKEN' }), { status: 200 })
+        : new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiRequest('/api/floors/f1/map', { method: 'PUT', body: new FormData() })
+
+    const secondCall = fetchMock.mock.calls[1] as unknown as [string, RequestInit]
+    const headers = secondCall[1].headers as Record<string, string>
+    expect(headers['Content-Type']).toBeUndefined()
+    expect(headers['X-CSRF-TOKEN']).toBe('t')
   })
 })
