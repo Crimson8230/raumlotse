@@ -16,7 +16,8 @@ public class RoleAccessFilter extends OncePerRequestFilter {
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
         String path=request.getServletPath();
         if(path.isEmpty()) path=request.getRequestURI();
-        return !(path.equals("/api/admin/users") || path.startsWith("/api/admin/users/"));
+        return !(path.equals("/api/admin/users") || path.startsWith("/api/admin/users/")
+                || path.equals("/api/admin/statistics") || path.startsWith("/api/admin/statistics/"));
     }
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)
             throws IOException,ServletException {
@@ -39,4 +40,3 @@ public class RoleAccessFilter extends OncePerRequestFilter {
             org.springframework.http.HttpStatus.valueOf(status).getReasonPhrase(),message,code));
     }
 }
-

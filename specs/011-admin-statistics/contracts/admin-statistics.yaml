@@ -1,0 +1,106 @@
+openapi: 3.1.0
+info:
+  title: Raumlotse Admin Statistics API
+  version: 1.0.0
+  description: Read-only aggregated statistics for administrators.
+paths:
+  /api/admin/statistics:
+    get:
+      summary: Get room usage statistics
+      description: |
+        Returns one consistent snapshot for the requested local-date period.
+        `from` is inclusive and `to` is exclusive. Dates are interpreted in
+        Europe/Berlin. Only ADMIN users may access this endpoint.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Inclusive local start date, YYYY-MM-DD.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          description: Exclusive local end date, YYYY-MM-DD.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Aggregated statistics snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStatisticsResponse'
+        '400':
+          description: Invalid dates or unsupported period.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Administrator role required.
+        '500':
+          description: Statistics could not be calculated.
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: SESSION
+  schemas:
+    AdminStatisticsResponse:
+      type: object
+      required: [period, summary, rooms, features]
+      properties:
+        period:
+          $ref: '#/components/schemas/StatisticsPeriod'
+        summary:
+          $ref: '#/components/schemas/SummaryStatistics'
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomStatistics'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureStatistics'
+    StatisticsPeriod:
+      type: object
+      required: [from, to, timezone]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        timezone: { type: string, example: Europe/Berlin }
+    SummaryStatistics:
+      type: object
+      required: [totalReservations, validReservationCount, cancelledReservationCount, attendeeSum, attendeeBookingCount, missingAttendeeCount]
+      properties:
+        totalReservations: { type: integer, minimum: 0 }
+        validReservationCount: { type: integer, minimum: 0 }
+        cancelledReservationCount: { type: integer, minimum: 0 }
+        cancellationRatePercent: { type: number, minimum: 0, maximum: 100, nullable: true }
+        attendeeSum: { type: integer, minimum: 0 }
+        attendeeBookingCount: { type: integer, minimum: 0 }
+        averageExpectedAttendees: { type: number, minimum: 0, nullable: true }
+        missingAttendeeCount: { type: integer, minimum: 0 }
+    RoomStatistics:
+      type: object
+      required: [roomId, roomName, roomStatus, bookingCount, bookedSeconds, utilizationPercent]
+      properties:
+        roomId: { type: string, format: uuid }
+        roomName: { type: string }
+        roomStatus: { type: string, enum: [ACTIVE, DEACTIVATED] }
+        bookingCount: { type: integer, minimum: 0 }
+        bookedSeconds: { type: integer, format: int64, minimum: 0 }
+        utilizationPercent: { type: number, minimum: 0 }
+    FeatureStatistics:
+      type: object
+      required: [featureId, featureName, featureStatus, bookingCount, bookedSeconds]
+      properties:
+        featureId: { type: string, format: uuid }
+        featureName: { type: string }
+        featureStatus: { type: string, enum: [ACTIVE, DEACTIVATED] }
+        bookingCount: { type: integer, minimum: 0 }
+        bookedSeconds: { type: integer, format: int64, minimum: 0 }
