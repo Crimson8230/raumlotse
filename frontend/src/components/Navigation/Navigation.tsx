@@ -1,8 +1,9 @@
-import { Building2, DoorOpen, Home, Map } from 'lucide-react'
+import { BarChart3, Building2, DoorOpen, Home, Map, MapPinned, ShieldCheck, Users } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
+import { formatApiError } from '../../API/client'
 import { AuthContext } from '../../auth/authContext'
-import { useCurrentRoles } from '../../auth/useCurrentRoles'
+import { useAdminMode } from '../../auth/useAdminMode'
 import './Navigation.css'
 
 interface NavItem {
@@ -11,32 +12,61 @@ interface NavItem {
   icon: typeof Home
 }
 
-const items: NavItem[] = [
+const userItems: NavItem[] = [
   { label: 'Home', path: '/', icon: Home },
-  { label: 'Standorte', path: '/locations', icon: Building2 },
   { label: 'Räume', path: '/rooms', icon: DoorOpen },
   { label: 'Karten', path: '/maps', icon: Map },
 ]
 
+const adminItems: NavItem[] = [
+  { label: 'Standorte', path: '/admin/locations', icon: Building2 },
+  { label: 'Karten bearbeiten', path: '/admin/maps', icon: MapPinned },
+  { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3 },
+  { label: 'Benutzerrollen', path: '/admin/users', icon: Users },
+]
+
+function Item({ label, path, icon: Icon }: NavItem) {
+  return (
+    <li>
+      <NavLink to={path} end={path === '/'} className="nav-link">
+        <Icon className="nav-icon" size={18} aria-hidden="true" />
+        <span className="nav-label">{label}</span>
+      </NavLink>
+    </li>
+  )
+}
+
 export function Navigation() {
   const auth = useContext(AuthContext)
-  const access = useCurrentRoles(auth?.state === 'authenticated')
+  const { admin, adminMode, setMode } = useAdminMode(auth?.state === 'authenticated')
+  const [error, setError] = useState<string>()
+
+  function toggle(enabled: boolean) {
+    setError(undefined)
+    setMode(enabled).catch((err: unknown) => setError(formatApiError(err)))
+  }
+
   return (
-    <nav className="nav" aria-label="Hauptnavigation">
+    <nav className={adminMode ? 'nav nav-admin' : 'nav'} aria-label="Hauptnavigation">
+      <div className="nav-inner">
       <ul className="nav-list">
-        {access.admin && <>
-          <li><NavLink to="/admin/users" className="nav-link"><span className="nav-label">Benutzerrollen</span></NavLink></li>
-          <li><NavLink to="/admin/statistics" className="nav-link"><span className="nav-label">Statistiken</span></NavLink></li>
-        </>}
-        {items.map(({ label, path, icon: Icon }) => (
-          <li key={path}>
-            <NavLink to={path} end={path === '/'} className="nav-link">
-              <Icon className="nav-icon" size={18} aria-hidden="true" />
-              <span className="nav-label">{label}</span>
-            </NavLink>
-          </li>
-        ))}
+        {userItems.map((item) => <Item key={item.path} {...item} />)}
+        {adminMode && adminItems.map((item) => <Item key={item.path} {...item} />)}
       </ul>
+      {admin && (
+        <div className="nav-admin-mode">
+          {adminMode && (
+            <span className="nav-admin-indicator" role="status">
+              <ShieldCheck size={16} aria-hidden="true" /> Administrationsmodus aktiv
+            </span>
+          )}
+          <button type="button" aria-pressed={adminMode} onClick={() => toggle(!adminMode)}>
+            {adminMode ? 'Administrationsmodus beenden' : 'Administrationsmodus'}
+          </button>
+          {error && <span role="alert">{error}</span>}
+        </div>
+      )}
+      </div>
     </nav>
   )
 }

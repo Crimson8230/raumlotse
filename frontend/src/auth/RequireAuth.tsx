@@ -6,10 +6,10 @@ export function RequireAuth() {
   const { state } = useAuth()
   const location = useLocation()
   if (state === 'loading' || state === 'finishing-login') {
-    return <main aria-live="polite" className="auth-status">Checking your sign-in…</main>
+    return <main aria-live="polite" className="auth-status">Anmeldung wird geprüft…</main>
   }
   if (state === 'unavailable') {
-    return <main role="alert" className="auth-status">Sign-in is temporarily unavailable. Refresh to try again.</main>
+    return <main role="alert" className="auth-status">Die Anmeldung ist vorübergehend nicht verfügbar. Seite neu laden und erneut versuchen.</main>
   }
   if (state !== 'authenticated') return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <><Navigation /><Outlet /></>

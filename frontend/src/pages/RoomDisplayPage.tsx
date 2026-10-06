@@ -50,7 +50,7 @@ export default function RoomDisplayPage() {
               roomId,
               room: null,
               reservations: [],
-              errorMessage: 'Room information is unavailable.',
+              errorMessage: 'Rauminformationen sind nicht verfügbar.',
             })
           }
         },
@@ -96,13 +96,13 @@ export default function RoomDisplayPage() {
   if (!roomId) {
     return (
       <RoomDisplay
-        roomName="Room unavailable"
+        roomName="Raum nicht verfügbar"
         currentDateTime={currentDateTime}
         reservation={null}
         status="UNAVAILABLE"
         nextReservation={null}
         state="unavailable"
-        errorMessage="Room information is unavailable."
+        errorMessage="Rauminformationen sind nicht verfügbar."
       />
     )
   }
@@ -110,14 +110,14 @@ export default function RoomDisplayPage() {
   if (loading) {
     return (
       <main>
-        <p className="status-loading">Loading room display…</p>
+        <p className="status-loading">Raumanzeige wird geladen…</p>
       </main>
     )
   }
 
   return (
     <RoomDisplay
-      roomName={room?.name ?? 'Room unavailable'}
+      roomName={room?.name ?? 'Raum nicht verfügbar'}
       currentDateTime={currentDateTime}
       reservation={currentReservation}
       status={displayStatus}

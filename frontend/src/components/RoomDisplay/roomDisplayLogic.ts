@@ -10,7 +10,7 @@ export interface NotePreview {
 
 export function getNotePreview(note: string | null | undefined, maxLength = 280): NotePreview {
   if (!note || note.trim().length === 0) {
-    return { text: 'No note provided', truncated: false }
+    return { text: 'Keine Notiz vorhanden', truncated: false }
   }
 
   if (note.length <= maxLength) {

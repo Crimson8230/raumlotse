@@ -62,13 +62,13 @@ describe('RoomForm (create mode)', () => {
 
     render(<RoomForm onSaved={onSaved} />)
 
-    await user.type(screen.getByLabelText(/room name/i), 'Room 101')
-    await user.selectOptions(await screen.findByLabelText(/^building/i), 'b1')
-    await user.selectOptions(await screen.findByLabelText(/^floor/i), 'f1')
-    await user.type(screen.getByLabelText(/seating arrangement name/i), 'Theater')
-    await user.type(screen.getByLabelText(/max capacity/i), '40')
+    await user.type(screen.getByLabelText(/raumname/i), 'Room 101')
+    await user.selectOptions(await screen.findByLabelText(/^gebäude/i), 'b1')
+    await user.selectOptions(await screen.findByLabelText(/^stockwerk/i), 'f1')
+    await user.type(screen.getByLabelText(/name der sitzordnung/i), 'Theater')
+    await user.type(screen.getByLabelText(/max\. kapazität/i), '40')
     await user.click(await screen.findByLabelText('Projector'))
-    await user.click(screen.getByRole('button', { name: /create room/i }))
+    await user.click(screen.getByRole('button', { name: /raum anlegen/i }))
 
     await waitFor(() =>
       expect(rooms.createRoom).toHaveBeenCalledWith({
@@ -86,15 +86,15 @@ describe('RoomForm (create mode)', () => {
     const user = userEvent.setup()
     render(<RoomForm onSaved={vi.fn()} />)
 
-    await user.type(screen.getByLabelText(/room name/i), 'Room 101')
-    await user.selectOptions(await screen.findByLabelText(/^building/i), 'b1')
-    await user.selectOptions(await screen.findByLabelText(/^floor/i), 'f1')
-    await user.click(screen.getByRole('button', { name: /remove seating arrangement/i }))
-    await user.click(screen.getByRole('button', { name: /create room/i }))
+    await user.type(screen.getByLabelText(/raumname/i), 'Room 101')
+    await user.selectOptions(await screen.findByLabelText(/^gebäude/i), 'b1')
+    await user.selectOptions(await screen.findByLabelText(/^stockwerk/i), 'f1')
+    await user.click(screen.getByRole('button', { name: /sitzordnung entfernen/i }))
+    await user.click(screen.getByRole('button', { name: /raum anlegen/i }))
 
-    await screen.findByText(/at least one seating arrangement/i)
+    await screen.findByText(/mindestens eine sitzordnung/i)
     expect(rooms.createRoom).not.toHaveBeenCalled()
-    expect(screen.getByText(/at least one seating arrangement/i)).toHaveClass('feedback-error')
+    expect(screen.getByText(/mindestens eine sitzordnung/i)).toHaveClass('feedback-error')
   })
 
   it('lets the administrator create a building and floor inline when none exist yet', async () => {
@@ -106,15 +106,15 @@ describe('RoomForm (create mode)', () => {
 
     render(<RoomForm onSaved={vi.fn()} />)
 
-    await user.click(await screen.findByRole('button', { name: /add new building/i }))
-    await user.type(screen.getByLabelText(/new building name/i), 'Main')
-    await user.click(screen.getByRole('button', { name: /create building/i }))
+    await user.click(await screen.findByRole('button', { name: /neues gebäude anlegen/i }))
+    await user.type(screen.getByLabelText(/name des neuen gebäudes/i), 'Main')
+    await user.click(screen.getByRole('button', { name: /gebäude anlegen/i }))
 
     await waitFor(() => expect(buildings.createBuilding).toHaveBeenCalledWith('Main'))
 
-    await user.click(await screen.findByRole('button', { name: /add new floor/i }))
-    await user.type(screen.getByLabelText(/new floor name/i), '1')
-    await user.click(screen.getByRole('button', { name: /create floor/i }))
+    await user.click(await screen.findByRole('button', { name: /neues stockwerk anlegen/i }))
+    await user.type(screen.getByLabelText(/name des neuen stockwerks/i), '1')
+    await user.click(screen.getByRole('button', { name: /stockwerk anlegen/i }))
 
     await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1'))
   })
@@ -131,9 +131,9 @@ describe('RoomForm (edit mode)', () => {
 
     expect(await screen.findByDisplayValue('Room 101')).toBeInTheDocument()
 
-    await user.clear(screen.getByLabelText(/room name/i))
-    await user.type(screen.getByLabelText(/room name/i), 'Room 102')
-    await user.click(screen.getByRole('button', { name: /save room/i }))
+    await user.clear(screen.getByLabelText(/raumname/i))
+    await user.type(screen.getByLabelText(/raumname/i), 'Room 102')
+    await user.click(screen.getByRole('button', { name: /raum speichern/i }))
 
     await waitFor(() =>
       expect(rooms.updateRoom).toHaveBeenCalledWith('r1', {
@@ -162,7 +162,7 @@ describe('RoomForm (edit mode)', () => {
     render(<RoomForm room={existing} onSaved={vi.fn()} />)
     await screen.findByDisplayValue('Room 101')
 
-    await user.click(screen.getByRole('button', { name: /save room/i }))
+    await user.click(screen.getByRole('button', { name: /raum speichern/i }))
 
     const conflictMessage = await screen.findByText(/modified by someone else/i)
     expect(conflictMessage).toHaveClass('feedback-conflict')
@@ -183,13 +183,13 @@ describe('RoomForm (barrier-free exclusion)', () => {
     expect(exclusion).not.toBeChecked()
     expect(screen.getByText(HELP)).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText(/room name/i), 'Room 101')
-    await user.selectOptions(await screen.findByLabelText(/^building/i), 'b1')
-    await user.selectOptions(await screen.findByLabelText(/^floor/i), 'f1')
-    await user.type(screen.getByLabelText(/seating arrangement name/i), 'Theater')
-    await user.type(screen.getByLabelText(/max capacity/i), '40')
+    await user.type(screen.getByLabelText(/raumname/i), 'Room 101')
+    await user.selectOptions(await screen.findByLabelText(/^gebäude/i), 'b1')
+    await user.selectOptions(await screen.findByLabelText(/^stockwerk/i), 'f1')
+    await user.type(screen.getByLabelText(/name der sitzordnung/i), 'Theater')
+    await user.type(screen.getByLabelText(/max\. kapazität/i), '40')
     await user.click(exclusion)
-    await user.click(screen.getByRole('button', { name: /create room/i }))
+    await user.click(screen.getByRole('button', { name: /raum anlegen/i }))
 
     await waitFor(() =>
       expect(rooms.createRoom).toHaveBeenCalledWith(expect.objectContaining({ notBarrierFree: true })),
@@ -206,7 +206,7 @@ describe('RoomForm (barrier-free exclusion)', () => {
     const exclusion = await screen.findByLabelText('Nicht barrierefrei (Ausnahme)')
     expect(exclusion).toBeChecked()
     await user.click(exclusion)
-    await user.click(screen.getByRole('button', { name: /save room/i }))
+    await user.click(screen.getByRole('button', { name: /raum speichern/i }))
 
     await waitFor(() =>
       expect(rooms.updateRoom).toHaveBeenCalledWith('r1', expect.objectContaining({ notBarrierFree: false })),

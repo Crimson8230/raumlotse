@@ -11,6 +11,7 @@ import {
 import { listBuildings } from '../API/buildings'
 import { listEquipmentTypes } from '../API/equipmentTypes'
 import { formatApiError } from '../API/client'
+import { useAdminMode } from '../auth/useAdminMode'
 import { RoomSearchPanel } from '../components/RoomSearch/RoomSearchPanel'
 import {
   bookingLink,
@@ -21,10 +22,14 @@ import {
 } from '../components/RoomSearch/roomSearchParams'
 import type { Building, EquipmentType, Room, RoomSearchFormState, StatusFilter } from '../types/room'
 import './RoomListPage.css'
+import { entityStatusLabel } from '../utils/labels'
 
 export default function RoomListPage() {
   const [rooms, setRooms] = useState<Room[]>([])
-  const [status, setStatus] = useState<StatusFilter>('active')
+  const { adminMode } = useAdminMode()
+  const [statusFilter, setStatus] = useState<StatusFilter>('active')
+  // Without administration mode the list is the booking overview: active rooms only (feature 013, FR-002).
+  const status: StatusFilter = adminMode ? statusFilter : 'active'
   const [error, setError] = useState<string | null>(null)
   const [buildings, setBuildings] = useState<Building[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -118,22 +123,24 @@ export default function RoomListPage() {
         </p>
       )}
 
-      <div className="room-list-toolbar">
-        <div>
-          <label htmlFor="room-status-filter">Status</label>
-          <select
-            id="room-status-filter"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as StatusFilter)}
-          >
-            <option value="active">Active</option>
-            <option value="deactivated">Deactivated</option>
-            <option value="all">All</option>
-          </select>
-        </div>
+      {adminMode && (
+        <div className="room-list-toolbar">
+          <div>
+            <label htmlFor="room-status-filter">Status</label>
+            <select
+              id="room-status-filter"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as StatusFilter)}
+            >
+              <option value="active">Aktiv</option>
+              <option value="deactivated">Deaktiviert</option>
+              <option value="all">Alle</option>
+            </select>
+          </div>
 
-        <Link to="/rooms/new">New room</Link>
-      </div>
+          <Link to="/admin/rooms/new">Neuer Raum</Link>
+        </div>
+      )}
 
       <RoomSearchPanel
         key={searchKey}
@@ -155,18 +162,18 @@ export default function RoomListPage() {
             </button>
           </div>
         ) : (
-          <p className="status-empty">No rooms match the selected status.</p>
+          <p className="status-empty">Keine Räume mit diesem Status.</p>
         )
       ) : (
         <ul className="list-plain">
           {rooms.map((room) => (
             <li key={room.id} className="panel room-list-item">
               <div>
-                <Link to={roomLink(room.id, searchState)}>{room.name}</Link>
+                <Link className="room-list-name" to={roomLink(room.id, searchState)}>{room.name}</Link>
                 <span>{room.building.name}</span>
                 <span>{room.floor.name}</span>
                 <span className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
-                  {room.status}
+                  {entityStatusLabel(room.status)}
                 </span>
                 <span className="room-list-detail">
                   {room.seatingArrangements.map((s) => `${s.name} (max ${s.maxCapacity})`).join(', ')}
@@ -189,18 +196,16 @@ export default function RoomListPage() {
                     Buchen
                   </Link>
                 )}
-                {room.status === 'ACTIVE' ? (
-                  <button type="button" onClick={() => guarded(() => deactivateRoom(room.id))}>
-                    {`Deactivate ${room.name}`}
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => guarded(() => reactivateRoom(room.id))}>
-                    {`Reactivate ${room.name}`}
-                  </button>
+                {adminMode && (
+                  <>
+                    {room.status === 'ACTIVE' ? (
+                      <button type="button" onClick={() => guarded(() => deactivateRoom(room.id))} aria-label={`${room.name} deaktivieren`}>Deaktivieren</button>
+                    ) : (
+                      <button type="button" onClick={() => guarded(() => reactivateRoom(room.id))} aria-label={`${room.name} reaktivieren`}>Reaktivieren</button>
+                    )}
+                    <button type="button" onClick={() => guarded(() => deleteRoom(room.id))} aria-label={`${room.name} löschen`}>Löschen</button>
+                  </>
                 )}
-                <button type="button" onClick={() => guarded(() => deleteRoom(room.id))}>
-                  {`Delete ${room.name}`}
-                </button>
               </div>
             </li>
           ))}

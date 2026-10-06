@@ -3,5 +3,5 @@ import { RoomDeviceControls } from '../components/RoomDeviceControls/RoomDeviceC
 
 export default function RoomDeviceControlPage() {
   const { roomId } = useParams<{ roomId: string }>()
-  return <main><h1>Room device control</h1>{roomId ? <RoomDeviceControls roomId={roomId} /> : <p role="alert">Room not found.</p>}</main>
+  return <main><h1>Gerätesteuerung</h1>{roomId ? <RoomDeviceControls roomId={roomId} /> : <p role="alert">Raum nicht gefunden.</p>}</main>
 }

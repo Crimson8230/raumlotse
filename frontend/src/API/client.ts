@@ -6,7 +6,7 @@ export class ApiError extends Error {
   readonly retryAfterSeconds?: number
 
   constructor(status: number, problem?: Problem, retryAfterSeconds?: number) {
-    super(problem?.detail ?? `Request failed with status ${status}`)
+    super(problem?.detail ?? `Anfrage fehlgeschlagen (Status ${status})`)
     this.status = status
     this.problem = problem
     this.retryAfterSeconds = problem?.retryAfterSeconds ?? retryAfterSeconds
@@ -52,7 +52,7 @@ export function formatApiError(err: unknown): string {
     const fieldList = fieldErrors.map((e) => `${e.field}: ${e.message}`).join('; ')
     return `${detail} (${fieldList})`
   }
-  return err instanceof Error ? err.message : 'Something went wrong.'
+  return err instanceof Error ? err.message : 'Etwas ist schiefgelaufen.'
 }
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -75,7 +75,12 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
       clearCsrfToken()
       window.dispatchEvent(new Event('raumlotse:auth-expired'))
     }
-    throw new ApiError(response.status, await parseErrorBody(response), Number(response.headers.get('Retry-After')) || undefined)
+    const problem = await parseErrorBody(response)
+    // The server no longer sees the user as administrator: re-read roles and administration mode (feature 013).
+    if (response.status === 403 && problem?.code === 'ADMIN_REQUIRED') {
+      window.dispatchEvent(new Event('raumlotse:roles-changed'))
+    }
+    throw new ApiError(response.status, problem, Number(response.headers.get('Retry-After')) || undefined)
   }
 
   if (response.status === 204) {

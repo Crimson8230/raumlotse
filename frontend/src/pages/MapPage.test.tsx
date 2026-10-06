@@ -7,16 +7,15 @@ import * as mapsApi from '../API/maps'
 import { ApiError } from '../API/client'
 import * as buildingsApi from '../API/buildings'
 import * as floorsApi from '../API/floors'
-import { useCurrentRoles } from '../auth/useCurrentRoles'
 import type { MapDetail, MapSummary } from '../types/map'
 
 vi.mock('../API/maps')
 vi.mock('../API/buildings')
 vi.mock('../API/floors')
-vi.mock('../auth/useCurrentRoles')
 
 const maps = vi.mocked(mapsApi)
-const roles = vi.mocked(useCurrentRoles)
+// Administration mode and the administrator role are decided by the /admin route guard; the page only gets `editable`.
+let editable = false
 
 function summary(id: string, name: string): MapSummary {
   return { id, floorId: `f-${id}`, name, widthPx: 100, heightPx: 50, imageVersion: 1, placedRoomCount: 0 }
@@ -29,8 +28,10 @@ function renderPage(path = '/maps') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/maps" element={<MapPage />} />
-        <Route path="/maps/:mapId" element={<MapPage />} />
+        <Route path="/maps" element={<MapPage editable={editable} />} />
+        <Route path="/maps/:mapId" element={<MapPage editable={editable} />} />
+        <Route path="/admin/maps" element={<MapPage editable={editable} />} />
+        <Route path="/admin/maps/:mapId" element={<MapPage editable={editable} />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -38,7 +39,7 @@ function renderPage(path = '/maps') {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  roles.mockReturnValue({ loading: false, admin: false, failed: false })
+  editable = false
   maps.mapImageUrl.mockImplementation((m) => `/api/maps/${m.id}/image?v=${m.imageVersion}`)
   maps.listUnplacedRooms.mockResolvedValue([])
   maps.listConnections.mockResolvedValue([])
@@ -77,7 +78,7 @@ describe('MapPage', () => {
 
   it('lets admins delete a map after confirmation', async () => {
     const user = userEvent.setup()
-    roles.mockReturnValue({ loading: false, admin: true, failed: false })
+    editable = true
     maps.listMaps.mockResolvedValueOnce([summary('m1', 'Haus A – EG')]).mockResolvedValue([])
     maps.getMap.mockResolvedValue(detail('m1', 'Haus A – EG'))
     maps.deleteMap.mockResolvedValue(undefined)
@@ -124,7 +125,7 @@ describe('MapPage', () => {
 
     it('lets an admin select an unplaced room and place it by clicking the map', async () => {
       const user = userEvent.setup()
-      roles.mockReturnValue({ loading: false, admin: true, failed: false })
+      editable = true
       maps.placeRoom.mockResolvedValue({ room: { id: 'r2', name: 'Raum 2', status: 'ACTIVE' }, x: 0.25, y: 0.25 })
       renderPage()
 
@@ -137,7 +138,7 @@ describe('MapPage', () => {
 
     it('lets an admin remove the placement of the selected marker', async () => {
       const user = userEvent.setup()
-      roles.mockReturnValue({ loading: false, admin: true, failed: false })
+      editable = true
       maps.removePlacement.mockResolvedValue(undefined)
       renderPage()
 
@@ -157,7 +158,7 @@ describe('MapPage', () => {
 
     it('shows the server error when a placement is rejected', async () => {
       const user = userEvent.setup()
-      roles.mockReturnValue({ loading: false, admin: true, failed: false })
+      editable = true
       maps.placeRoom.mockRejectedValue(new ApiError(422, { title: 'x', status: 422, detail: 'Room is on a different floor.' }))
       renderPage()
 
@@ -200,7 +201,7 @@ describe('MapPage', () => {
 
     it('lets an admin place the point of a connection on the current map', async () => {
       const user = userEvent.setup()
-      roles.mockReturnValue({ loading: false, admin: true, failed: false })
+      editable = true
       maps.putConnectionPoint.mockResolvedValue(stairs)
       renderPage('/maps/m1')
 
@@ -213,7 +214,7 @@ describe('MapPage', () => {
 
     it('selecting a connection clears a selected room and vice versa', async () => {
       const user = userEvent.setup()
-      roles.mockReturnValue({ loading: false, admin: true, failed: false })
+      editable = true
       maps.listUnplacedRooms.mockResolvedValue([{ id: 'r2', name: 'Raum 2', status: 'ACTIVE' }])
       maps.placeRoom.mockResolvedValue({ room: { id: 'r2', name: 'Raum 2', status: 'ACTIVE' }, x: 0.5, y: 0.5 })
       renderPage('/maps/m1')

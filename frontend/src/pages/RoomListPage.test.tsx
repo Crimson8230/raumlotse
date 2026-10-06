@@ -8,6 +8,10 @@ import * as buildingsApi from '../API/buildings'
 import * as equipmentTypesApi from '../API/equipmentTypes'
 import type { Room } from '../types/room'
 
+const mode = vi.hoisted(() => ({ adminMode: true }))
+vi.mock('../auth/useAdminMode', () => ({
+  useAdminMode: () => ({ loading: false, failed: false, admin: true, adminMode: mode.adminMode, setMode: vi.fn() }),
+}))
 vi.mock('../API/rooms')
 vi.mock('../API/buildings')
 vi.mock('../API/equipmentTypes')
@@ -59,6 +63,10 @@ function lastSearchQuery(): string {
 }
 
 beforeEach(() => {
+  mode.adminMode = true
+})
+
+beforeEach(() => {
   vi.resetAllMocks()
   rooms.searchRooms.mockResolvedValue([])
   rooms.listRooms.mockResolvedValue([])
@@ -79,7 +87,7 @@ describe('RoomListPage', () => {
     await screen.findByText('Room 101')
     expect(screen.getByText('Main', { selector: 'span' })).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
+    expect(screen.getByText('Aktiv', { selector: 'span' })).toBeInTheDocument()
   })
 
   it('renders the room status with a semantic status class', async () => {
@@ -90,8 +98,8 @@ describe('RoomListPage', () => {
     await user.selectOptions(screen.getByLabelText(/status/i), 'all')
 
     await screen.findByText('Room 102')
-    expect(screen.getByText('ACTIVE')).toHaveClass('status-active')
-    expect(screen.getByText('DEACTIVATED')).toHaveClass('status-deactivated')
+    expect(screen.getByText('Aktiv', { selector: 'span' })).toHaveClass('status-active')
+    expect(screen.getByText('Deaktiviert', { selector: 'span' })).toHaveClass('status-deactivated')
   })
 
   it('renders a styled empty state for a status without rooms', async () => {
@@ -100,7 +108,7 @@ describe('RoomListPage', () => {
 
     await user.selectOptions(screen.getByLabelText(/status/i), 'deactivated')
 
-    expect(await screen.findByText(/no rooms match/i)).toHaveClass('status-empty')
+    expect(await screen.findByText(/keine räume mit diesem status/i)).toHaveClass('status-empty')
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 
@@ -193,7 +201,7 @@ describe('RoomListPage', () => {
     renderPage()
     await screen.findByText('Room 101')
 
-    await user.click(screen.getByRole('button', { name: /deactivate room 101/i }))
+    await user.click(screen.getByRole('button', { name: /room 101 deaktivieren/i }))
 
     await waitFor(() => expect(rooms.deactivateRoom).toHaveBeenCalledWith('r1'))
     await waitFor(() => expect(rooms.searchRooms).toHaveBeenCalledTimes(2))
@@ -208,7 +216,7 @@ describe('RoomListPage', () => {
     await user.selectOptions(screen.getByLabelText(/status/i), 'deactivated')
     await screen.findByText('Room 101')
 
-    await user.click(screen.getByRole('button', { name: /reactivate room 101/i }))
+    await user.click(screen.getByRole('button', { name: /room 101 reaktivieren/i }))
 
     await waitFor(() => expect(rooms.reactivateRoom).toHaveBeenCalledWith('r1'))
   })
@@ -221,7 +229,7 @@ describe('RoomListPage', () => {
     renderPage()
     await screen.findByText('Room 101')
 
-    await user.click(screen.getByRole('button', { name: /delete room 101/i }))
+    await user.click(screen.getByRole('button', { name: /room 101 löschen/i }))
 
     await waitFor(() => expect(rooms.deleteRoom).toHaveBeenCalledWith('r1'))
     await waitFor(() => expect(rooms.searchRooms).toHaveBeenCalledTimes(2))
@@ -237,7 +245,7 @@ describe('RoomListPage', () => {
     renderPage()
     await screen.findByText('Room 101')
 
-    await user.click(screen.getByRole('button', { name: /deactivate room 101/i }))
+    await user.click(screen.getByRole('button', { name: /room 101 deaktivieren/i }))
 
     expect(
       await screen.findByText(/Room has active or upcoming reservations/i),
@@ -324,5 +332,40 @@ describe('RoomListPage', () => {
 
     await screen.findByText('Room 102')
     expect(screen.queryByRole('link', { name: 'Room 102 buchen' })).not.toBeInTheDocument()
+  })
+
+  describe('user view (administration mode off)', () => {
+    beforeEach(() => {
+      mode.adminMode = false
+    })
+
+    it('shows the booking overview without any administration control', async () => {
+      rooms.searchRooms.mockResolvedValue([room()])
+
+      renderPage()
+
+      await screen.findByText('Room 101')
+      expect(screen.getByRole('link', { name: 'Room 101 buchen' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Neuer Raum' })).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Status')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Deactivate|Reactivate|Delete/ })).not.toBeInTheDocument()
+    })
+
+    it('lists active rooms only', async () => {
+      rooms.searchRooms.mockResolvedValue([room()])
+
+      renderPage()
+
+      await screen.findByText('Room 101')
+      expect(rooms.listRooms).not.toHaveBeenCalled()
+    })
+  })
+
+  it('links the creation form to the administration address while administration mode is on', async () => {
+    rooms.searchRooms.mockResolvedValue([room()])
+
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: 'Neuer Raum' })).toHaveAttribute('href', '/admin/rooms/new')
   })
 })

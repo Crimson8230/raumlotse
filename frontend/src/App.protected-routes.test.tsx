@@ -23,8 +23,8 @@ describe('protected routes', () => {
 
   it('redirects direct protected URLs to login without mounting private pages', async () => {
     render(<MemoryRouter initialEntries={['/rooms/new']}><App /></MemoryRouter>)
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
-    expect(screen.queryByText('Create room')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Anmelden' })).toBeInTheDocument()
+    expect(screen.queryByText('Raum anlegen')).not.toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 
@@ -32,10 +32,10 @@ describe('protected routes', () => {
     let rejectMe!: (error: Error) => void
     auth.me.mockReturnValue(new Promise((_, reject) => { rejectMe = reject }))
     render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>)
-    expect(screen.getByText('Checking your sign-in…')).toBeInTheDocument()
+    expect(screen.getByText('Anmeldung wird geprüft…')).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
     rejectMe(new ApiError(401))
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Anmelden' })).toBeInTheDocument()
   })
 
   it('clears mounted protected content after a protected API 401', async () => {
@@ -43,7 +43,7 @@ describe('protected routes', () => {
     render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>)
     expect(await screen.findByRole('navigation')).toBeInTheDocument()
     window.dispatchEvent(new Event('raumlotse:auth-expired'))
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Anmelden' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
     expect(screen.queryByText('Raumlotse')).not.toBeInTheDocument()
   })
@@ -52,9 +52,9 @@ describe('protected routes', () => {
     auth.login.mockResolvedValue({ userId: 'user-1', displayName: 'A User' })
     const user = userEvent.setup()
     render(<MemoryRouter initialEntries={['/login']}><App /></MemoryRouter>)
-    await user.type(await screen.findByLabelText('Email address'), 'user@example.test')
-    await user.type(screen.getByLabelText('Password'), 'password')
-    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    await user.type(await screen.findByLabelText('E-Mail-Adresse'), 'user@example.test')
+    await user.type(screen.getByLabelText('Passwort'), 'password')
+    await user.click(screen.getByRole('button', { name: 'Anmelden' }))
     expect(await screen.findByRole('navigation')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Raumlotse' })).toBeInTheDocument()
     expect(auth.login).toHaveBeenCalledWith({ email: 'user@example.test', password: 'password' })

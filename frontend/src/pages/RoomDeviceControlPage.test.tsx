@@ -12,13 +12,13 @@ describe('RoomDeviceControlPage', () => {
   it('passes the room route parameter to the controls', () => {
     api.getRoomDeviceControls.mockResolvedValue({ roomId: 'r1', reservationId: 'b1', devices: [] })
     render(<MemoryRouter initialEntries={['/rooms/r1/control']}><Routes><Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} /></Routes></MemoryRouter>)
-    expect(screen.getByRole('heading', { name: /room device control/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /gerätesteuerung/i })).toBeInTheDocument()
   })
 
   it('shows the safe expired/forbidden state when the reservation is no longer eligible', async () => {
     api.getRoomDeviceControls.mockRejectedValue(new ApiError(403, { title: 'Forbidden', status: 403, detail: 'expired' }))
     render(<MemoryRouter initialEntries={['/rooms/r1/control']}><Routes><Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} /></Routes></MemoryRouter>)
-    expect(await screen.findByRole('alert')).toHaveTextContent(/available only during your active reservation/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/nur während ihrer aktiven reservierung/i)
   })
 
   it('renders the control shell within the one-second UI response target', () => {

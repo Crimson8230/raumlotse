@@ -90,28 +90,28 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
     const attendeesNum = Number(expectedAttendees)
     if (selectedArrangement && attendeesNum > selectedArrangement.maxCapacity) {
       setError(
-        `Expected attendees (${attendeesNum}) cannot exceed arrangement capacity (${selectedArrangement.maxCapacity}).`,
+        `Die Teilnehmerzahl (${attendeesNum}) überschreitet die Kapazität der Sitzordnung (${selectedArrangement.maxCapacity}).`,
       )
       return
     }
 
     if (!startTime || !endTime) {
-      setError('Start time and end time are required.')
+      setError('Beginn und Ende sind erforderlich.')
       return
     }
 
     if (!seatingArrangementId) {
-      setError('Please select a seating arrangement.')
+      setError('Bitte eine Sitzordnung wählen.')
       return
     }
 
     if (!selectedArrangement) {
-      setError('Invalid seating arrangement selected.')
+      setError('Ungültige Sitzordnung ausgewählt.')
       return
     }
 
     if (!expectedAttendees || isNaN(attendeesNum) || attendeesNum < 1) {
-      setError('Expected attendees must be a positive integer greater than or equal to 1.')
+      setError('Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.')
       return
     }
 
@@ -135,7 +135,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
         ? endTime
         : new Date(endTime).toISOString()
     } catch {
-      setError('Please check the reservation details and try again.')
+      setError('Bitte die Reservierungsdaten prüfen und erneut versuchen.')
       return
     }
 
@@ -152,7 +152,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
     }
     const parsed = reservationFormSchema.safeParse(payload)
     if (!parsed.success) {
-      setError('Please check the reservation details and try again.')
+      setError('Bitte die Reservierungsdaten prüfen und erneut versuchen.')
       return
     }
 
@@ -184,12 +184,12 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       )}
 
       <div>
-        <label htmlFor="res-booked-by">Booked By</label>
-        <input id="res-booked-by" type="text" value={auth?.user?.displayName ?? 'Current signed-in account'} readOnly />
+        <label htmlFor="res-booked-by">Gebucht von</label>
+        <input id="res-booked-by" type="text" value={auth?.user?.displayName ?? 'Angemeldetes Konto'} readOnly />
       </div>
 
       <div>
-        <label htmlFor="res-start-time">Start Time</label>
+        <label htmlFor="res-start-time">Beginn</label>
         <input
           id="res-start-time"
           type="datetime-local"
@@ -201,7 +201,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <div>
-        <label htmlFor="res-end-time">End Time</label>
+        <label htmlFor="res-end-time">Ende</label>
         <input
           id="res-end-time"
           type="datetime-local"
@@ -213,7 +213,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <div>
-        <label htmlFor="res-seating">Seating Arrangement</label>
+        <label htmlFor="res-seating">Sitzordnung</label>
         <select
           id="res-seating"
           required
@@ -221,7 +221,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
           onChange={(e) => setSeatingArrangementId(e.target.value)}
         >
           {room.seatingArrangements.length > 1 && (
-            <option value="">Select seating arrangement</option>
+            <option value="">Sitzordnung wählen</option>
           )}
           {room.seatingArrangements.map((sa) => (
             <option key={sa.id} value={sa.id}>
@@ -232,7 +232,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <div>
-        <label htmlFor="res-attendees">Attendees</label>
+        <label htmlFor="res-attendees">Teilnehmende</label>
         <input
           id="res-attendees"
           type="number"
@@ -258,7 +258,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <div>
-        <label htmlFor="res-notes">Notes</label>
+        <label htmlFor="res-notes">Notizen</label>
         <textarea
           id="res-notes"
           rows={3}
@@ -269,12 +269,12 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <fieldset>
-        <legend>Additional Equipment</legend>
+        <legend>Zusätzliche Ausstattung</legend>
         {loadingEquipment ? (
-          <p>Loading available equipment...</p>
+          <p>Zusätzliche Ausstattung wird geladen…</p>
         ) : availableEquipment.length === 0 ? (
           <p className="equipment-empty-notice">
-            All catalog equipment is already present in this room
+            Die gesamte Katalogausstattung ist in diesem Raum bereits vorhanden
           </p>
         ) : (
           <div className="reservation-equipment-list">
@@ -300,17 +300,17 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
             checked={emailNotification}
             onChange={(event) => setEmailNotification(event.target.checked)}
           />
-          <span>Email Notification</span>
+          <span>E-Mail-Benachrichtigung</span>
         </label>
       </div>
 
       <div className="actions">
         <button type="submit" disabled={submitting}>
-          Confirm Reservation
+          Reservierung bestätigen
         </button>
         {onCancel && (
           <button type="button" onClick={onCancel} disabled={submitting}>
-            Cancel
+            Abbrechen
           </button>
         )}
       </div>

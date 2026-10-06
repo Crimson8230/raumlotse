@@ -15,7 +15,7 @@ describe('role editor', () => {
   it('preserves Viewer with another role and disables submission during save', async () => {
     const change = vi.fn()
     const { rerender } = render(<UserRoleEditor value={['VIEWER']} onChange={change} onSave={vi.fn()} onCancel={vi.fn()} busy={false} disabled={false} />)
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Student' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Studierende' }))
     expect(change).toHaveBeenCalledWith(['VIEWER', 'STUDENT'])
     rerender(<UserRoleEditor value={['VIEWER', 'STUDENT']} onChange={change} onSave={vi.fn()} onCancel={vi.fn()} busy disabled={false} />)
     expect(screen.getByRole('button', { name: 'Speichern' })).toBeDisabled()

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { RoomForm } from '../components/RoomForm/RoomForm'
 import { getRoom } from '../API/rooms'
 import type { Room } from '../types/room'
+import { entityStatusLabel } from '../utils/labels'
 
 export default function RoomFormPage() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -25,7 +26,7 @@ export default function RoomFormPage() {
       },
       () => {
         if (!ignore) {
-          setLoadError('This room could not be found.')
+          setLoadError('Dieser Raum wurde nicht gefunden.')
           setLoading(false)
         }
       },
@@ -38,7 +39,7 @@ export default function RoomFormPage() {
   if (loading) {
     return (
       <main>
-        <p className="status-loading">Loading…</p>
+        <p className="status-loading">Wird geladen…</p>
       </main>
     )
   }
@@ -55,15 +56,15 @@ export default function RoomFormPage() {
 
   return (
     <main>
-      <h1>{room ? `Edit ${room.name}` : 'New Room'}</h1>
+      <h1>{room ? `${room.name} bearbeiten` : 'Neuer Raum'}</h1>
       {room && (
         <dl className="panel">
-          <dt>Building</dt>
+          <dt>Gebäude</dt>
           <dd>{room.building.name}</dd>
-          <dt>Floor</dt>
+          <dt>Stockwerk</dt>
           <dd>{room.floor.name}</dd>
           <dt>Status</dt>
-          <dd className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>{room.status}</dd>
+          <dd className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>{entityStatusLabel(room.status)}</dd>
         </dl>
       )}
       <RoomForm room={room} onSaved={(saved) => navigate(`/rooms/${saved.id}`)} />

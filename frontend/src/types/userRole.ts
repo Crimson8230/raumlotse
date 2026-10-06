@@ -1,9 +1,9 @@
 export const roleOptions = [
-  { code: 'ADMIN', label: 'Admin' },
-  { code: 'UNIVERSITY_STAFF', label: 'University Staff' },
-  { code: 'STUDENT', label: 'Student' },
-  { code: 'LECTURER', label: 'Lecturer' },
-  { code: 'VIEWER', label: 'Viewer' },
+  { code: 'ADMIN', label: 'Administration' },
+  { code: 'UNIVERSITY_STAFF', label: 'Hochschulpersonal' },
+  { code: 'STUDENT', label: 'Studierende' },
+  { code: 'LECTURER', label: 'Lehrende' },
+  { code: 'VIEWER', label: 'Lesezugriff' },
 ] as const
 export type RoleCode = typeof roleOptions[number]['code']
 export interface UserSummary { id: string; displayName: string; accountLabel: string }

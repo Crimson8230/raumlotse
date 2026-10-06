@@ -27,8 +27,8 @@ describe('EquipmentCatalog', () => {
 
     render(<EquipmentCatalog />)
 
-    await user.type(screen.getByLabelText(/new equipment type name/i), 'Projector')
-    await user.click(screen.getByRole('button', { name: /add equipment type/i }))
+    await user.type(screen.getByLabelText(/name des neuen ausstattungstyps/i), 'Projector')
+    await user.click(screen.getByRole('button', { name: /ausstattungstyp hinzufügen/i }))
 
     await waitFor(() => expect(equipment.createEquipmentType).toHaveBeenCalledWith('Projector'))
     await screen.findByText('Projector')
@@ -42,9 +42,9 @@ describe('EquipmentCatalog', () => {
     render(<EquipmentCatalog />)
     await screen.findByText('Projector')
 
-    await user.clear(screen.getByLabelText(/rename equipment type projector/i))
-    await user.type(screen.getByLabelText(/rename equipment type projector/i), 'Beamer')
-    await user.click(screen.getByRole('button', { name: /save equipment type name/i }))
+    await user.clear(screen.getByLabelText(/ausstattungstyp projector umbenennen/i))
+    await user.type(screen.getByLabelText(/ausstattungstyp projector umbenennen/i), 'Beamer')
+    await user.click(screen.getByRole('button', { name: /name des ausstattungstyps projector speichern/i }))
 
     await waitFor(() => expect(equipment.renameEquipmentType).toHaveBeenCalledWith('e1', 'Beamer'))
   })
@@ -57,7 +57,7 @@ describe('EquipmentCatalog', () => {
     render(<EquipmentCatalog />)
     await screen.findByText('Projector')
 
-    await user.click(screen.getByRole('button', { name: /deactivate equipment type projector/i }))
+    await user.click(screen.getByRole('button', { name: /ausstattungstyp projector deaktivieren/i }))
 
     await waitFor(() => expect(equipment.deactivateEquipmentType).toHaveBeenCalledWith('e1'))
   })
@@ -76,7 +76,7 @@ describe('EquipmentCatalog', () => {
     render(<EquipmentCatalog />)
     await screen.findByText('Projector')
 
-    await user.click(screen.getByRole('button', { name: /delete equipment type projector/i }))
+    await user.click(screen.getByRole('button', { name: /ausstattungstyp projector löschen/i }))
 
     await screen.findByText(/assigned to one or more rooms/i)
   })

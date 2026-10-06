@@ -115,7 +115,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
     setErrorKind('error')
 
     if (seatingArrangements.length === 0) {
-      setError('A room must have at least one seating arrangement.')
+      setError('Ein Raum braucht mindestens eine Sitzordnung.')
       return
     }
 
@@ -179,12 +179,12 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       )}
 
       <div>
-        <label htmlFor="room-name">Room name</label>
+        <label htmlFor="room-name">Raumname</label>
         <input id="room-name" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       <div>
-        <label htmlFor="room-building">Building</label>
+        <label htmlFor="room-building">Gebäude</label>
         <select
           id="room-building"
           value={selectedBuildingId}
@@ -196,7 +196,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
           required
         >
           <option value="" disabled>
-            Select a building
+            Gebäude wählen
           </option>
           {buildings.map((b) => (
             <option key={b.id} value={b.id}>
@@ -207,7 +207,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         {showNewBuildingForm ? (
           <div className="inline-form">
             <div>
-              <label htmlFor="new-building-name">New building name</label>
+              <label htmlFor="new-building-name">Name des neuen Gebäudes</label>
               <input
                 id="new-building-name"
                 value={newBuildingName}
@@ -215,18 +215,18 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
               />
             </div>
             <button type="button" onClick={handleCreateBuilding}>
-              Create building
+              Gebäude anlegen
             </button>
           </div>
         ) : (
           <button type="button" onClick={() => setShowNewBuildingForm(true)}>
-            Add new building
+            Neues Gebäude anlegen
           </button>
         )}
       </div>
 
       <div>
-        <label htmlFor="room-floor">Floor</label>
+        <label htmlFor="room-floor">Stockwerk</label>
         <select
           id="room-floor"
           value={selectedFloorId}
@@ -235,7 +235,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
           required
         >
           <option value="" disabled>
-            Select a floor
+            Stockwerk wählen
           </option>
           {floors.map((f) => (
             <option key={f.id} value={f.id}>
@@ -247,22 +247,22 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
           (showNewFloorForm ? (
             <div className="inline-form">
               <div>
-                <label htmlFor="new-floor-name">New floor name</label>
+                <label htmlFor="new-floor-name">Name des neuen Stockwerks</label>
                 <input id="new-floor-name" value={newFloorName} onChange={(e) => setNewFloorName(e.target.value)} />
               </div>
               <button type="button" onClick={handleCreateFloor}>
-                Create floor
+                Stockwerk anlegen
               </button>
             </div>
           ) : (
             <button type="button" onClick={() => setShowNewFloorForm(true)}>
-              Add new floor
+              Neues Stockwerk anlegen
             </button>
           ))}
       </div>
 
       <fieldset>
-        <legend>Equipment</legend>
+        <legend>Ausstattung</legend>
         {equipmentTypes.map((type) => (
           <label key={type.id} className="checkbox-label">
             <input
@@ -291,11 +291,11 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       </div>
 
       <fieldset>
-        <legend>Seating arrangements</legend>
+        <legend>Sitzordnungen</legend>
         {seatingArrangements.map((row, index) => (
           <div key={index} className="inline-form">
             <div>
-              <label htmlFor={`seating-name-${index}`}>{`Seating arrangement name (${index + 1})`}</label>
+              <label htmlFor={`seating-name-${index}`}>{`Name der Sitzordnung (${index + 1})`}</label>
               <input
                 id={`seating-name-${index}`}
                 value={row.name}
@@ -304,7 +304,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
               />
             </div>
             <div>
-              <label htmlFor={`seating-capacity-${index}`}>{`Max capacity (${index + 1})`}</label>
+              <label htmlFor={`seating-capacity-${index}`}>{`Max. Kapazität (${index + 1})`}</label>
               <input
                 id={`seating-capacity-${index}`}
                 type="number"
@@ -315,18 +315,18 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
               />
             </div>
             <button type="button" onClick={() => removeSeatingArrangement(index)}>
-              {`Remove seating arrangement (${index + 1})`}
+              {`Sitzordnung entfernen (${index + 1})`}
             </button>
           </div>
         ))}
         <button type="button" onClick={addSeatingArrangement}>
-          Add seating arrangement
+          Sitzordnung hinzufügen
         </button>
       </fieldset>
 
       <div className="actions">
         <button type="submit" disabled={submitting}>
-          {room ? 'Save room' : 'Create room'}
+          {room ? 'Raum speichern' : 'Raum anlegen'}
         </button>
       </div>
     </form>

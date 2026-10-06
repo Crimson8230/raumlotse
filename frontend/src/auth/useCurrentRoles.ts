@@ -5,7 +5,7 @@ import type { RoleCode } from '../types/userRole'
 
 export function useCurrentRoles(enabled = true) {
   const { key } = useLocation()
-  const [result, setResult] = useState<{ key: string; roles: RoleCode[]; ready: boolean; failed: boolean } | null>(null)
+  const [result, setResult] = useState<{ key: string; roles: RoleCode[]; ready: boolean; adminMode: boolean; failed: boolean } | null>(null)
   useEffect(() => {
     if (!enabled) return
     let active = true
@@ -14,9 +14,9 @@ export function useCurrentRoles(enabled = true) {
       const current = ++sequence
       try {
         const data = await getCurrentRoles()
-        if (active && current === sequence) setResult({ key, ...data, failed: false })
+        if (active && current === sequence) setResult({ key, ...data, adminMode: data.adminMode === true, failed: false })
       } catch {
-        if (active && current === sequence) setResult({ key, roles: [], ready: false, failed: true })
+        if (active && current === sequence) setResult({ key, roles: [], ready: false, adminMode: false, failed: true })
       }
     }
     void load()
@@ -31,6 +31,7 @@ export function useCurrentRoles(enabled = true) {
   return {
     loading: enabled && result?.key !== key,
     admin: enabled && result?.key === key && result.ready && result.roles.includes('ADMIN'),
+    adminMode: enabled && result?.key === key && result.ready && result.roles.includes('ADMIN') && result.adminMode,
     failed: enabled && result?.key === key && result.failed,
   }
 }

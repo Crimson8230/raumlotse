@@ -20,10 +20,11 @@ function reservationFixture(overrides: Partial<Reservation> = {}): Reservation {
     seatingArrangement: { id: 'seat-1', name: 'Theater', maxCapacity: 40 },
     expectedAttendees: 20,
     additionalEquipment: [],
-    note: 'Current reservation',
+    note: 'Aktuelle Reservierung',
     createdBy: 'Alice',
     reservedFor: 'Team Alpha',
     createdAt: '2026-09-19T09:00:00.000Z',
+    ownedByMe: true,
     ...overrides,
   }
 }
@@ -188,8 +189,8 @@ describe('selectNextReservation', () => {
 
 describe('getNotePreview', () => {
   it('uses a visible fallback for an empty note', () => {
-    expect(getNotePreview('   ')).toEqual({ text: 'No note provided', truncated: false })
-    expect(getNotePreview(null)).toEqual({ text: 'No note provided', truncated: false })
+    expect(getNotePreview('   ')).toEqual({ text: 'Keine Notiz vorhanden', truncated: false })
+    expect(getNotePreview(null)).toEqual({ text: 'Keine Notiz vorhanden', truncated: false })
   })
 
   it('preserves a short note without truncation', () => {

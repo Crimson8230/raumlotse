@@ -11,7 +11,6 @@ import {
   putConnectionPoint,
   removePlacement,
 } from '../API/maps'
-import { useCurrentRoles } from '../auth/useCurrentRoles'
 import { ConnectionCatalog } from '../components/ConnectionCatalog/ConnectionCatalog'
 import { ConnectionLayer } from '../components/FloorMap/ConnectionLayer'
 import { MapCanvas } from '../components/FloorMap/MapCanvas'
@@ -21,10 +20,15 @@ import { MapUploadControl } from '../components/FloorMap/MapUploadControl'
 import type { Connection, MapDetail, MapSummary, Position, RoomRef } from '../types/map'
 import './MapPage.css'
 
-export default function MapPage() {
+/**
+ * `editable` is set by the `/admin/maps` routes only; those are guarded by administration mode, so the page itself
+ * does not decide on rights. Without it the page is the read-only map overview.
+ */
+export default function MapPage({ editable = false }: { editable?: boolean }) {
+  const base = editable ? '/admin/maps' : '/maps'
   const { mapId } = useParams()
   const navigate = useNavigate()
-  const { admin } = useCurrentRoles()
+  const admin = editable
   const [maps, setMaps] = useState<MapSummary[]>()
   const [loaded, setLoaded] = useState<MapDetail>()
   const [loadedUnplaced, setLoadedUnplaced] = useState<{ mapId: string; rooms: RoomRef[] }>()
@@ -139,7 +143,7 @@ export default function MapPage() {
 
   function handleSaved(saved: MapSummary) {
     setReloadKey((key) => key + 1)
-    navigate(`/maps/${saved.id}`)
+    navigate(`${base}/${saved.id}`)
   }
 
   async function handleDelete() {
@@ -147,7 +151,7 @@ export default function MapPage() {
     try {
       await deleteMap(detail.id)
       setReloadKey((key) => key + 1)
-      navigate('/maps')
+      navigate(base)
     } catch (err) {
       setError(formatApiError(err))
     }
@@ -157,7 +161,7 @@ export default function MapPage() {
 
   return (
     <main className="map-page">
-      <h1>Karten</h1>
+      <h1>{editable ? 'Karten bearbeiten' : 'Karten'}</h1>
       {error && <p role="alert">{error}</p>}
       {maps && (
         <MapSelector
@@ -165,7 +169,7 @@ export default function MapPage() {
           selectedId={selectedId}
           onSelect={(id) => {
             selectRoom(undefined)
-            navigate(`/maps/${id}`)
+            navigate(`${base}/${id}`)
           }}
         />
       )}
@@ -187,7 +191,7 @@ export default function MapPage() {
               maps={maps}
               onNavigate={(id) => {
                 selectConnection(undefined)
-                navigate(`/maps/${id}`)
+                navigate(`${base}/${id}`)
               }}
             />
           )}

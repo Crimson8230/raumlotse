@@ -26,7 +26,7 @@ function HomePage() {
       <h1>Raumlotse</h1>
       <p>Seminar- und Unterrichtsraumreservierung</p>
       <p>
-        Backend status: <span className={statusClassName}>{backendStatus}</span>
+        Backend-Status: <span className={statusClassName}>{backendStatus}</span>
       </p>
 
       {auth.state === 'authenticated' && <MyUpcomingReservations />}

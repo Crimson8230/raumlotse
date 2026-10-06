@@ -30,7 +30,7 @@ const sampleRoom: Room = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Admin' })
+  auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Administration' })
   auth.refreshCsrfToken.mockResolvedValue(undefined)
   rooms.getRoom.mockResolvedValue(sampleRoom)
   reservations.listRoomReservations.mockResolvedValue([])
@@ -46,7 +46,7 @@ describe('App display routing', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
-    expect(screen.getByText('No current reservation')).toBeInTheDocument()
+    expect(screen.getByText('Keine aktuelle Reservierung')).toBeInTheDocument()
   })
 
   it('preserves the existing room detail route', async () => {
@@ -57,6 +57,6 @@ describe('App display routing', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Reservations' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Reservierungen' })).toBeInTheDocument()
   })
 })
