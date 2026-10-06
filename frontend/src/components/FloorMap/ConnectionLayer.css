@@ -1,0 +1,36 @@
+.connection-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 24px;
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 2px solid var(--color-info);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-small);
+  cursor: pointer;
+}
+
+.connection-marker--stairs {
+  border-style: dashed;
+}
+
+.connection-popover {
+  position: absolute;
+  transform: translate(-50%, 20px);
+  z-index: 2;
+  min-width: 180px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.connection-popover ul {
+  margin: 0;
+  padding-left: var(--space-3);
+}

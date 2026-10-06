@@ -17,7 +17,15 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         String path=request.getServletPath();
         if(path.isEmpty()) path=request.getRequestURI();
         return !(path.equals("/api/admin/users") || path.startsWith("/api/admin/users/")
-                || path.equals("/api/admin/statistics") || path.startsWith("/api/admin/statistics/"));
+                || path.equals("/api/admin/statistics") || path.startsWith("/api/admin/statistics/")
+                || isMapWrite(request.getMethod(),path));
+    }
+    // Feature 012: maps, placements and connections are readable by every signed-in session; only admins may write.
+    private static boolean isMapWrite(String method,String path) {
+        if(method.equals("GET") || method.equals("HEAD") || method.equals("OPTIONS")) return false;
+        return path.equals("/api/maps") || path.startsWith("/api/maps/")
+            || path.equals("/api/connections") || path.startsWith("/api/connections/")
+            || (path.startsWith("/api/floors/") && path.endsWith("/map"));
     }
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)
             throws IOException,ServletException {

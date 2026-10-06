@@ -44,6 +44,16 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
     """)
     List<Room> findSearchCandidatesInBuilding(@Param("buildingId") UUID buildingId);
 
+    // Map placement (feature 012): active rooms of a floor that have no position on a map yet.
+    @Query("""
+        select r from Room r
+        where r.floor.id = :floorId
+          and r.status = at.mci.igp.raumlotse.domain.EntityStatus.ACTIVE
+          and not exists (select 1 from RoomPlacement p where p.room.id = r.id)
+        order by r.name
+    """)
+    List<Room> findUnplacedActiveByFloorId(@Param("floorId") UUID floorId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Room r where r.id = :id")
     Optional<Room> findByIdForUpdate(@Param("id") UUID id);

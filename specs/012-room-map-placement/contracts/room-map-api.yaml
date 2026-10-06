@@ -1,0 +1,202 @@
+openapi: 3.0.3
+info:
+  title: Room Map API
+  version: 1.0.0
+  description: >
+    Floor maps, room placements and stairs/elevator connections. All endpoints require a signed-in
+    session (401 otherwise). Write operations (PUT/POST/DELETE) require the ADMIN role (403 otherwise)
+    and a CSRF token like other mutating endpoints. Errors use the existing Problem format.
+paths:
+  /api/maps:
+    get:
+      summary: List maps
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/MapSummary' } } } } }
+  /api/floors/{floorId}/map:
+    parameters: [{ $ref: '#/components/parameters/floorId' }]
+    put:
+      summary: Create the map of a floor or replace its image (admin)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [image], properties: { image: { type: string, format: binary } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/MapSummary' } } } }
+        '200': { description: "Image replaced; `aspectRatioChanged` warns placements may no longer match", content: { application/json: { schema: { $ref: '#/components/schemas/MapSummary' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '413': { description: File larger than 10 MB, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '415': { description: Not a PNG/JPEG image, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /api/maps/{mapId}:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    get:
+      summary: Map with its placements and connection points
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MapDetail' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Delete map incl. placements and connection points (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/image:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    get:
+      summary: Map image (ETag = image version; honors If-None-Match)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: PNG or JPEG bytes (X-Content-Type-Options nosniff), content: { image/png: {}, image/jpeg: {} } }
+        '304': { description: Not modified }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/unplaced-rooms:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    get:
+      summary: Rooms of the map's floor without a placement
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RoomRef' } } } } }
+  /api/maps/{mapId}/placements/{roomId}:
+    parameters: [{ $ref: '#/components/parameters/mapId' }, { $ref: '#/components/parameters/roomId' }]
+    put:
+      summary: Place or move a room (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Position' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Placement' } } } }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Placement' } } } }
+        '400': { description: "Coordinates outside [0,1]", content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { description: Room belongs to a different floor than the map, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    delete:
+      summary: Remove a placement (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/connections:
+    get:
+      summary: List connections with their points
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Connection' } } } } }
+    post:
+      summary: Create a connection (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ConnectionRequest' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Connection' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { description: Name already used, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /api/connections/{connectionId}:
+    parameters: [{ $ref: '#/components/parameters/connectionId' }]
+    put:
+      summary: Rename / change type (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ConnectionRequest' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Connection' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Delete connection and all its points (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/connections/{connectionId}/points/{mapId}:
+    parameters: [{ $ref: '#/components/parameters/connectionId' }, { $ref: '#/components/parameters/mapId' }]
+    put:
+      summary: Add or move the connection's point on a map (max one per map) (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Position' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Connection' } } } }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Connection' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Remove the connection's point on a map (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Problem' }
+components:
+  parameters:
+    floorId: { name: floorId, in: path, required: true, schema: { type: string, format: uuid } }
+    mapId: { name: mapId, in: path, required: true, schema: { type: string, format: uuid } }
+    roomId: { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+    connectionId: { name: connectionId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Unauthorized: { description: Not authenticated, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Forbidden: { description: Administrator role required, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  schemas:
+    Problem:
+      type: object
+      properties: { status: { type: integer }, title: { type: string }, detail: { type: string }, code: { type: string } }
+    Position:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+    RoomRef:
+      type: object
+      properties: { id: { type: string, format: uuid }, name: { type: string }, status: { type: string, enum: [ACTIVE, DEACTIVATED] } }
+    MapSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        floorId: { type: string, format: uuid }
+        name: { type: string, description: 'Building name + floor name' }
+        widthPx: { type: integer }
+        heightPx: { type: integer }
+        imageVersion: { type: integer, format: int64 }
+        placedRoomCount: { type: integer }
+        aspectRatioChanged: { type: boolean, description: 'Only on replace' }
+    Placement:
+      type: object
+      properties:
+        room: { $ref: '#/components/schemas/RoomRef' }
+        x: { type: number }
+        y: { type: number }
+    ConnectionPoint:
+      type: object
+      properties:
+        mapId: { type: string, format: uuid }
+        x: { type: number }
+        y: { type: number }
+    ConnectionRequest:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        type: { type: string, enum: [STAIRS, ELEVATOR] }
+    Connection:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, enum: [STAIRS, ELEVATOR] }
+        incomplete: { type: boolean, description: 'true while fewer than two points exist' }
+        points: { type: array, items: { $ref: '#/components/schemas/ConnectionPoint' } }
+    MapDetail:
+      allOf:
+        - $ref: '#/components/schemas/MapSummary'
+        - type: object
+          properties:
+            placements: { type: array, items: { $ref: '#/components/schemas/Placement' } }
+            connections: { type: array, description: 'Connections that have a point on this map, with all their points', items: { $ref: '#/components/schemas/Connection' } }

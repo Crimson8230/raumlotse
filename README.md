@@ -18,6 +18,8 @@ The first feature, **room management**, is implemented: administrators can maint
 
 **Optional booking confirmations** are available per reservation. `Email Notification` starts unchecked on every booking form; only the final checked state requests a confirmation. Omitted and explicit `false` API values remain backward-compatible opt-out. Requested confirmations are stored in a durable database queue and delivered asynchronously, so SMTP failure never rolls back or changes a successful reservation. Local delivery is captured by Mailpit. Spring Mail is kept behind a small gateway so message formatting and failure behavior stay independently testable.
 
+**Room map placement** (`/maps`): administrators upload one PNG/JPEG floor plan per floor (max. 10 MB), place rooms of that floor on it by clicking, move them by dragging (or with the arrow keys), and define named stairs/elevator connections with one point per map so later routes can cross floors. Positions are stored as fractions of the image size, so they stay correct at any zoom level or resolution. All signed-in users can view maps; only administrators can change them. Placing displays on the map, route calculation, and the one-time-code login for displays are separate, later features. See [`specs/012-room-map-placement/`](specs/012-room-map-placement/) and its [API contract](specs/012-room-map-placement/contracts/room-map-api.yaml).
+
 Available backend endpoints:
 
 ```text
@@ -53,6 +55,22 @@ PUT    /api/equipment-types/{equipmentTypeId}
 DELETE /api/equipment-types/{equipmentTypeId}
 POST   /api/equipment-types/{equipmentTypeId}/deactivate
 POST   /api/equipment-types/{equipmentTypeId}/reactivate
+
+GET    /api/maps
+GET    /api/maps/{mapId}
+DELETE /api/maps/{mapId}
+GET    /api/maps/{mapId}/image
+GET    /api/maps/{mapId}/unplaced-rooms
+PUT    /api/maps/{mapId}/placements/{roomId}
+DELETE /api/maps/{mapId}/placements/{roomId}
+PUT    /api/floors/{floorId}/map
+
+GET    /api/connections
+POST   /api/connections
+PUT    /api/connections/{connectionId}
+DELETE /api/connections/{connectionId}
+PUT    /api/connections/{connectionId}/points/{mapId}
+DELETE /api/connections/{connectionId}/points/{mapId}
 ```
 
 The full, versioned contract (request/response shapes, status codes) lives in [`specs/001-room-management/contracts/openapi.yaml`](specs/001-room-management/contracts/openapi.yaml); the search endpoints are specified in [`specs/008-room-search-filter/contracts/room-search-api.yaml`](specs/008-room-search-filter/contracts/room-search-api.yaml).
