@@ -47,7 +47,7 @@ public class BookingConfirmationQueueService {
     @Transactional(readOnly = true)
     public DeliveryDetails deliveryDetails(UUID confirmationId) {
         var confirmation = repository.findForDelivery(confirmationId)
-                .orElseThrow(() -> new NotFoundException("Confirmation not found."));
+                .orElseThrow(() -> new NotFoundException("Confirmation nicht gefunden."));
         var reservation = confirmation.getReservation();
         return new DeliveryDetails(confirmation.getId(), reservation.getId(), reservation.getCreatedByUserId(),
                 reservation.getRoom().getName(), reservation.getStartTime(), reservation.getEndTime());
@@ -56,14 +56,14 @@ public class BookingConfirmationQueueService {
     @Transactional
     public void markSent(UUID confirmationId) {
         var confirmation = repository.findById(confirmationId)
-                .orElseThrow(() -> new NotFoundException("Confirmation not found."));
+                .orElseThrow(() -> new NotFoundException("Confirmation nicht gefunden."));
         confirmation.markSent(clock.instant());
     }
 
     @Transactional
     public void markFailed(UUID confirmationId, String failureCode) {
         var confirmation = repository.findById(confirmationId)
-                .orElseThrow(() -> new NotFoundException("Confirmation not found."));
+                .orElseThrow(() -> new NotFoundException("Confirmation nicht gefunden."));
         confirmation.markFailed(failureCode, clock.instant());
     }
 

@@ -28,6 +28,9 @@ import org.springframework.test.annotation.DirtiesContext;
 class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Autowired
     private ReservationService reservationService;
 
     @Autowired
@@ -43,7 +46,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
     private FloorService floorService;
 
     private Room createTestRoom(String roomName) {
-        var building = buildingService.create("Building " + UUID.randomUUID());
+        var building = buildingService.create("Gebäude " + UUID.randomUUID());
         var floor = floorService.create(building.getId(), "1");
         return roomService.create(new RoomCreateRequest(
                 roomName,
@@ -60,7 +63,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         Instant start = Instant.now().plus(1, ChronoUnit.HOURS);
         Instant end = start.plus(1, ChronoUnit.HOURS);
 
-        ReservationResponse created = reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+        ReservationResponse created = TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                 start,
                 end,
                 arrangementId,
@@ -84,15 +87,15 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         assertThat(expired).isGreaterThanOrEqualTo(1);
 
         // Verify status updated in DB
-        var reloaded = reservationService.getReservation(created.id());
+        var reloaded = reservationService.getReservation(created.id(), TestActors.ADMIN);
         assertThat(reloaded.status()).isEqualTo(ReservationStatus.EXPIRED);
 
         // Verify activation fails
-        assertThatThrownBy(() -> reservationService.activateReservation(created.id()))
+        assertThatThrownBy(() -> reservationService.activateReservation(created.id(), TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class);
 
         // Verify room is now free for a new booking overlapping the remaining slot
-        ReservationResponse newBooking = reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+        ReservationResponse newBooking = TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                 Instant.now().plus(5, ChronoUnit.MINUTES),
                 Instant.now().plus(25, ChronoUnit.MINUTES),
                 arrangementId,
@@ -112,7 +115,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         Instant start = Instant.now().plus(2, ChronoUnit.MINUTES);
         Instant end = Instant.now().plus(1, ChronoUnit.HOURS);
 
-        ReservationResponse created = reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+        ReservationResponse created = TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                 start,
                 end,
                 arrangementId,
@@ -122,7 +125,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
                 "organizer@example.com"));
 
         // Activate reservation (simulating check-in)
-        ReservationResponse activated = reservationService.activateReservation(created.id());
+        ReservationResponse activated = reservationService.activateReservation(created.id(), TestActors.ADMIN);
         assertThat(activated.status()).isEqualTo(ReservationStatus.ACTIVE);
 
         // Age start time into the past past grace period, while end time remains in the future
@@ -132,7 +135,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
 
         // Run sweep: active booking must NOT be expired
         ReservationSweepResponse sweep = reservationService.sweepOverdueReservations();
-        var reloaded = reservationService.getReservation(created.id());
+        var reloaded = reservationService.getReservation(created.id(), TestActors.ADMIN);
         assertThat(reloaded.status()).isEqualTo(ReservationStatus.ACTIVE);
 
         // Now age end time into the past to simulate concluded meeting
@@ -144,7 +147,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         sweep = reservationService.sweepOverdueReservations();
         assertThat(sweep.completedCount()).isGreaterThanOrEqualTo(1);
 
-        var completedReload = reservationService.getReservation(created.id());
+        var completedReload = reservationService.getReservation(created.id(), TestActors.ADMIN);
         assertThat(completedReload.status()).isEqualTo(ReservationStatus.COMPLETED);
     }
 
@@ -156,7 +159,7 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         Instant start = Instant.now().minus(10, ChronoUnit.MINUTES);
         Instant end = Instant.now().plus(50, ChronoUnit.MINUTES);
 
-        ReservationResponse created = reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+        ReservationResponse created = TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                 Instant.now().plus(1, ChronoUnit.HOURS),
                 Instant.now().plus(2, ChronoUnit.HOURS),
                 arrangementId,
@@ -178,7 +181,8 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         List<ReservationResponse> schedule = reservationService.getReservationsForRoom(
                 room.getId(),
                 start.minus(1, ChronoUnit.HOURS),
-                end.plus(1, ChronoUnit.HOURS));
+                end.plus(1, ChronoUnit.HOURS),
+                TestActors.ADMIN);
         assertThat(schedule).extracting(ReservationResponse::id).contains(created.id());
         ReservationResponse inSchedule = schedule.stream()
                 .filter(r -> r.id().equals(created.id()))
@@ -186,15 +190,16 @@ class ReservationExpirationIntegrationTest extends AbstractIntegrationTest {
         assertThat(inSchedule.status()).isEqualTo(ReservationStatus.EXPIRED);
 
         // Verify terminal state immutability on expired reservation
-        assertThatThrownBy(() -> reservationService.activateReservation(created.id()))
+        assertThatThrownBy(() -> reservationService.activateReservation(created.id(), TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class);
         assertThatThrownBy(() -> reservationService.updateReservationMetadata(
                 created.id(),
-                new at.mci.igp.raumlotse.dto.ReservationUpdateRequest(12, "Attempted update")))
+                new at.mci.igp.raumlotse.dto.ReservationUpdateRequest(12, "Attempted update"),
+                TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class);
 
         // Verify overlapping new reservation succeeds because expired slot is excluded from conflict detection
-        ReservationResponse overlappingBooking = reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+        ReservationResponse overlappingBooking = TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                 Instant.now().plus(5, ChronoUnit.MINUTES),
                 Instant.now().plus(25, ChronoUnit.MINUTES),
                 arrangementId,

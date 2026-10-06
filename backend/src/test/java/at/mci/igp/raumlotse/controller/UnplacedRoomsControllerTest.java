@@ -45,7 +45,7 @@ class UnplacedRoomsControllerTest {
 
     @Test
     void unknownMapReturns404() throws Exception {
-        when(service.unplacedRooms(mapId)).thenThrow(new NotFoundException("Map not found."));
+        when(service.unplacedRooms(mapId)).thenThrow(new NotFoundException("Map nicht gefunden."));
         mvc.perform(get("/api/maps/" + mapId + "/unplaced-rooms")).andExpect(status().isNotFound());
     }
 }

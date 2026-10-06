@@ -26,6 +26,8 @@ class LocalAuthFixtureRoleIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void clean() {
+        db.update("delete from booking_confirmation");
+        db.update("delete from reservation");
         db.update("delete from role_assignment");
         db.update("delete from user_role_state");
         db.update("delete from user_account");

@@ -17,6 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -52,7 +53,7 @@ public class SecurityConfig {
                                 .addFilterAfter(accountFilter, SecurityContextHolderFilter.class)
                                 .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(roleSafety,
                                                 objectMapper),
-                                                CurrentAccountFilter.class)
+                                                CsrfFilter.class)
                                 .authorizeHttpRequests(authorize -> authorize
                                                 .requestMatchers("/api/health").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
@@ -66,7 +67,7 @@ public class SecurityConfig {
 
         private AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
                 return (request, response, exception) -> writeProblem(objectMapper, response, HttpStatus.UNAUTHORIZED,
-                                "Unauthorized", "Authentication is required.", "AUTH_REQUIRED");
+                                "Unauthorized", "Anmeldung erforderlich.", "AUTH_REQUIRED");
         }
 
         private AccessDeniedHandler csrfAndAuthorizationDenialHandler(ObjectMapper objectMapper) {
@@ -77,18 +78,18 @@ public class SecurityConfig {
                                         && !(authentication instanceof AnonymousAuthenticationToken);
                         if (exception instanceof CsrfException && !authenticated && !isPublicAuthRequest(request)) {
                                 writeProblem(objectMapper, response, HttpStatus.UNAUTHORIZED,
-                                                "Unauthorized", "Authentication is required.", "AUTH_REQUIRED");
+                                                "Unauthorized", "Anmeldung erforderlich.", "AUTH_REQUIRED");
                                 return;
                         }
                         if (exception instanceof CsrfException) {
                                 writeProblem(objectMapper, response, HttpStatus.FORBIDDEN,
                                                 "Forbidden",
-                                                "The request could not be verified. Refresh and try again.",
+                                                "Die Anfrage konnte nicht überprüft werden. Bitte Seite neu laden und erneut versuchen.",
                                                 "CSRF_INVALID");
                                 return;
                         }
                         writeProblem(objectMapper, response, HttpStatus.FORBIDDEN,
-                                        "Forbidden", "You are not permitted to perform this action.", "FORBIDDEN");
+                                        "Forbidden", "Sie dürfen diese Aktion nicht ausführen.", "FORBIDDEN");
                 };
         }
 

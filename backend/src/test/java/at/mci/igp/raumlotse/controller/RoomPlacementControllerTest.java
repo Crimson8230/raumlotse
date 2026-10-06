@@ -89,7 +89,7 @@ class RoomPlacementControllerTest {
 
     @Test
     void unknownMapOrRoomReturns404() throws Exception {
-        when(service.place(mapId, roomId, 0.1, 0.1)).thenThrow(new NotFoundException("Room not found."));
+        when(service.place(mapId, roomId, 0.1, 0.1)).thenThrow(new NotFoundException("Room nicht gefunden."));
         mvc.perform(put("/api/maps/" + mapId + "/placements/" + roomId).with(admin()).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"x\":0.1,\"y\":0.1}"))
                 .andExpect(status().isNotFound());

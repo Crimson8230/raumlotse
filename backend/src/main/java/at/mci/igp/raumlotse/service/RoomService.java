@@ -72,7 +72,7 @@ public class RoomService {
         Room room = findOrThrow(id);
         if (!room.getVersion().equals(request.version())) {
             throw new OptimisticLockingFailureException(
-                    "Room " + id + " was modified by someone else since it was loaded.");
+                    "Raum " + id + " wurde zwischenzeitlich von jemand anderem geändert.");
         }
 
         Floor floor = requireSelectableFloor(request.floorId());
@@ -92,7 +92,7 @@ public class RoomService {
     public Room deactivate(UUID id) {
         Room room = findOrThrow(id);
         if (reservationRepository.existsByRoomIdAndStatusIn(id, List.of(ReservationStatus.RESERVED, ReservationStatus.ACTIVE))) {
-            throw new ConflictException("Room has active or upcoming reservations; cancel them first.");
+            throw new ConflictException("Der Raum hat aktive oder künftige Reservierungen; bitte zuerst stornieren.");
         }
         room.setStatus(EntityStatus.DEACTIVATED);
         return room;
@@ -108,17 +108,17 @@ public class RoomService {
         Room room = findOrThrow(id);
         if (dependentHistoryChecker.hasDependentHistory(id)) {
             throw new ConflictException(
-                    "Room '" + room.getName() + "' has dependent history; deactivate it instead.");
+                    "Raum '" + room.getName() + "' hat Buchungshistorie; bitte stattdessen deaktivieren.");
         }
         roomRepository.delete(room);
     }
 
     private Floor requireSelectableFloor(UUID floorId) {
         Floor floor = floorRepository.findById(floorId)
-                .orElseThrow(() -> new NotFoundException("Floor " + floorId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Stockwerk " + floorId + " nicht gefunden."));
         if (!floor.isSelectable()) {
             throw new IllegalArgumentException(
-                    "Floor '" + floor.getName() + "' is not active (or its building is not active).");
+                    "Stockwerk '" + floor.getName() + "' ist nicht aktiv (oder sein Gebäude ist nicht aktiv).");
         }
         return floor;
     }
@@ -127,10 +127,10 @@ public class RoomService {
         return equipmentTypeIds.stream()
                 .map(equipmentTypeId -> {
                     EquipmentType equipmentType = equipmentTypeRepository.findById(equipmentTypeId)
-                            .orElseThrow(() -> new NotFoundException("Equipment type " + equipmentTypeId + " not found."));
+                            .orElseThrow(() -> new NotFoundException("Ausstattungstyp " + equipmentTypeId + " nicht gefunden."));
                     if (equipmentType.getStatus() != EntityStatus.ACTIVE) {
                         throw new IllegalArgumentException(
-                                "Equipment type '" + equipmentType.getName() + "' is deactivated and cannot be assigned.");
+                                "Ausstattungstyp '" + equipmentType.getName() + "' ist deaktiviert und kann nicht zugewiesen werden.");
                     }
                     return equipmentType;
                 })
@@ -143,7 +143,7 @@ public class RoomService {
                 ? roomRepository.existsByFloor_Building_IdAndNameIgnoreCase(buildingId, name)
                 : roomRepository.existsByFloor_Building_IdAndNameIgnoreCaseAndIdNot(buildingId, name, excludingId);
         if (exists) {
-            throw new ConflictException("A room named '" + name + "' already exists in this building.");
+            throw new ConflictException("Ein Raum mit dem Namen '" + name + "' existiert in diesem Gebäude bereits.");
         }
     }
 
@@ -155,6 +155,6 @@ public class RoomService {
 
     private Room findOrThrow(UUID id) {
         return roomRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Room " + id + " not found."));
+                .orElseThrow(() -> new NotFoundException("Raum " + id + " nicht gefunden."));
     }
 }

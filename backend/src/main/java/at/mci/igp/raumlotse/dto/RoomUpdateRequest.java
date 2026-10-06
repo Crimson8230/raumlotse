@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.UUID;
 
 public record RoomUpdateRequest(
-        @NotBlank(message = "name must not be blank") String name,
-        @NotNull(message = "floorId must be provided") UUID floorId,
-        @NotEmpty(message = "at least one seating arrangement is required") @Valid List<SeatingArrangementRequest> seatingArrangements,
+        @NotBlank(message = "Der Name darf nicht leer sein") String name,
+        @NotNull(message = "Das Stockwerk muss angegeben werden") UUID floorId,
+        @NotEmpty(message = "Mindestens eine Sitzordnung ist erforderlich") @Valid List<SeatingArrangementRequest> seatingArrangements,
         List<UUID> equipmentTypeIds,
-        @NotNull(message = "version must be provided") Long version,
+        @NotNull(message = "Die Version muss angegeben werden") Long version,
         Boolean notBarrierFree) {
 
     /** Pre-008 shape; {@code notBarrierFree} omitted means unchanged. */

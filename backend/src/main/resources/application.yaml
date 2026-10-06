@@ -1,6 +1,10 @@
 spring:
   application:
     name: raumlotse
+  web:
+    # Meldungen der Bean Validation (z. B. "darf nicht null sein") erscheinen auf Deutsch.
+    locale: de
+    locale-resolver: fixed
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/raumlotse}
     username: ${SPRING_DATASOURCE_USERNAME:raumlotse}

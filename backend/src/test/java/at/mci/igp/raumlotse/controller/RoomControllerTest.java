@@ -3,7 +3,8 @@ package at.mci.igp.raumlotse.controller;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import at.mci.igp.raumlotse.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import at.mci.igp.raumlotse.security.WithMockAdmin;
+import at.mci.igp.raumlotse.service.UserRoleSafety;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,9 +37,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RoomController.class)
-@WithMockUser
+@WithMockAdmin
 @Import(SecurityConfig.class)
 class RoomControllerTest {
+    // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
+    @org.springframework.test.context.bean.override.mockito.MockitoBean UserRoleSafety roleSafety;
+
 
         @Autowired
         private MockMvc mockMvc;
@@ -98,7 +102,7 @@ class RoomControllerTest {
         void createWithDuplicateNameInBuildingReturns409() throws Exception {
                 when(roomService.create(any()))
                                 .thenThrow(new ConflictException(
-                                                "A room named 'Room 101' already exists in this building."));
+                                                "Ein Raum mit dem Namen 'Room 101' existiert in diesem Gebäude bereits."));
 
                 mockMvc.perform(post("/api/rooms").with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -148,7 +152,7 @@ class RoomControllerTest {
         @Test
         void getUnknownIdReturns404() throws Exception {
                 UUID id = UUID.randomUUID();
-                when(roomService.get(id)).thenThrow(new NotFoundException("Room " + id + " not found."));
+                when(roomService.get(id)).thenThrow(new NotFoundException("Raum " + id + " nicht gefunden."));
 
                 mockMvc.perform(get("/api/rooms/" + id)).andExpect(status().isNotFound());
         }
@@ -200,7 +204,7 @@ class RoomControllerTest {
                 UUID id = UUID.randomUUID();
                 when(roomService.update(eq(id), any()))
                                 .thenThrow(new ConflictException(
-                                                "A room named 'Room 101' already exists in this building."));
+                                                "Ein Raum mit dem Namen 'Room 101' existiert in diesem Gebäude bereits."));
 
                 mockMvc.perform(put("/api/rooms/" + id).with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -256,7 +260,7 @@ class RoomControllerTest {
                 UUID id = UUID.randomUUID();
                 Mockito.when(roomService.deactivate(id))
                                 .thenThrow(new ConflictException(
-                                                "Room has active or upcoming reservations; cancel them first."));
+                                                "Der Raum hat aktive oder künftige Reservierungen; bitte zuerst stornieren."));
 
                 mockMvc.perform(post("/api/rooms/" + id + "/deactivate").with(csrf()))
                                 .andExpect(status().isConflict());
@@ -278,7 +282,7 @@ class RoomControllerTest {
                                 .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
                                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                                 .andExpect(jsonPath("$.errors[0].field").value("roomId"))
-                                .andExpect(jsonPath("$.errors[0].message").value("has an invalid format"));
+                                .andExpect(jsonPath("$.errors[0].message").value("hat ein ungültiges Format"));
         }
 
         @Test

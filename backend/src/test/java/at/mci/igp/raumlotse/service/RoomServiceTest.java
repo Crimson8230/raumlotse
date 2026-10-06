@@ -65,7 +65,7 @@ class RoomServiceTest {
 
         assertThatThrownBy(() -> roomService.deactivate(roomId))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("active or upcoming reservations");
+                .hasMessageContaining("aktive oder künftige Reservierungen");
     }
 
     @Test

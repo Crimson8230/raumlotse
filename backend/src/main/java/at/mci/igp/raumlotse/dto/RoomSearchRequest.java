@@ -13,10 +13,10 @@ import java.util.UUID;
  * keeps the singular name of the query parameter.
  */
 public record RoomSearchRequest(
-        @Min(value = 1, message = "must be a whole number of at least 1") Integer minPersons,
-        @Min(value = 1, message = "must be a whole number of at least 1") Integer maxPersons,
+        @Min(value = 1, message = "muss eine ganze Zahl ab 1 sein") Integer minPersons,
+        @Min(value = 1, message = "muss eine ganze Zahl ab 1 sein") Integer maxPersons,
         UUID buildingId,
-        @Size(max = 100, message = "must be at most 100 characters") String seatingArrangement,
+        @Size(max = 100, message = "darf höchstens 100 Zeichen lang sein") String seatingArrangement,
         List<UUID> equipmentTypeId,
         Boolean barrierFree,
         Instant from,

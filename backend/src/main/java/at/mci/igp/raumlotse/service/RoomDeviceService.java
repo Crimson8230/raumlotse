@@ -63,7 +63,7 @@ public class RoomDeviceService {
     public RoomDeviceResponse setState(UUID roomId, RoomDeviceKind kind, RoomDeviceCommandRequest command) {
         Reservation reservation = authorize(roomId, Instant.now(clock));
         if (kind == RoomDeviceKind.PROJECTOR && !hasActiveProjector(reservation.getRoom())) {
-            throw new ConflictException("Projector is not available in this room.");
+            throw new ConflictException("In diesem Raum ist kein Beamer verfügbar.");
         }
         RoomDeviceState current = stateRepository.findByRoomIdAndKind(roomId, kind)
                 .orElseGet(() -> new RoomDeviceState(roomId, kind));
@@ -71,7 +71,7 @@ public class RoomDeviceService {
             gateway.setState(roomId, kind, command.state());
         } catch (RuntimeException ex) {
             log.warn("device_command_failed kind={} status=503", kind);
-            throw new at.mci.igp.raumlotse.exception.DeviceOperationException("Device acknowledgement failed.");
+            throw new at.mci.igp.raumlotse.exception.DeviceOperationException("Das Gerät hat nicht bestätigt.");
         }
         current.setState(command.state());
         current.setEnabled(true);
@@ -85,13 +85,13 @@ public class RoomDeviceService {
     }
 
     private Reservation authorize(UUID roomId, Instant now) {
-        var room = roomRepository.findById(roomId).orElseThrow(() -> new NotFoundException("Room " + roomId + " not found."));
+        var room = roomRepository.findById(roomId).orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)) {
-            throw new DeviceAccessDeniedException("Authentication is required.");
+            throw new DeviceAccessDeniedException("Anmeldung erforderlich.");
         }
         return reservationRepository.findEligibleDeviceReservations(roomId, user.userId(), now).stream()
-                .findFirst().orElseThrow(() -> new DeviceAccessDeniedException("No eligible reservation."));
+                .findFirst().orElseThrow(() -> new DeviceAccessDeniedException("Keine passende aktive Reservierung."));
     }
 
     private boolean hasActiveProjector(at.mci.igp.raumlotse.domain.Room room) {

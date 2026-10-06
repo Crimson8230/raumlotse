@@ -37,6 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Autowired
     private ReservationService reservationService;
 
     @Autowired
@@ -55,7 +58,7 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
     private FloorService floorService;
 
     private Room createTestRoom(String roomName) {
-        var building = buildingService.create("Building " + UUID.randomUUID());
+        var building = buildingService.create("Gebäude " + UUID.randomUUID());
         var floor = floorService.create(building.getId(), "1");
         return roomService.create(new RoomCreateRequest(
                 roomName,
@@ -75,7 +78,7 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
         ReservationCreateRequest request1 = new ReservationCreateRequest(
                 start, end, arrangementId, 30, List.of(), "Design Review", "Alice");
 
-        ReservationResponse response1 = reservationService.createReservation(room.getId(), request1);
+        ReservationResponse response1 = reservationService.createReservation(room.getId(), request1, TestActors.registered(jdbc, request1));
 
         assertThat(response1.id()).isNotNull();
         assertThat(response1.status()).isEqualTo(ReservationStatus.RESERVED);
@@ -88,9 +91,9 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
         ReservationCreateRequest request2 = new ReservationCreateRequest(
                 overlapStart, overlapEnd, arrangementId, 20, List.of(), "Conflict attempt", "Bob");
 
-        assertThatThrownBy(() -> reservationService.createReservation(room.getId(), request2))
+        assertThatThrownBy(() -> reservationService.createReservation(room.getId(), request2, TestActors.registered(jdbc, request2)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("Scheduling conflict");
+                .hasMessageContaining("Terminkonflikt");
     }
 
     @Test
@@ -137,7 +140,7 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
         Future<?> f1 = executor.submit(() -> {
             try {
                 latch.await();
-                reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+                TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                         start, end, arrangementId, 25, List.of(), null, "User A"));
                 successCount.incrementAndGet();
             } catch (ConflictException e) {
@@ -150,7 +153,7 @@ class ReservationCreationIntegrationTest extends AbstractIntegrationTest {
         Future<?> f2 = executor.submit(() -> {
             try {
                 latch.await();
-                reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+                TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                         start, end, arrangementId, 25, List.of(), null, "User B"));
                 successCount.incrementAndGet();
             } catch (ConflictException e) {

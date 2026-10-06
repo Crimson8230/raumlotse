@@ -6,7 +6,7 @@ public class UserRoleException extends RuntimeException {
     public int getStatus() { return status; }
     public String getCode() { return code; }
     public static UserRoleException unavailable() {
-        return new UserRoleException(503,"ROLE_MANAGEMENT_UNAVAILABLE","Role management is temporarily unavailable.");
+        return new UserRoleException(503,"ROLE_MANAGEMENT_UNAVAILABLE","Die Rollenverwaltung ist vorübergehend nicht verfügbar.");
     }
 }
 

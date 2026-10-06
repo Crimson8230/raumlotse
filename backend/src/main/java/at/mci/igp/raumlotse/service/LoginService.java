@@ -53,6 +53,7 @@ public class LoginService {
         var session = request.getSession(false);
         if (session != null)
             session.removeAttribute(CSRF_SESSION_ATTRIBUTE);
+            session.removeAttribute(AdminModeService.ATTRIBUTE);
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         var principal = new AuthenticatedUser(account.getId(), account.getDisplayName());
         context.setAuthentication(

@@ -33,9 +33,9 @@ public class UserRoleService {
         var selection=safety.selection(request);
         long version=safety.expectedVersion(request);
         if(!current.version().equals(Long.toString(version)))
-            throw new UserRoleException(409,"STALE_ROLES","The roles changed. Review the latest roles before saving again.");
+            throw new UserRoleException(409,"STALE_ROLES","Die Rollen wurden geändert. Bitte die aktuellen Rollen prüfen, bevor Sie erneut speichern.");
         if(current.roles().contains(Role.ADMIN) && !selection.contains(Role.ADMIN) && assignments.otherAdmins(target)==0)
-            throw new UserRoleException(409,"LAST_ADMIN_REQUIRED","At least one administrator must remain.");
+            throw new UserRoleException(409,"LAST_ADMIN_REQUIRED","Mindestens eine Administration muss erhalten bleiben.");
         if(!new HashSet<>(current.roles()).equals(selection)) {
             if(version==Long.MAX_VALUE) throw UserRoleException.unavailable();
             assignments.replace(target,selection);

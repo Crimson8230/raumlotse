@@ -36,7 +36,7 @@ public class AuthController {
             HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         if (current != null && current.isAuthenticated()
                 && !(current instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
-            return problem(HttpStatus.CONFLICT, "ALREADY_AUTHENTICATED", "You are already signed in.");
+            return problem(HttpStatus.CONFLICT, "ALREADY_AUTHENTICATED", "Sie sind bereits angemeldet.");
         }
         try {
             emailCanonicalizer.canonicalize(request.getEmail());
@@ -48,19 +48,19 @@ public class AuthController {
                         .header("Retry-After", Integer.toString(result.retryAfterSeconds()))
                         .cacheControl(CacheControl.noStore())
                         .body(Problem.of(429, "Too Many Requests",
-                                "Too many failed login attempts. Please try again after the indicated wait.",
+                                "Zu viele fehlgeschlagene Anmeldeversuche. Bitte versuchen Sie es nach der angegebenen Wartezeit erneut.",
                                 "LOGIN_COOLDOWN", result.retryAfterSeconds()));
             }
             if (result.outcome() == LoginAttemptService.Outcome.INVALID_CREDENTIALS) {
                 return problem(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS",
-                        "Email address or password is incorrect.", result.retryAfterSeconds());
+                        "E-Mail-Adresse oder Passwort ist falsch.", result.retryAfterSeconds());
             }
             return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(result.user());
         } catch (IllegalArgumentException ex) {
-            return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Email or password is invalid.");
+            return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "E-Mail-Adresse oder Passwort ist ungültig.");
         } catch (RuntimeException ex) {
             return problem(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_UNAVAILABLE",
-                    "Sign-in is temporarily unavailable. Please try again.");
+                    "Die Anmeldung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.");
         }
     }
 
@@ -69,7 +69,7 @@ public class AuthController {
         if (authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser user) {
             return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(user);
         }
-        return problem(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED", "Sign in to continue.");
+        return problem(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED", "Bitte melden Sie sich an.");
     }
 
     private ResponseEntity<Problem> problem(HttpStatus status, String code, String detail) {
