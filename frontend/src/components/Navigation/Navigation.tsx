@@ -23,7 +23,10 @@ export function Navigation() {
   return (
     <nav className="nav" aria-label="Hauptnavigation">
       <ul className="nav-list">
-        {access.admin && <li><NavLink to="/admin/users" className="nav-link"><span className="nav-label">Benutzerrollen</span></NavLink></li>}
+        {access.admin && <>
+          <li><NavLink to="/admin/users" className="nav-link"><span className="nav-label">Benutzerrollen</span></NavLink></li>
+          <li><NavLink to="/admin/statistics" className="nav-link"><span className="nav-label">Statistiken</span></NavLink></li>
+        </>}
         {items.map(({ label, path, icon: Icon }) => (
           <li key={path}>
             <NavLink to={path} end={path === '/'} className="nav-link">

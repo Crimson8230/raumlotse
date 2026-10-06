@@ -12,6 +12,7 @@ import { RequireAdmin } from './auth/RequireAdmin'
 import UserRoleListPage from './pages/UserRoleListPage'
 import UserRolePage from './pages/UserRolePage'
 import RoomDeviceControlPage from './pages/RoomDeviceControlPage'
+import AdminStatisticsPage from './pages/AdminStatisticsPage'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route element={<RequireAdmin />}>
             <Route path="/admin/users" element={<UserRoleListPage />} />
             <Route path="/admin/users/:userId/roles" element={<UserRolePage />} />
+            <Route path="/admin/statistics" element={<AdminStatisticsPage />} />
           </Route>
 
           <Route path="/" element={<HomePage />} />
