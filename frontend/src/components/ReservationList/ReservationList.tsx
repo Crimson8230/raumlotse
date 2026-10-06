@@ -8,10 +8,12 @@ import {
   updateReservationMetadata,
 } from '../../API/reservations'
 import { formatApiError } from '../../API/client'
+import { useAdminMode } from '../../auth/useAdminMode'
 import { formatDateTime, formatDateTimeRange } from '../../utils/date'
 import type { Room } from '../../types/room'
 import type { Reservation } from '../../types/reservation'
 import './ReservationList.css'
+import { reservationStatusLabels } from '../../utils/labels'
 
 export interface ReservationListProps {
   room: Room
@@ -24,6 +26,7 @@ export function ReservationList({
   refreshSignal,
   onReservationChanged,
 }: ReservationListProps) {
+  const { adminMode } = useAdminMode()
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -64,7 +67,7 @@ export function ReservationList({
 
   function handleStartEdit(res: Reservation) {
     setEditingId(res.id)
-    setEditAttendees(res.expectedAttendees)
+    setEditAttendees(res.expectedAttendees ?? '')
     setEditNote(res.note ?? '')
     setEditReservedFor(res.reservedFor ?? '')
     setError(null)
@@ -78,12 +81,13 @@ export function ReservationList({
   async function handleSaveEdit(res: Reservation) {
     const attendeesNum = Number(editAttendees)
     if (!editAttendees || isNaN(attendeesNum) || attendeesNum < 1) {
-      setError('Expected attendees must be a positive integer greater than or equal to 1.')
+      setError('Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.')
       return
     }
-    if (attendeesNum > res.seatingArrangement.maxCapacity) {
+    const maxCapacity = res.seatingArrangement?.maxCapacity
+    if (maxCapacity !== undefined && attendeesNum > maxCapacity) {
       setError(
-        `Expected attendees (${attendeesNum}) cannot exceed arrangement capacity (${res.seatingArrangement.maxCapacity}).`,
+        `Die Teilnehmerzahl (${attendeesNum}) überschreitet die Kapazität der Sitzordnung (${maxCapacity}).`,
       )
       return
     }
@@ -131,7 +135,7 @@ export function ReservationList({
   }
 
   if (loading) {
-    return <p className="status-loading">Loading reservations…</p>
+    return <p className="status-loading">Reservierungen werden geladen…</p>
   }
 
   return (
@@ -143,28 +147,33 @@ export function ReservationList({
       )}
 
       {reservations.length === 0 ? (
-        <p className="status-empty">No reservations found for this room.</p>
+        <p className="status-empty">Für diesen Raum gibt es keine Reservierungen.</p>
       ) : (
         <ul className="list-plain reservation-list">
           {reservations.map((res) => {
             const isEditing = editingId === res.id
             const isBusy = actionInProgress === res.id
+            // Other users' bookings only show as occupied; owners (and administrators in administration mode) manage.
+            const canManage = res.ownedByMe || adminMode
+            const hasDetails = res.seatingArrangement !== null
 
             return (
               <li key={res.id} className="panel reservation-card">
                 <div className="reservation-header">
                   <span className={`status-badge status-${res.status.toLowerCase()}`}>
-                    {res.status}
+                    {reservationStatusLabels[res.status]}
                   </span>
                   <span className="reservation-time">
                     {formatDateTimeRange(res.startTime, res.endTime)}
                   </span>
                 </div>
 
-                <div className="reservation-details">
+                {!hasDetails && <p className="reservation-occupied">Belegt</p>}
+
+                {hasDetails && <div className="reservation-details">
                   <p>
-                    <strong>Layout:</strong> {res.seatingArrangement.name} (Max:{' '}
-                    {res.seatingArrangement.maxCapacity})
+                    <strong>Sitzordnung:</strong> {res.seatingArrangement?.name} (Max:{' '}
+                    {res.seatingArrangement?.maxCapacity})
                   </p>
                   <p>
                     <strong>Attendees:</strong> {res.expectedAttendees}
@@ -173,14 +182,14 @@ export function ReservationList({
                     <strong>Reserviert für:</strong> {res.reservedFor}
                   </p>
                   <p>
-                    <strong>Booked by:</strong> {res.createdBy}
+                    <strong>Gebucht von:</strong> {res.createdBy}
                   </p>
                   <p className="reservation-created-at">
-                    <small>Created: {formatDateTime(res.createdAt)}</small>
+                    <small>Erstellt: {res.createdAt ? formatDateTime(res.createdAt) : ''}</small>
                   </p>
                   {res.additionalEquipment && res.additionalEquipment.length > 0 && (
                     <p>
-                      <strong>Additional Equipment:</strong>{' '}
+                      <strong>Zusätzliche Ausstattung:</strong>{' '}
                       {res.additionalEquipment.map((eq) => eq.name).join(', ')}
                     </p>
                   )}
@@ -189,9 +198,9 @@ export function ReservationList({
                       <strong>Notes:</strong> {res.note}
                     </p>
                   )}
-                </div>
+                </div>}
 
-                {isEditing ? (
+                {hasDetails && canManage && (isEditing ? (
                   <form
                     className="reservation-edit-form"
                     noValidate
@@ -201,12 +210,12 @@ export function ReservationList({
                     }}
                   >
                     <div>
-                      <label htmlFor={`edit-attendees-${res.id}`}>Edit Attendees</label>
+                      <label htmlFor={`edit-attendees-${res.id}`}>Teilnehmende bearbeiten</label>
                       <input
                         id={`edit-attendees-${res.id}`}
                         type="number"
                         min="1"
-                        max={res.seatingArrangement.maxCapacity}
+                        max={res.seatingArrangement?.maxCapacity}
                         required
                         value={editAttendees}
                         onChange={(e) =>
@@ -228,7 +237,7 @@ export function ReservationList({
                       />
                     </div>
                     <div>
-                      <label htmlFor={`edit-notes-${res.id}`}>Edit Notes</label>
+                      <label htmlFor={`edit-notes-${res.id}`}>Notizen bearbeiten</label>
                       <textarea
                         id={`edit-notes-${res.id}`}
                         rows={2}
@@ -239,10 +248,10 @@ export function ReservationList({
                     </div>
                     <div className="actions">
                       <button type="submit" disabled={isBusy}>
-                        Save
+                        Speichern
                       </button>
                       <button type="button" onClick={handleCancelEdit} disabled={isBusy}>
-                        Cancel
+                        Abbrechen
                       </button>
                     </div>
                   </form>
@@ -257,7 +266,7 @@ export function ReservationList({
                           }
                           disabled={isBusy}
                         >
-                          Activate
+                          Einchecken
                         </button>
                         <button
                           type="button"
@@ -266,14 +275,14 @@ export function ReservationList({
                           }
                           disabled={isBusy}
                         >
-                          Expire
+                          Verfallen lassen
                         </button>
                         <button
                           type="button"
                           onClick={() => handleStartEdit(res)}
                           disabled={isBusy}
                         >
-                          Edit
+                          Bearbeiten
                         </button>
                         <button
                           type="button"
@@ -283,7 +292,7 @@ export function ReservationList({
                           }
                           disabled={isBusy}
                         >
-                          Cancel Reservation
+                          Stornieren
                         </button>
                       </>
                     )}
@@ -297,7 +306,7 @@ export function ReservationList({
                           }
                           disabled={isBusy}
                         >
-                          Complete
+                          Abschließen
                         </button>
                         <button
                           type="button"
@@ -307,12 +316,12 @@ export function ReservationList({
                           }
                           disabled={isBusy}
                         >
-                          Cancel Reservation
+                          Stornieren
                         </button>
                       </>
                     )}
                   </div>
-                )}
+                ))}
               </li>
             )
           })}

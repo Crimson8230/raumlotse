@@ -34,7 +34,7 @@
 
 .equipment-empty-notice {
   font-style: italic;
-  color: #666;
+  color: var(--color-muted);
 }
 
 .reservation-form .reservation-email-notification label {

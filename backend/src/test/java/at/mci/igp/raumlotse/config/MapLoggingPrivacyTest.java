@@ -63,7 +63,7 @@ class MapLoggingPrivacyTest {
     @Test
     void mapRequestRejectionsAreLoggedWithCodeAndStatusOnly() {
         new GlobalExceptionHandler().handleMapRequest(new MapRequestException(
-                HttpStatus.UNPROCESSABLE_CONTENT, "ROOM_FLOOR_MISMATCH", "Room 'Seminarraum 1' is not on the floor."));
+                HttpStatus.UNPROCESSABLE_CONTENT, "ROOM_FLOOR_MISMATCH", "Raum 'Seminarraum 1' is not on the floor."));
         assertThat(messages()).anyMatch(m -> m.contains("map_request_rejected code=ROOM_FLOOR_MISMATCH status=422"));
         assertThat(messages()).noneMatch(m -> m.contains("Seminarraum"));
     }

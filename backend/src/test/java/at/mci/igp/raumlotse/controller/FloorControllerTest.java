@@ -3,7 +3,8 @@ package at.mci.igp.raumlotse.controller;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import at.mci.igp.raumlotse.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import at.mci.igp.raumlotse.security.WithMockAdmin;
+import at.mci.igp.raumlotse.service.UserRoleSafety;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,9 +29,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(FloorController.class)
-@WithMockUser
+@WithMockAdmin
 @Import(SecurityConfig.class)
 class FloorControllerTest {
+    // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
+    @org.springframework.test.context.bean.override.mockito.MockitoBean UserRoleSafety roleSafety;
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -59,7 +63,7 @@ class FloorControllerTest {
         UUID buildingId = UUID.randomUUID();
         when(floorService.create(eq(buildingId), eq("1"), org.mockito.ArgumentMatchers.isNull()))
                 .thenThrow(new IllegalArgumentException(
-                        "Building 'Main' is not active; a floor can only be created under an active building."));
+                        "Gebäude 'Main' ist nicht aktiv; ein Stockwerk kann nur unter einem aktiven Gebäude angelegt werden."));
 
         mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,7 +75,7 @@ class FloorControllerTest {
     void listForUnknownBuildingReturns404() throws Exception {
         UUID buildingId = UUID.randomUUID();
         when(floorService.listByBuilding(eq(buildingId), any()))
-                .thenThrow(new at.mci.igp.raumlotse.exception.NotFoundException("Building " + buildingId + " not found."));
+                .thenThrow(new at.mci.igp.raumlotse.exception.NotFoundException("Gebäude " + buildingId + " nicht gefunden."));
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/buildings/" + buildingId + "/floors"))
@@ -82,7 +86,7 @@ class FloorControllerTest {
     void createWithDuplicateNameInBuildingReturns409() throws Exception {
         UUID buildingId = UUID.randomUUID();
         when(floorService.create(eq(buildingId), eq("1"), org.mockito.ArgumentMatchers.isNull()))
-                .thenThrow(new ConflictException("A floor named '1' already exists in this building."));
+                .thenThrow(new ConflictException("Ein Stockwerk mit dem Namen '1' existiert in diesem Gebäude bereits."));
 
         mockMvc.perform(post("/api/buildings/" + buildingId + "/floors").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

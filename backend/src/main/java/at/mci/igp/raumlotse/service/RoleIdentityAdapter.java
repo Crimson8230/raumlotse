@@ -11,17 +11,17 @@ public class RoleIdentityAdapter {
     public RoleIdentityAdapter(JdbcTemplate db) { this.db=db; }
     public static UUID actor(Authentication auth) {
         if(auth==null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof AuthenticatedUser user))
-            throw new UserRoleException(401,"AUTHENTICATION_REQUIRED","Authentication is required.");
+            throw new UserRoleException(401,"AUTHENTICATION_REQUIRED","Anmeldung erforderlich.");
         return user.userId();
     }
     public UUID target(String id) {
         try { UUID result=UUID.fromString(id); if(!result.toString().equalsIgnoreCase(id)) throw new IllegalArgumentException(); return result; }
-        catch(IllegalArgumentException ex) { throw new UserRoleException(404,"USER_NOT_FOUND","The user no longer exists."); }
+        catch(IllegalArgumentException ex) { throw new UserRoleException(404,"USER_NOT_FOUND","Der Benutzer existiert nicht mehr."); }
     }
     public UserListResponse list(String query,int page,int size) {
         String q=query==null?"":query.strip();
         if(q.length()>100 || page<0 || size<1 || size>100)
-            throw new UserRoleException(400,"INVALID_REQUEST","Invalid search or page parameters.");
+            throw new UserRoleException(400,"INVALID_REQUEST","Ungültige Such- oder Seitenparameter.");
         String literal=q.toLowerCase(Locale.ROOT).replace("!","!!").replace("%","!%").replace("_","!_");
         String pattern="%"+literal+"%";
         String where=" where lower(display_name) like ? escape '!' or lower(email) like ? escape '!'";

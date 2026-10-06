@@ -38,10 +38,10 @@ public class FloorService {
     /** {@code groundFloor} null means false (feature 008). */
     public Floor create(UUID buildingId, String name, Boolean groundFloor) {
         Building building = buildingRepository.findById(buildingId)
-                .orElseThrow(() -> new NotFoundException("Building " + buildingId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Gebäude " + buildingId + " nicht gefunden."));
         if (building.getStatus() != EntityStatus.ACTIVE) {
             throw new IllegalArgumentException(
-                    "Building '" + building.getName() + "' is not active; a floor can only be created under an active building.");
+                    "Gebäude '" + building.getName() + "' ist nicht aktiv; ein Stockwerk kann nur unter einem aktiven Gebäude angelegt werden.");
         }
         requireUniqueName(buildingId, name, null);
         Floor floor = new Floor(building, name);
@@ -52,7 +52,7 @@ public class FloorService {
     @Transactional(readOnly = true)
     public List<Floor> listByBuilding(UUID buildingId, EntityStatus statusFilter) {
         if (!buildingRepository.existsById(buildingId)) {
-            throw new NotFoundException("Building " + buildingId + " not found.");
+            throw new NotFoundException("Gebäude " + buildingId + " nicht gefunden.");
         }
         List<Floor> floors = floorRepository.findByBuildingId(buildingId);
         if (statusFilter == null) {
@@ -92,7 +92,7 @@ public class FloorService {
         Floor floor = findOrThrow(id);
         if (floor.getBuilding().getStatus() == EntityStatus.DEACTIVATED) {
             throw new ConflictException(
-                    "Building '" + floor.getBuilding().getName() + "' is still deactivated; reactivate it first.");
+                    "Gebäude '" + floor.getBuilding().getName() + "' ist noch deaktiviert; bitte zuerst reaktivieren.");
         }
         floor.setStatus(EntityStatus.ACTIVE);
         return floor;
@@ -102,11 +102,11 @@ public class FloorService {
         Floor floor = findOrThrow(id);
         if (roomRepository.existsByFloorId(id)) {
             throw new ConflictException(
-                    "Floor '" + floor.getName() + "' is referenced by one or more rooms; deactivate it instead.");
+                    "Stockwerk '" + floor.getName() + "' wird von Räumen verwendet; bitte stattdessen deaktivieren.");
         }
         if (floorMapRepository.existsByFloorId(id)) {
             throw new ConflictException(
-                    "Floor '" + floor.getName() + "' has a map; delete the map first.");
+                    "Stockwerk '" + floor.getName() + "' hat eine Karte; bitte zuerst die Karte löschen.");
         }
         floorRepository.delete(floor);
     }
@@ -116,12 +116,12 @@ public class FloorService {
                 ? floorRepository.existsByBuildingIdAndNameIgnoreCase(buildingId, name)
                 : floorRepository.existsByBuildingIdAndNameIgnoreCaseAndIdNot(buildingId, name, excludingId);
         if (exists) {
-            throw new ConflictException("A floor named '" + name + "' already exists in this building.");
+            throw new ConflictException("Ein Stockwerk mit dem Namen '" + name + "' existiert in diesem Gebäude bereits.");
         }
     }
 
     private Floor findOrThrow(UUID id) {
         return floorRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Floor " + id + " not found."));
+                .orElseThrow(() -> new NotFoundException("Stockwerk " + id + " nicht gefunden."));
     }
 }

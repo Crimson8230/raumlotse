@@ -59,6 +59,7 @@ function sampleReservation(): Reservation {
     createdBy: 'Jane Doe',
     reservedFor: 'Jane Doe',
     createdAt: '2026-09-19T10:00:00Z',
+    ownedByMe: true,
   }
 }
 
@@ -81,7 +82,7 @@ describe('ReservationForm', () => {
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i) as HTMLInputElement
     expect(reservedForInput).toBeInTheDocument()
     expect(reservedForInput.value).toBe('Max Mustermann')
-    const bookedByInput = screen.getByLabelText(/booked by/i) as HTMLInputElement
+    const bookedByInput = screen.getByLabelText(/gebucht von/i) as HTMLInputElement
     expect(bookedByInput).toHaveValue('Max Mustermann')
     expect(bookedByInput).toHaveAttribute('readonly')
   })
@@ -97,16 +98,16 @@ describe('ReservationForm', () => {
 
     render(<ReservationForm room={sampleRoom()} onSaved={onSaved} />)
 
-    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
-    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
-    await user.type(screen.getByLabelText(/attendees/i), '30')
+    await user.type(screen.getByLabelText(/beginn/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/^ende$/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/sitzordnung/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/teilnehmende/i), '30')
 
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
     await user.clear(reservedForInput)
     await user.type(reservedForInput, 'Projektgruppe Web')
 
-    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     await waitFor(() => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
@@ -129,12 +130,12 @@ describe('ReservationForm', () => {
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
     await user.clear(reservedForInput)
 
-    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
-    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
-    await user.type(screen.getByLabelText(/attendees/i), '30')
+    await user.type(screen.getByLabelText(/beginn/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/^ende$/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/sitzordnung/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/teilnehmende/i), '30')
 
-    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     expect(await screen.findByText(/reserviert für ist ein pflichtfeld|reserved for is required/i)).toBeInTheDocument()
     expect(reservations.createReservation).not.toHaveBeenCalled()
@@ -152,8 +153,8 @@ describe('ReservationForm', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText(/bitte melden sie sich an|sign in to make a reservation/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /confirm reservation/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/bitte melden sie sich an|anmelden to make a reservation/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /reservierung bestätigen/i })).not.toBeInTheDocument()
   })
 
   it('renders form inputs and auto-selects layout when room has only one arrangement', async () => {
@@ -163,12 +164,12 @@ describe('ReservationForm', () => {
 
     render(<ReservationForm room={singleLayoutRoom} onSaved={vi.fn()} />)
 
-    expect(screen.getByLabelText(/start time/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/end time/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/attendees/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/beginn/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^ende$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/teilnehmende/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/reserviert für|reserved for/i)).toBeInTheDocument()
 
-    const select = screen.getByLabelText(/seating arrangement/i) as HTMLSelectElement
+    const select = screen.getByLabelText(/sitzordnung/i) as HTMLSelectElement
     expect(select.value).toBe(SEAT_ONE_ID)
   })
 
@@ -176,16 +177,16 @@ describe('ReservationForm', () => {
     const user = userEvent.setup()
     render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
 
-    const attendeesInput = screen.getByLabelText(/attendees/i)
-    const select = screen.getByLabelText(/seating arrangement/i)
+    const attendeesInput = screen.getByLabelText(/teilnehmende/i)
+    const select = screen.getByLabelText(/sitzordnung/i)
 
     await user.selectOptions(select, SEAT_TWO_ID) // maxCapacity: 20
     await user.type(attendeesInput, '25')
 
-    const submitBtn = screen.getByRole('button', { name: /confirm reservation/i })
+    const submitBtn = screen.getByRole('button', { name: /reservierung bestätigen/i })
     await user.click(submitBtn)
 
-    expect(await screen.findByText(/cannot exceed arrangement capacity \(20\)/i)).toBeInTheDocument()
+    expect(await screen.findByText(/überschreitet die kapazität der sitzordnung \(20\)/i)).toBeInTheDocument()
     expect(reservations.createReservation).not.toHaveBeenCalled()
   })
 
@@ -197,16 +198,16 @@ describe('ReservationForm', () => {
 
     render(<ReservationForm room={sampleRoom()} onSaved={onSaved} />)
 
-    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
-    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
-    await user.type(screen.getByLabelText(/attendees/i), '30')
+    await user.type(screen.getByLabelText(/beginn/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/^ende$/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/sitzordnung/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/teilnehmende/i), '30')
     const reservedForInput = screen.getByLabelText(/reserviert für|reserved for/i)
     await user.clear(reservedForInput)
     await user.type(reservedForInput, 'Jane Doe')
-    await user.type(screen.getByLabelText(/notes/i), 'Department Sync')
+    await user.type(screen.getByLabelText(/notizen/i), 'Department Sync')
 
-    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     await waitFor(() => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
@@ -235,12 +236,12 @@ describe('ReservationForm', () => {
 
     await user.click(screen.getByLabelText('Microphone'))
 
-    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
-    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
-    await user.type(screen.getByLabelText(/attendees/i), '30')
+    await user.type(screen.getByLabelText(/beginn/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/^ende$/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/sitzordnung/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/teilnehmende/i), '30')
 
-    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     await waitFor(() => {
       expect(reservations.createReservation).toHaveBeenCalledWith('room-1', expect.objectContaining({
@@ -255,7 +256,7 @@ describe('ReservationForm', () => {
     render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
 
     expect(
-      await screen.findByText(/all catalog equipment is already present in this room/i),
+      await screen.findByText(/die gesamte katalogausstattung ist in diesem raum bereits vorhanden/i),
     ).toBeInTheDocument()
   })
 
@@ -275,12 +276,12 @@ describe('ReservationForm', () => {
       </MemoryRouter>,
     )
 
-    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
-    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
-    await user.type(screen.getByLabelText(/attendees/i), '30')
+    await user.type(screen.getByLabelText(/beginn/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/^ende$/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/sitzordnung/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/teilnehmende/i), '30')
 
-    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveClass('feedback-conflict')
@@ -305,9 +306,9 @@ describe('ReservationForm', () => {
       />,
     )
 
-    const startInput = screen.getByLabelText(/start time/i)
+    const startInput = screen.getByLabelText(/beginn/i)
     expect(startInput).toHaveValue('2026-10-05T11:00')
-    expect(screen.getByLabelText(/end time/i)).toHaveValue('2026-10-05T12:30')
+    expect(screen.getByLabelText(/^ende$/i)).toHaveValue('2026-10-05T12:30')
 
     await user.clear(startInput)
     await user.type(startInput, '2026-10-05T11:15')
@@ -317,24 +318,24 @@ describe('ReservationForm', () => {
   it('leaves start and end empty without pre-fill props', () => {
     render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
 
-    expect(screen.getByLabelText(/start time/i)).toHaveValue('')
-    expect(screen.getByLabelText(/end time/i)).toHaveValue('')
+    expect(screen.getByLabelText(/beginn/i)).toHaveValue('')
+    expect(screen.getByLabelText(/^ende$/i)).toHaveValue('')
   })
 
-  it('starts Email Notification unchecked and submits its final visible value', async () => {
+  it('starts E-Mail-Benachrichtigung unchecked and submits its final visible value', async () => {
     const user = userEvent.setup()
     reservations.createReservation.mockResolvedValue(sampleReservation())
     const { unmount } = render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
-    const checkbox = screen.getByRole('checkbox', { name: 'Email Notification' })
-    const submit = screen.getByRole('button', { name: /confirm reservation/i })
+    const checkbox = screen.getByRole('checkbox', { name: 'E-Mail-Benachrichtigung' })
+    const submit = screen.getByRole('button', { name: /reservierung bestätigen/i })
     expect(checkbox).not.toBeChecked()
     expect(checkbox.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     await user.click(checkbox)
-    await user.type(screen.getByLabelText(/start time/i), '2026-10-01T10:00')
-    await user.type(screen.getByLabelText(/end time/i), '2026-10-01T11:30')
-    await user.selectOptions(screen.getByLabelText(/seating arrangement/i), SEAT_ONE_ID)
-    await user.type(screen.getByLabelText(/attendees/i), '4')
+    await user.type(screen.getByLabelText(/beginn/i), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText(/^ende$/i), '2026-10-01T11:30')
+    await user.selectOptions(screen.getByLabelText(/sitzordnung/i), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText(/teilnehmende/i), '4')
     await user.click(submit)
 
     await waitFor(() => expect(reservations.createReservation).toHaveBeenCalledWith(
@@ -343,6 +344,6 @@ describe('ReservationForm', () => {
 
     unmount()
     render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
-    expect(screen.getByRole('checkbox', { name: 'Email Notification' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'E-Mail-Benachrichtigung' })).not.toBeChecked()
   })
 })

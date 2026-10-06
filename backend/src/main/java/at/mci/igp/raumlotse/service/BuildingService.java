@@ -88,7 +88,7 @@ public class BuildingService {
         Building building = findOrThrow(id);
         if (floorRepository.countByBuildingId(id) > 0) {
             throw new ConflictException(
-                    "Building '" + building.getName() + "' still has one or more floors; remove them first.");
+                    "Gebäude '" + building.getName() + "' hat noch Stockwerke; bitte zuerst entfernen.");
         }
         buildingRepository.delete(building);
     }
@@ -98,12 +98,12 @@ public class BuildingService {
                 ? buildingRepository.existsByNameIgnoreCase(name)
                 : buildingRepository.existsByNameIgnoreCaseAndIdNot(name, excludingId);
         if (exists) {
-            throw new ConflictException("A building named '" + name + "' already exists.");
+            throw new ConflictException("Ein Gebäude mit dem Namen '" + name + "' existiert bereits.");
         }
     }
 
     private Building findOrThrow(UUID id) {
         return buildingRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Building " + id + " not found."));
+                .orElseThrow(() -> new NotFoundException("Gebäude " + id + " nicht gefunden."));
     }
 }

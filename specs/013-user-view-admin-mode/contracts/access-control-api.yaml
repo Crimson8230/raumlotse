@@ -1,0 +1,154 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse – Access control additions (feature 013)
+  version: 1.0.0
+  description: >
+    Additive changes to the existing API. Unchanged endpoints keep their contracts
+    (specs/001-room-management, 004-room-reservations, 012-room-map-placement); this file
+    defines the new endpoint, the extended responses and the authorization rules.
+paths:
+  /api/auth/roles:
+    get:
+      summary: Roles and effective administration mode of the current user
+      responses:
+        '200':
+          description: OK (Cache-Control no-store)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles, ready, adminMode]
+                properties:
+                  roles:
+                    type: array
+                    items: { type: string, enum: [ADMIN, UNIVERSITY_STAFF, STUDENT, LECTURER, VIEWER] }
+                  ready: { type: boolean }
+                  adminMode:
+                    type: boolean
+                    description: true only if the session flag is set AND the user currently has ADMIN.
+        '401': { $ref: '#/components/responses/AuthRequired' }
+  /api/auth/admin-mode:
+    put:
+      summary: Switch administration mode for the current session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: New effective state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [adminMode]
+                properties:
+                  adminMode: { type: boolean }
+        '400': { description: Invalid body (code VALIDATION_FAILED) }
+        '401': { $ref: '#/components/responses/AuthRequired' }
+        '403': { description: Not an administrator (code ADMIN_REQUIRED); flag stays off }
+  /api/rooms/{roomId}/reservations:
+    get:
+      summary: Room schedule (redacted for entries not owned by the caller)
+      parameters:
+        - { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: >
+            Entries owned by the caller (or any entry for an ADMIN) are complete. Other entries
+            carry id, roomId, roomName, startTime, endTime, status, ownedByMe=false; note,
+            reservedFor, createdBy are null and additionalEquipment is empty.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Reservation' }
+  /api/reservations/{reservationId}:
+    get:
+      summary: Reservation details (owner or ADMIN)
+      parameters: [ { $ref: '#/components/parameters/ReservationId' } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '404': { $ref: '#/components/responses/ReservationNotFound' }
+    patch:
+      summary: Edit metadata (owner or ADMIN; status rules unchanged)
+      parameters: [ { $ref: '#/components/parameters/ReservationId' } ]
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/ReservationNotFound' }
+        '409': { description: Not editable in current status }
+  /api/reservations/{reservationId}/{action}:
+    post:
+      summary: activate | complete | expire | cancel (owner or ADMIN; status rules unchanged)
+      parameters:
+        - { $ref: '#/components/parameters/ReservationId' }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [activate, complete, expire, cancel] } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/ReservationNotFound' }
+        '409': { description: Transition not allowed }
+  /api/reservations/my-upcoming:
+    get:
+      summary: Own upcoming reservations (RESERVED/ACTIVE, not ended), max 10, soonest first
+      description: Selection is by owner identity, never by display name. Administrators see only their own here.
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Reservation' } } } } }
+  /api/reservations/expire-unattended:
+    post:
+      summary: Maintenance sweep (ADMIN only)
+      responses:
+        '200': { description: Sweep result }
+        '403': { description: Not an administrator (ADMIN_REQUIRED) }
+components:
+  parameters:
+    ReservationId:
+      { name: reservationId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    AuthRequired: { description: Not signed in (code AUTH_REQUIRED / AUTHENTICATION_REQUIRED) }
+    ReservationNotFound:
+      description: Reservation does not exist OR caller is neither owner nor ADMIN (indistinguishable by design).
+  schemas:
+    Reservation:
+      type: object
+      required: [id, roomId, roomName, startTime, endTime, status, ownedByMe]
+      properties:
+        id: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        roomName: { type: string }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        status: { type: string, enum: [RESERVED, ACTIVE, COMPLETED, EXPIRED, CANCELLED] }
+        ownedByMe: { type: boolean, description: "true if the caller is the owner (administrators who are not the owner get false but still receive full details)" }
+        seatingArrangement: { type: object, nullable: true }
+        expectedAttendees: { type: integer, nullable: true }
+        additionalEquipment: { type: array, items: { type: object } }
+        note: { type: string, nullable: true }
+        createdBy: { type: string, nullable: true }
+        reservedFor: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time, nullable: true }
+x-authorization:
+  description: >
+    Deny-by-default. Safe reads (GET/HEAD/OPTIONS) require sign-in only, except /api/admin/** (ADMIN).
+    All other methods under /api require ADMIN unless listed below.
+  signedInUserActions:
+    - POST /api/rooms/{roomId}/reservations
+    - PATCH /api/reservations/{reservationId}          # + owner or ADMIN
+    - POST  /api/reservations/{reservationId}/{activate|complete|expire|cancel}   # + owner or ADMIN
+    - POST  /api/rooms/{roomId}/device-controls/{kind} # + owner of an ACTIVE reservation in the room
+    - PUT   /api/auth/admin-mode                       # ADMIN checked in handler (403 otherwise)
+  adminOnly:
+    - GET /api/admin/users, GET|PUT /api/admin/users/{id}/roles
+    - POST|PUT|DELETE /api/buildings/**, /api/floors/**, /api/equipment-types/**, /api/rooms/**  (incl. deactivate/reactivate)
+    - POST /api/reservations/expire-unattended
+    - PUT|DELETE /api/maps/**, /api/connections/**, PUT /api/floors/{id}/map
+  errors:
+    401: { code: AUTHENTICATION_REQUIRED }
+    403: { code: ADMIN_REQUIRED }
+    503: { code: ROLE_MANAGEMENT_UNAVAILABLE }

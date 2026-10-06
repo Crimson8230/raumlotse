@@ -64,13 +64,13 @@ public class RoomSearchService {
     private void validate(RoomSearchCriteria criteria) {
         if (criteria.minPersons() != null && criteria.maxPersons() != null
                 && criteria.minPersons() > criteria.maxPersons()) {
-            throw new IllegalArgumentException("minPersons must not be greater than maxPersons.");
+            throw new IllegalArgumentException("Min. Personen darf nicht größer als Max. Personen sein.");
         }
         if ((criteria.from() == null) != (criteria.to() == null)) {
-            throw new IllegalArgumentException("from and to must be given together.");
+            throw new IllegalArgumentException("„from“ und „to“ müssen gemeinsam angegeben werden.");
         }
         if (criteria.hasTimeWindow() && !criteria.to().isAfter(criteria.from())) {
-            throw new IllegalArgumentException("to must be after from.");
+            throw new IllegalArgumentException("„to“ muss nach „from“ liegen.");
         }
     }
 }

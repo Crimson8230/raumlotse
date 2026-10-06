@@ -94,7 +94,7 @@ class RoomSearchControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.errors[0].field").value("minPersons"))
-                .andExpect(jsonPath("$.errors[0].message").value("has an invalid format"))
+                .andExpect(jsonPath("$.errors[0].message").value("hat ein ungültiges Format"))
                 .andExpect(content().string(Matchers.not(Matchers.containsString("Failed to convert"))));
     }
 
@@ -110,11 +110,11 @@ class RoomSearchControllerTest {
     @WithMockUser
     void serviceValidationErrorReturns400() throws Exception {
         when(roomSearchService.search(any()))
-                .thenThrow(new IllegalArgumentException("minPersons must not be greater than maxPersons."));
+                .thenThrow(new IllegalArgumentException("Min. Personen darf nicht größer als Max. Personen sein."));
 
         mockMvc.perform(get("/api/rooms/search").param("minPersons", "30").param("maxPersons", "10"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("minPersons must not be greater than maxPersons."));
+                .andExpect(jsonPath("$.detail").value("Min. Personen darf nicht größer als Max. Personen sein."));
     }
 
     @Test
@@ -185,7 +185,7 @@ class RoomSearchControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.errors[0].field").value("from"))
-                .andExpect(jsonPath("$.errors[0].message").value("has an invalid format"));
+                .andExpect(jsonPath("$.errors[0].message").value("hat ein ungültiges Format"));
         verify(roomSearchService, never()).search(any());
     }
 }

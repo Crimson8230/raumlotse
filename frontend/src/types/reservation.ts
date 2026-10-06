@@ -20,13 +20,18 @@ export interface Reservation {
   startTime: string
   endTime: string
   status: ReservationStatus
-  seatingArrangement: SeatingArrangementSummary
-  expectedAttendees: number
+  /**
+   * Entries of other users' reservations in a shared room schedule are redacted (feature 013, FR-023): only the time
+   * window and status are present, personal details are null/empty and `ownedByMe` is false.
+   */
+  seatingArrangement: SeatingArrangementSummary | null
+  expectedAttendees: number | null
   additionalEquipment: EquipmentTypeSummary[]
   note?: string | null
-  createdBy: string
-  reservedFor: string
-  createdAt: string
+  createdBy: string | null
+  reservedFor: string | null
+  createdAt: string | null
+  ownedByMe: boolean
 }
 
 export interface ReservationCreatePayload {

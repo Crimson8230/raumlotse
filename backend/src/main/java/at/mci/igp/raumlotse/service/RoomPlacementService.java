@@ -41,37 +41,37 @@ public class RoomPlacementService {
         requireFraction(x, "x");
         requireFraction(y, "y");
         FloorMap map = maps.findByIdWithFloor(mapId)
-                .orElseThrow(() -> new NotFoundException("Map " + mapId + " not found."));
-        Room room = rooms.findById(roomId).orElseThrow(() -> new NotFoundException("Room " + roomId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Karte " + mapId + " nicht gefunden."));
+        Room room = rooms.findById(roomId).orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
         if (!room.getFloor().getId().equals(map.getFloor().getId())) {
             log.warn("placement_rejected code=ROOM_FLOOR_MISMATCH mapId={} roomId={}", mapId, roomId);
             throw new MapRequestException(HttpStatus.UNPROCESSABLE_CONTENT, "ROOM_FLOOR_MISMATCH",
-                    "Room '" + room.getName() + "' is not on the floor of this map.");
+                    "Raum '" + room.getName() + "' liegt nicht auf dem Stockwerk dieser Karte.");
         }
         boolean existed = placements.existsById(roomId);
         placements.upsert(roomId, mapId, x, y);
         var saved = placements.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Room " + roomId + " was removed while being placed."));
+                .orElseThrow(() -> new NotFoundException("Raum " + roomId + " wurde während der Platzierung entfernt."));
         return new PlaceResult(PlacementResponse.from(saved), !existed);
     }
 
     @Transactional(readOnly = true)
     public List<RoomRefResponse> unplacedRooms(UUID mapId) {
         FloorMap map = maps.findByIdWithFloor(mapId)
-                .orElseThrow(() -> new NotFoundException("Map " + mapId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Karte " + mapId + " nicht gefunden."));
         return rooms.findUnplacedActiveByFloorId(map.getFloor().getId()).stream().map(RoomRefResponse::from).toList();
     }
 
     public void remove(UUID mapId, UUID roomId) {
         var placement = placements.findById(roomId)
                 .filter(candidate -> candidate.getMap().getId().equals(mapId))
-                .orElseThrow(() -> new NotFoundException("Room " + roomId + " is not placed on map " + mapId + "."));
+                .orElseThrow(() -> new NotFoundException("Raum " + roomId + " ist nicht auf Karte " + mapId + "."));
         placements.delete(placement);
     }
 
     private static void requireFraction(double value, String name) {
         if (Double.isNaN(value) || value < 0.0 || value > 1.0) {
-            throw new IllegalArgumentException("Position " + name + " must be between 0 and 1.");
+            throw new IllegalArgumentException("Position " + name + " muss zwischen 0 und 1 liegen.");
         }
     }
 }

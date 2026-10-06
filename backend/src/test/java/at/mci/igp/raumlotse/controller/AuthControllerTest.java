@@ -88,7 +88,7 @@ class AuthControllerTest {
                                 .content("{\"email\":\"nobody@example.test\",\"password\":\"wrong\"}"))
                                 .andExpect(status().isUnauthorized())
                                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
-                                .andExpect(jsonPath("$.detail").value("Email address or password is incorrect."));
+                                .andExpect(jsonPath("$.detail").value("E-Mail-Adresse oder Passwort ist falsch."));
         }
 
         @Test

@@ -32,6 +32,9 @@ import org.springframework.test.annotation.DirtiesContext;
 class RoomSearchIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Autowired
     private RoomSearchService roomSearchService;
 
     @Autowired
@@ -249,13 +252,13 @@ class RoomSearchIntegrationTest extends AbstractIntegrationTest {
         java.time.Instant eleven = ten.plusSeconds(3600);
         java.time.Instant twelve = ten.plusSeconds(7200);
         java.time.Instant thirteen = ten.plusSeconds(10800);
-        var booking = reservationService.createReservation(a40.getId(), new at.mci.igp.raumlotse.dto.ReservationCreateRequest(
+        var booking = TestActors.create(jdbc, reservationService, a40.getId(), new at.mci.igp.raumlotse.dto.ReservationCreateRequest(
                 ten, twelve, a40.getSeatingArrangements().get(0).getId(), 10, List.of(), null, "Test"));
 
         assertThat(ownResultIds(window(eleven, thirteen))).containsExactly(c120.getId(), b15.getId());
         assertThat(ownResultIds(window(twelve, thirteen))).containsExactly(a40.getId(), c120.getId(), b15.getId());
 
-        reservationService.cancelReservation(booking.id());
+        reservationService.cancelReservation(booking.id(), TestActors.ADMIN);
 
         assertThat(ownResultIds(window(eleven, thirteen))).containsExactly(a40.getId(), c120.getId(), b15.getId());
     }

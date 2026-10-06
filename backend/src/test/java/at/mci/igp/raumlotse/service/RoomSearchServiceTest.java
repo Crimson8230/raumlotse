@@ -47,7 +47,7 @@ class RoomSearchServiceTest {
     void rejectsMinPersonsGreaterThanMaxPersons() {
         assertThatThrownBy(() -> service.search(new RoomSearchCriteria(30, 10, null)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("minPersons must not be greater than maxPersons.");
+                .hasMessage("Min. Personen darf nicht größer als Max. Personen sein.");
         verify(roomRepository, never()).findSearchCandidates();
     }
 
@@ -120,17 +120,17 @@ class RoomSearchServiceTest {
     void rejectsHalfAWindow() {
         assertThatThrownBy(() -> service.search(window(NINE, null)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("from and to must be given together.");
+                .hasMessage("„from“ und „to“ müssen gemeinsam angegeben werden.");
         assertThatThrownBy(() -> service.search(window(null, NINE)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("from and to must be given together.");
+                .hasMessage("„from“ und „to“ müssen gemeinsam angegeben werden.");
     }
 
     @Test
     void rejectsAWindowWhoseEndIsNotAfterItsStart() {
         assertThatThrownBy(() -> service.search(window(NINE, NINE)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("to must be after from.");
+                .hasMessage("„to“ muss nach „from“ liegen.");
     }
 
     @Test

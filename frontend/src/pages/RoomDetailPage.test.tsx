@@ -7,6 +7,10 @@ import * as roomsApi from '../API/rooms'
 import * as reservationsApi from '../API/reservations'
 import type { Room } from '../types/room'
 
+const mode = vi.hoisted(() => ({ adminMode: false }))
+vi.mock('../auth/useAdminMode', () => ({
+  useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode, setMode: vi.fn() }),
+}))
 vi.mock('../API/rooms')
 vi.mock('../API/reservations')
 
@@ -48,11 +52,36 @@ function renderComponent(url = '/rooms/room-1') {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mode.adminMode = false
   reservations.getAvailableEquipment.mockResolvedValue([])
   reservations.listRoomReservations.mockResolvedValue([])
 })
 
 describe('RoomDetailPage', () => {
+  it('offers booking, display and device control but no administration link in the user view', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+
+    renderComponent()
+
+    await screen.findByText('Room 101')
+    expect(screen.getByRole('link', { name: 'Raumanzeige' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Geräte steuern' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Raum bearbeiten' })).not.toBeInTheDocument()
+  })
+
+  it('links the edit form under the administration address while administration mode is on', async () => {
+    mode.adminMode = true
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+
+    renderComponent()
+
+    expect(await screen.findByRole('link', { name: 'Raum bearbeiten' })).toHaveAttribute(
+      'href',
+      '/admin/rooms/room-1/edit',
+    )
+  })
+
+
   it('renders room details and toggles reservation booking form', async () => {
     const user = userEvent.setup()
     rooms.getRoom.mockResolvedValue(sampleRoom())
@@ -62,19 +91,19 @@ describe('RoomDetailPage', () => {
     expect(await screen.findByText('Room 101')).toBeInTheDocument()
     expect(screen.getByText('Main Building')).toBeInTheDocument()
     expect(screen.getByText('1st Floor')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Display Room Information' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Raumanzeige' })).toHaveAttribute(
       'href',
       '/rooms/room-1/display',
     )
 
-    const bookBtn = screen.getByRole('button', { name: /book room/i })
+    const bookBtn = screen.getByRole('button', { name: /raum buchen/i })
     await user.click(bookBtn)
 
-    expect(screen.getByLabelText(/start time/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /close booking form/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/beginn/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /buchungsformular schließen/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /close booking form/i }))
-    expect(screen.queryByLabelText(/start time/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /buchungsformular schließen/i }))
+    expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
   })
 
   it('renders reservations list in room detail page', async () => {
@@ -94,13 +123,14 @@ describe('RoomDetailPage', () => {
         createdBy: 'Alice Bob',
         reservedFor: 'Alice Bob',
         createdAt: '2026-09-19T09:00:00Z',
+        ownedByMe: true,
       },
     ])
 
     renderComponent()
 
     expect((await screen.findAllByText(/Alice Bob/)).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('RESERVED')).toBeInTheDocument()
+    expect(screen.getByText('Reserviert')).toBeInTheDocument()
   })
 
   it('shows whether the room is barrier-free reachable', async () => {
@@ -130,8 +160,8 @@ describe('RoomDetailPage', () => {
 
     renderComponent(prefillUrl)
 
-    expect(await screen.findByLabelText(/start time/i)).toHaveValue('2026-10-05T11:00')
-    expect(screen.getByLabelText(/end time/i)).toHaveValue('2026-10-05T12:00')
+    expect(await screen.findByLabelText(/beginn/i)).toHaveValue('2026-10-05T11:00')
+    expect(screen.getByLabelText(/^ende$/i)).toHaveValue('2026-10-05T12:00')
   })
 
   it.each([
@@ -143,8 +173,8 @@ describe('RoomDetailPage', () => {
 
     renderComponent(url)
 
-    expect(await screen.findByRole('button', { name: /book room/i })).toBeInTheDocument()
-    expect(screen.queryByLabelText(/start time/i)).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /raum buchen/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
   })
 
   it('never opens the booking form for a deactivated room', async () => {
@@ -153,7 +183,7 @@ describe('RoomDetailPage', () => {
     renderComponent(prefillUrl)
 
     expect(await screen.findByText('Room 101')).toBeInTheDocument()
-    expect(screen.queryByLabelText(/start time/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
   })
 
   it('submits the pre-filled, possibly edited window', async () => {
@@ -173,14 +203,15 @@ describe('RoomDetailPage', () => {
       createdBy: 'Alice',
       reservedFor: 'Jane Doe',
       createdAt: start.toISOString(),
+      ownedByMe: true,
     })
 
     renderComponent(prefillUrl)
-    const endInput = await screen.findByLabelText(/end time/i)
+    const endInput = await screen.findByLabelText(/^ende$/i)
     await user.clear(endInput)
     await user.type(endInput, '2026-10-05T12:30')
-    await user.type(screen.getByLabelText(/attendees/i), '10')
-    await user.click(screen.getByRole('button', { name: /confirm reservation/i }))
+    await user.type(screen.getByLabelText(/teilnehmende/i), '10')
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     expect(reservations.createReservation).toHaveBeenCalledWith(
       'room-1',
@@ -196,8 +227,8 @@ describe('RoomDetailPage', () => {
 
     renderComponent('/rooms/room-1?book=true')
 
-    expect(await screen.findByLabelText(/start time/i)).toHaveValue('')
-    expect(screen.getByLabelText(/end time/i)).toHaveValue('')
+    expect(await screen.findByLabelText(/beginn/i)).toHaveValue('')
+    expect(screen.getByLabelText(/^ende$/i)).toHaveValue('')
   })
 
   it('opens the booking form pre-filled for ?book=true with a window', async () => {
@@ -205,7 +236,7 @@ describe('RoomDetailPage', () => {
 
     renderComponent(`${prefillUrl}&book=true`)
 
-    expect(await screen.findByLabelText(/start time/i)).toHaveValue('2026-10-05T11:00')
+    expect(await screen.findByLabelText(/beginn/i)).toHaveValue('2026-10-05T11:00')
   })
 
   it('never opens the booking form via ?book=true for a deactivated room', async () => {
@@ -214,6 +245,6 @@ describe('RoomDetailPage', () => {
     renderComponent('/rooms/room-1?book=true')
 
     expect(await screen.findByText('Room 101')).toBeInTheDocument()
-    expect(screen.queryByLabelText(/start time/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
   })
 })

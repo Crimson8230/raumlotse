@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useAdminMode } from '../auth/useAdminMode'
 import { getRoom } from '../API/rooms'
 import { ReservationForm } from '../components/ReservationForm/ReservationForm'
 import { ReservationList } from '../components/ReservationList/ReservationList'
 import type { Room } from '../types/room'
 import type { Reservation } from '../types/reservation'
 import './RoomDetailPage.css'
+import { entityStatusLabel } from '../utils/labels'
 
 /** `?start=&end=` from a room search (contracts/ui.md §3); null unless both are valid instants and end > start. */
 function bookingWindow(start: string | null, end: string | null): { start: string; end: string } | null {
@@ -18,6 +20,7 @@ function bookingWindow(start: string | null, end: string | null): { start: strin
 
 export default function RoomDetailPage() {
   const { roomId } = useParams<{ roomId: string }>()
+  const { adminMode } = useAdminMode()
   const [searchParams] = useSearchParams()
   const requestedStart = searchParams.get('start')
   const requestedEnd = searchParams.get('end')
@@ -48,7 +51,7 @@ export default function RoomDetailPage() {
       },
       () => {
         if (!ignore) {
-          setLoadError('This room could not be found.')
+          setLoadError('Dieser Raum wurde nicht gefunden.')
           setLoading(false)
         }
       },
@@ -59,7 +62,7 @@ export default function RoomDetailPage() {
   }, [roomId, requestedStart, requestedEnd, bookRequested])
 
   function handleReservationSaved(reservation: Reservation) {
-    setSuccessMessage(`Reservation successfully booked by ${reservation.createdBy}!`)
+    setSuccessMessage(`Reservierung erfolgreich durch ${reservation.createdBy} gebucht.`)
     setShowBookingForm(false)
     setPrefill(null)
     setRefreshSignal((prev) => prev + 1)
@@ -68,7 +71,7 @@ export default function RoomDetailPage() {
   if (loading) {
     return (
       <main>
-        <p className="status-loading">Loading…</p>
+        <p className="status-loading">Wird geladen…</p>
       </main>
     )
   }
@@ -77,7 +80,7 @@ export default function RoomDetailPage() {
     return (
       <main>
         <p role="alert" className="feedback-error">
-          {loadError ?? 'Room not found.'}
+          {loadError ?? 'Raum nicht gefunden.'}
         </p>
       </main>
     )
@@ -88,22 +91,22 @@ export default function RoomDetailPage() {
       <div className="room-detail-header">
         <h1>{room.name}</h1>
         <div>
-          <Link to={`/rooms/${room.id}/display`}>Display Room Information</Link>{' '}
-          <Link to={`/rooms/${room.id}/control`}>Control Devices</Link>{' '}
-          <Link to={`/rooms/${room.id}/edit`}>Edit Room</Link>
+          <Link to={`/rooms/${room.id}/display`}>Raumanzeige</Link>{' '}
+          <Link to={`/rooms/${room.id}/control`}>Geräte steuern</Link>{' '}
+          {adminMode && <Link to={`/admin/rooms/${room.id}/edit`}>Raum bearbeiten</Link>}
         </div>
       </div>
 
       <dl className="panel room-detail-metadata">
-        <dt>Building</dt>
+        <dt>Gebäude</dt>
         <dd>{room.building.name}</dd>
-        <dt>Floor</dt>
+        <dt>Stockwerk</dt>
         <dd>{room.floor.name}</dd>
         <dt>Status</dt>
         <dd className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
-          {room.status}
+          {entityStatusLabel(room.status)}
         </dd>
-        <dt>Seating Arrangements</dt>
+        <dt>Sitzordnungen</dt>
         <dd>
           {room.seatingArrangements.map((s) => `${s.name} (max ${s.maxCapacity})`).join(', ')}
         </dd>
@@ -119,7 +122,7 @@ export default function RoomDetailPage() {
 
       <section className="room-reservations-section">
         <div className="room-reservations-header">
-          <h2>Reservations</h2>
+          <h2>Reservierungen</h2>
           {room.status === 'ACTIVE' && (
             <button
               type="button"
@@ -128,7 +131,7 @@ export default function RoomDetailPage() {
                 setShowBookingForm((prev) => !prev)
               }}
             >
-              {showBookingForm ? 'Close Booking Form' : 'Book Room'}
+              {showBookingForm ? 'Buchungsformular schließen' : 'Raum buchen'}
             </button>
           )}
         </div>

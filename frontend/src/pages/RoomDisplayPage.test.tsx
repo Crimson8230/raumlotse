@@ -63,6 +63,7 @@ describe('RoomDisplayPage', () => {
         createdBy: 'Alice',
         reservedFor: 'Team Alpha',
         createdAt: '2026-09-19T09:00:00.000Z',
+        ownedByMe: true,
       },
     ])
 
@@ -70,7 +71,7 @@ describe('RoomDisplayPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
     expect(screen.getByText('Team meeting')).toBeInTheDocument()
-    expect(screen.getByText('Booked by: Alice')).toBeInTheDocument()
+    expect(screen.getByText('Gebucht von: Alice')).toBeInTheDocument()
     expect(rooms.getRoom).toHaveBeenCalledWith('room-1')
     expect(reservations.listRoomReservations).toHaveBeenCalledWith('room-1')
   })
@@ -81,7 +82,7 @@ describe('RoomDisplayPage', () => {
 
     renderPage()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/unavailable/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/nicht verfügbar/i)
     expect(screen.queryByText('Room load failed')).not.toBeInTheDocument()
   })
 
@@ -91,7 +92,7 @@ describe('RoomDisplayPage', () => {
 
     renderPage()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/unavailable/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/nicht verfügbar/i)
     expect(screen.queryByText('Reservation load failed')).not.toBeInTheDocument()
   })
 
@@ -105,7 +106,7 @@ describe('RoomDisplayPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
-    const clock = screen.getByLabelText('Current date and time')
+    const clock = screen.getByLabelText('Aktuelles Datum und Uhrzeit')
     const initialClock = clock.textContent
 
     act(() => {
@@ -137,6 +138,7 @@ describe('RoomDisplayPage', () => {
           createdBy: 'Alice',
           reservedFor: 'Team Alpha',
           createdAt: '2026-09-19T09:00:00.000Z',
+          ownedByMe: true,
         },
       ])
       .mockResolvedValueOnce([
@@ -154,12 +156,13 @@ describe('RoomDisplayPage', () => {
           createdBy: 'Alice',
           reservedFor: 'Team Alpha',
           createdAt: '2026-09-19T09:00:00.000Z',
+          ownedByMe: true,
         },
       ])
 
     renderPage()
 
-    expect(await screen.findByRole('status', { name: 'Reserved' })).toBeInTheDocument()
+    expect(await screen.findByRole('status', { name: 'Reserviert' })).toBeInTheDocument()
 
     await act(async () => {
       vi.setSystemTime(new Date('2026-09-20T10:01:00.000Z'))
@@ -169,7 +172,7 @@ describe('RoomDisplayPage', () => {
     })
 
     expect(reservations.listRoomReservations).toHaveBeenCalledTimes(2)
-    expect(await screen.findByRole('status', { name: 'Reserved and Occupied' })).toBeInTheDocument()
+    expect(await screen.findByRole('status', { name: 'Belegt' })).toBeInTheDocument()
   })
 
 })

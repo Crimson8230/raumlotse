@@ -17,9 +17,12 @@ public class UserRoleSafety {
         this.assignments=assignments; this.guard=guard; this.readiness=readiness; this.db=db;
     }
     public void requireAdmin(UUID actor) {
-        if(actor==null) throw new UserRoleException(401,"AUTHENTICATION_REQUIRED","Authentication is required.");
+        if(actor==null) throw new UserRoleException(401,"AUTHENTICATION_REQUIRED","Anmeldung erforderlich.");
         if(!assignments.roles(actor).contains(Role.ADMIN))
-            throw new UserRoleException(403,"ADMIN_REQUIRED","Administrator access is required.");
+            throw new UserRoleException(403,"ADMIN_REQUIRED","Administratorrechte erforderlich.");
+    }
+    public boolean isAdmin(UUID userId) {
+        return userId!=null && assignments.roles(userId).contains(Role.ADMIN);
     }
     public void requireReady() { if(!readiness.ready()) throw UserRoleException.unavailable(); }
     public void lock() {
@@ -42,11 +45,11 @@ public class UserRoleSafety {
             if(value==null || !value.matches("0|[1-9][0-9]{0,18}")) throw new NumberFormatException();
             return Long.parseLong(value);
         } catch(NumberFormatException ex) {
-            throw new UserRoleException(400,"INVALID_REQUEST","A valid expected version is required.");
+            throw new UserRoleException(400,"INVALID_REQUEST","Eine gültige erwartete Version ist erforderlich.");
         }
     }
     private UserRoleException invalidSelection() {
-        return new UserRoleException(400,"INVALID_ROLE_SELECTION","Select between one and five distinct supported roles.");
+        return new UserRoleException(400,"INVALID_ROLE_SELECTION","Wählen Sie ein bis fünf verschiedene unterstützte Rollen.");
     }
 }
 

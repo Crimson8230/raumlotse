@@ -70,7 +70,7 @@ public class EquipmentTypeService {
         EquipmentType equipmentType = findOrThrow(id);
         if (equipmentTypeRepository.isAssignedToAnyRoom(id)) {
             throw new ConflictException(
-                    "Equipment type '" + equipmentType.getName() + "' is assigned to one or more rooms; deactivate it instead.");
+                    "Ausstattungstyp '" + equipmentType.getName() + "' ist einem oder mehreren Räumen zugewiesen; bitte stattdessen deaktivieren.");
         }
         equipmentTypeRepository.delete(equipmentType);
     }
@@ -80,12 +80,12 @@ public class EquipmentTypeService {
                 ? equipmentTypeRepository.existsByNameIgnoreCase(name)
                 : equipmentTypeRepository.existsByNameIgnoreCaseAndIdNot(name, excludingId);
         if (exists) {
-            throw new ConflictException("An equipment type named '" + name + "' already exists.");
+            throw new ConflictException("Ein Ausstattungstyp mit dem Namen '" + name + "' existiert bereits.");
         }
     }
 
     private EquipmentType findOrThrow(UUID id) {
         return equipmentTypeRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Equipment type " + id + " not found."));
+                .orElseThrow(() -> new NotFoundException("Ausstattungstyp " + id + " nicht gefunden."));
     }
 }

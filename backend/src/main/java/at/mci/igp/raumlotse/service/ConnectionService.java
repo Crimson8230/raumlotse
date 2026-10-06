@@ -36,7 +36,7 @@ public class ConnectionService {
     public Connection create(String name, ConnectionType type) {
         String trimmed = name.strip();
         if (connections.existsByNameIgnoreCase(trimmed)) {
-            throw new ConflictException("A connection named '" + trimmed + "' already exists.");
+            throw new ConflictException("Eine Verbindung mit dem Namen '" + trimmed + "' existiert bereits.");
         }
         return connections.save(new Connection(trimmed, type));
     }
@@ -45,7 +45,7 @@ public class ConnectionService {
         Connection connection = findOrThrow(id);
         String trimmed = name.strip();
         if (connections.existsByNameIgnoreCaseAndIdNot(trimmed, id)) {
-            throw new ConflictException("A connection named '" + trimmed + "' already exists.");
+            throw new ConflictException("Eine Verbindung mit dem Namen '" + trimmed + "' existiert bereits.");
         }
         connection.setName(trimmed);
         connection.setType(type);
@@ -61,7 +61,7 @@ public class ConnectionService {
         requireFraction(x, "x");
         requireFraction(y, "y");
         Connection connection = findOrThrow(connectionId);
-        var map = maps.findById(mapId).orElseThrow(() -> new NotFoundException("Map " + mapId + " not found."));
+        var map = maps.findById(mapId).orElseThrow(() -> new NotFoundException("Karte " + mapId + " nicht gefunden."));
         var existing = connection.getPoints().stream()
                 .filter(point -> point.getMap().getId().equals(mapId)).findFirst();
         boolean created = existing.isEmpty();
@@ -77,17 +77,17 @@ public class ConnectionService {
         Connection connection = findOrThrow(connectionId);
         boolean removed = connection.getPoints().removeIf(point -> point.getMap().getId().equals(mapId));
         if (!removed) {
-            throw new NotFoundException("Connection " + connectionId + " has no point on map " + mapId + ".");
+            throw new NotFoundException("Verbindung " + connectionId + " hat keinen Punkt auf Karte " + mapId + ".");
         }
     }
 
     private Connection findOrThrow(UUID id) {
-        return connections.findById(id).orElseThrow(() -> new NotFoundException("Connection " + id + " not found."));
+        return connections.findById(id).orElseThrow(() -> new NotFoundException("Verbindung " + id + " nicht gefunden."));
     }
 
     private static void requireFraction(double value, String name) {
         if (Double.isNaN(value) || value < 0.0 || value > 1.0) {
-            throw new IllegalArgumentException("Position " + name + " must be between 0 and 1.");
+            throw new IllegalArgumentException("Position " + name + " muss zwischen 0 und 1 liegen.");
         }
     }
 }

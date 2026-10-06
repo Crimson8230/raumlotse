@@ -67,14 +67,14 @@ public class FloorMapService {
     public MapImage image(UUID mapId) {
         FloorMap map = findWithFloorOrThrow(mapId);
         FloorMapImage image = images.findById(mapId)
-                .orElseThrow(() -> new NotFoundException("Map " + mapId + " has no image."));
+                .orElseThrow(() -> new NotFoundException("Karte " + mapId + " hat kein Bild."));
         return new MapImage(map.getContentType(), map.getImageVersion(), image.getImage());
     }
 
     /** Creates the floor's map or replaces its image. Validation happens before anything is changed. */
     public SaveResult saveForFloor(UUID floorId, byte[] bytes) {
         var floor = floors.findById(floorId)
-                .orElseThrow(() -> new NotFoundException("Floor " + floorId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Stockwerk " + floorId + " nicht gefunden."));
         MapImageValidator.ValidatedImage validated = validator.validate(bytes);
 
         var existing = maps.findByFloorId(floorId);
@@ -97,12 +97,12 @@ public class FloorMapService {
     }
 
     public void delete(UUID mapId) {
-        FloorMap map = maps.findById(mapId).orElseThrow(() -> new NotFoundException("Map " + mapId + " not found."));
+        FloorMap map = maps.findById(mapId).orElseThrow(() -> new NotFoundException("Karte " + mapId + " nicht gefunden."));
         maps.delete(map);
     }
 
     private FloorMap findWithFloorOrThrow(UUID mapId) {
-        return maps.findByIdWithFloor(mapId).orElseThrow(() -> new NotFoundException("Map " + mapId + " not found."));
+        return maps.findByIdWithFloor(mapId).orElseThrow(() -> new NotFoundException("Karte " + mapId + " nicht gefunden."));
     }
 
     private static boolean aspectRatioDiffers(int oldW, int oldH, int newW, int newH) {

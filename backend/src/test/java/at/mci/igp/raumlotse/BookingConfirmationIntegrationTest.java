@@ -81,7 +81,7 @@ class BookingConfirmationIntegrationTest extends AbstractIntegrationTest {
         assertThat(confirmations.findByReservationId(first.id())).isPresent();
         assertThat(confirmations.findByReservationId(second.id())).isEmpty();
         assertThat(confirmations.count()).isEqualTo(before + 1);
-        reservations.getReservation(first.id());
+        reservations.getReservation(first.id(), TestActors.ADMIN);
         assertThat(confirmations.count()).isEqualTo(before + 1);
     }
 
@@ -109,7 +109,7 @@ class BookingConfirmationIntegrationTest extends AbstractIntegrationTest {
 
         var confirmation = confirmations.findByReservationId(created.id()).orElseThrow();
         assertThat(confirmation.getStatus()).isEqualTo(BookingConfirmationStatus.FAILED);
-        assertThat(reservations.getReservation(created.id()).status()).isEqualTo(at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED);
+        assertThat(reservations.getReservation(created.id(), TestActors.ADMIN).status()).isEqualTo(at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED);
         worker.processPending();
         org.mockito.Mockito.verify(gateway).send(org.mockito.ArgumentMatchers.any());
     }

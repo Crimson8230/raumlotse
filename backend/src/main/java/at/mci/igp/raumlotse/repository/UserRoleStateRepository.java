@@ -24,7 +24,7 @@ public class UserRoleStateRepository {
                     String code=rs.getString("role_code");
                     if(code!=null) roles.add(Role.valueOf(code));
                 }
-                if(user==null) throw new UserRoleException(404,"USER_NOT_FOUND","The user no longer exists.");
+                if(user==null) throw new UserRoleException(404,"USER_NOT_FOUND","Der Benutzer existiert nicht mehr.");
                 if(version==null || roles.isEmpty()) throw UserRoleException.unavailable();
                 roles.sort(Comparator.naturalOrder());
                 return UserRolesResponse.of(user,List.copyOf(roles),version);

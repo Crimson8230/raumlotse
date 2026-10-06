@@ -20,10 +20,15 @@ The first feature, **room management**, is implemented: administrators can maint
 
 **Room map placement** (`/maps`): administrators upload one PNG/JPEG floor plan per floor (max. 10 MB), place rooms of that floor on it by clicking, move them by dragging (or with the arrow keys), and define named stairs/elevator connections with one point per map so later routes can cross floors. Positions are stored as fractions of the image size, so they stay correct at any zoom level or resolution. All signed-in users can view maps; only administrators can change them. Placing displays on the map, route calculation, and the one-time-code login for displays are separate, later features. See [`specs/012-room-map-placement/`](specs/012-room-map-placement/) and its [API contract](specs/012-room-map-placement/contracts/room-map-api.yaml).
 
+**User view and administration mode**: every signed-in user gets the booking and overview pages (`/`, `/rooms`, `/rooms/:id`, `/maps`, ...). Administration pages live under `/admin/*` (`/admin/locations`, `/admin/rooms/new`, `/admin/rooms/:id/edit`, `/admin/maps`, `/admin/users`) and are only reachable for administrators who switched administration mode on in the navigation; the mode is off after every sign-in and ends with the session. On the server every write request under `/api` requires the ADMIN role unless it is on the short list of user actions (book a room, manage own reservations, device control); reservations can only be read in detail, changed or cancelled by their owner or an administrator. See [`specs/013-user-view-admin-mode`](specs/013-user-view-admin-mode/spec.md).
+
 Available backend endpoints:
 
 ```text
 GET  /api/health
+
+GET    /api/auth/roles          (roles + effective administration mode)
+PUT    /api/auth/admin-mode     (administrators only)
 
 GET    /api/rooms
 POST   /api/rooms
@@ -115,10 +120,6 @@ The full, versioned contract (request/response shapes, status codes) lives in [`
 
 - Docker
 - Docker Compose
-
-### Planned
-
-- Authentication/authorization (room management is currently unauthenticated by design — see `specs/001-room-management/spec.md`)
 
 ## Requirements
 

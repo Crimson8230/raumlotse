@@ -54,7 +54,7 @@ public class CurrentAccountFilter extends OncePerRequestFilter {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setHeader("Cache-Control", "no-store");
             mapper.writeValue(response.getOutputStream(), Problem.of(503, "Service Unavailable",
-                    "Authentication is temporarily unavailable. Please try again.", "AUTH_UNAVAILABLE"));
+                    "Die Authentifizierung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.", "AUTH_UNAVAILABLE"));
             return;
         }
         chain.doFilter(request, response);

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const instant = z.string().refine((value) => Number.isFinite(Date.parse(value)), 'Invalid date/time')
+const instant = z.string().refine((value) => Number.isFinite(Date.parse(value)), 'Ungültiges Datum oder ungültige Uhrzeit')
 
 export const reservationFormSchema = z.object({
   startTime: instant,
@@ -13,5 +13,5 @@ export const reservationFormSchema = z.object({
   emailNotification: z.boolean(),
 }).refine(
   ({ startTime, endTime }) => Date.parse(endTime) > Date.parse(startTime),
-  { message: 'End time must be strictly after start time.', path: ['endTime'] },
+  { message: 'Das Ende muss nach dem Beginn liegen.', path: ['endTime'] },
 )

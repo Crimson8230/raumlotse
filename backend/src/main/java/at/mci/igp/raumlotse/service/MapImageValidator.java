@@ -30,7 +30,7 @@ public class MapImageValidator {
         if (bytes.length > MAX_BYTES) {
             log.warn("map_image_rejected code=MAP_IMAGE_TOO_LARGE");
             throw new MapRequestException(HttpStatus.CONTENT_TOO_LARGE, "MAP_IMAGE_TOO_LARGE",
-                    "The image is larger than 10 MB.");
+                    "Das Bild ist größer als 10 MB.");
         }
         if (bytes.length == 0) {
             throw unsupported();
@@ -72,6 +72,6 @@ public class MapImageValidator {
     private static MapRequestException unsupported() {
         log.warn("map_image_rejected code=MAP_IMAGE_UNSUPPORTED");
         return new MapRequestException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "MAP_IMAGE_UNSUPPORTED",
-                "Only PNG and JPEG images are supported.");
+                "Es werden nur PNG- und JPEG-Bilder unterstützt.");
     }
 }

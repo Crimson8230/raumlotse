@@ -23,6 +23,7 @@ function sampleReservation(overrides: Partial<Reservation> = {}): Reservation {
     createdBy: 'user-123',
     reservedFor: 'Projektgruppe Web',
     createdAt: '2026-09-28T10:00:00Z',
+    ownedByMe: true,
     ...overrides,
   }
 }

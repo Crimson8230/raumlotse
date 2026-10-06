@@ -1,5 +1,6 @@
 package at.mci.igp.raumlotse.repository;
 
+import at.mci.igp.raumlotse.TestActors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import at.mci.igp.raumlotse.AbstractIntegrationTest;
@@ -24,6 +25,9 @@ import org.springframework.test.annotation.DirtiesContext;
 /** {@code findOccupiedRoomIds} applies the reservation rule: RESERVED/ACTIVE block [start, end). */
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @Autowired
     private ReservationRepository reservationRepository;
@@ -52,7 +56,7 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
         room = roomService.create(new RoomCreateRequest("Raum", floor.getId(),
                 List.of(new SeatingArrangementRequest("Theater", 20)), List.of()));
         ten = Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS).plus(10, ChronoUnit.HOURS);
-        reservation = reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+        reservation = TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                 ten, at(12, 0), room.getSeatingArrangements().get(0).getId(), 10, List.of(), null, "Test"));
     }
 
@@ -78,37 +82,41 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void activeReservationStillOccupiesTheRoom() {
-        reservationService.activateReservation(reservation.id());
+        reservationService.activateReservation(reservation.id(), TestActors.ADMIN);
 
         assertThat(occupied(at(11, 0), at(13, 0))).isTrue();
     }
 
     @Test
     void cancelledReservationDoesNotOccupy() {
-        reservationService.cancelReservation(reservation.id());
+        reservationService.cancelReservation(reservation.id(), TestActors.ADMIN);
 
         assertThat(occupied(at(11, 0), at(13, 0))).isFalse();
     }
 
     @Test
     void expiredReservationDoesNotOccupy() {
-        reservationService.expireReservation(reservation.id());
+        reservationService.expireReservation(reservation.id(), TestActors.ADMIN);
 
         assertThat(occupied(at(11, 0), at(13, 0))).isFalse();
     }
 
     @Test
     void completedReservationDoesNotOccupy() {
-        reservationService.activateReservation(reservation.id());
-        reservationService.completeReservation(reservation.id());
+        reservationService.activateReservation(reservation.id(), TestActors.ADMIN);
+        reservationService.completeReservation(reservation.id(), TestActors.ADMIN);
 
         assertThat(occupied(at(11, 0), at(13, 0))).isFalse();
     }
 
     @Test
-    void findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc_filtersAndOrdersCorrectly() {
-        String targetUser = "user-" + UUID.randomUUID();
-        String otherUser = "user-" + UUID.randomUUID();
+    void findTop10ByCreatedByUserIdAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc_filtersAndOrdersCorrectly() {
+        UUID targetUser = UUID.randomUUID();
+        UUID otherUser = UUID.randomUUID();
+        for (UUID id : new UUID[] {targetUser, otherUser}) {
+            jdbc.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)", id,
+                    id + "@example.test", "user", "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
+        }
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
         // 1. Target user, past reservation (endTime <= now)
@@ -119,7 +127,8 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
         pastRes.setEndTime(now.minus(1, ChronoUnit.HOURS));
         pastRes.setStatus(at.mci.igp.raumlotse.domain.ReservationStatus.COMPLETED);
         pastRes.setExpectedAttendees(5);
-        pastRes.setCreatedBy(targetUser);
+        pastRes.setCreatedBy("user");
+        pastRes.setCreatedByUserId(targetUser);
         pastRes.setReservedFor("Past");
         reservationRepository.save(pastRes);
 
@@ -131,7 +140,8 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
         cancelledRes.setEndTime(now.plus(1, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS));
         cancelledRes.setStatus(at.mci.igp.raumlotse.domain.ReservationStatus.CANCELLED);
         cancelledRes.setExpectedAttendees(5);
-        cancelledRes.setCreatedBy(targetUser);
+        cancelledRes.setCreatedBy("user");
+        cancelledRes.setCreatedByUserId(targetUser);
         cancelledRes.setReservedFor("Cancelled");
         reservationRepository.save(cancelledRes);
 
@@ -143,7 +153,8 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
         otherRes.setEndTime(now.plus(2, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS));
         otherRes.setStatus(at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED);
         otherRes.setExpectedAttendees(5);
-        otherRes.setCreatedBy(otherUser);
+        otherRes.setCreatedBy("user");
+        otherRes.setCreatedByUserId(otherUser);
         otherRes.setReservedFor("Other");
         reservationRepository.save(otherRes);
 
@@ -156,13 +167,14 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
             res.setEndTime(now.plus(3 + i, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS));
             res.setStatus(i % 2 == 0 ? at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED : at.mci.igp.raumlotse.domain.ReservationStatus.ACTIVE);
             res.setExpectedAttendees(5);
-            res.setCreatedBy(targetUser);
+            res.setCreatedBy("user");
+        res.setCreatedByUserId(targetUser);
             res.setReservedFor("Upcoming " + i);
             reservationRepository.save(res);
         }
 
         List<at.mci.igp.raumlotse.domain.Reservation> results = reservationRepository
-                .findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(
+                .findTop10ByCreatedByUserIdAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(
                         targetUser,
                         List.of(at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED, at.mci.igp.raumlotse.domain.ReservationStatus.ACTIVE),
                         now);

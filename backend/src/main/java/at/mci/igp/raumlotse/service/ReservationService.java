@@ -11,6 +11,7 @@ import at.mci.igp.raumlotse.dto.ReservationCreateRequest;
 import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
+import at.mci.igp.raumlotse.dto.Actor;
 import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
@@ -43,6 +44,7 @@ public class ReservationService {
     private final EquipmentTypeRepository equipmentTypeRepository;
     private final Clock clock;
     private final BookingConfirmationQueueService confirmationQueue;
+    private final ReservationAccessPolicy accessPolicy;
 
     @Autowired
     public ReservationService(
@@ -51,12 +53,14 @@ public class ReservationService {
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository,
             Clock clock,
-            BookingConfirmationQueueService confirmationQueue) {
+            BookingConfirmationQueueService confirmationQueue,
+            ReservationAccessPolicy accessPolicy) {
         this.reservationRepository = reservationRepository;
         this.roomRepository = roomRepository;
         this.equipmentTypeRepository = equipmentTypeRepository;
         this.clock = clock;
         this.confirmationQueue = confirmationQueue;
+        this.accessPolicy = accessPolicy;
     }
 
     public ReservationService(
@@ -65,7 +69,8 @@ public class ReservationService {
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository,
             Clock clock) {
-        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, clock, null);
+        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, clock, null,
+                new ReservationAccessPolicy());
     }
 
     public ReservationService(
@@ -74,44 +79,39 @@ public class ReservationService {
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository) {
         this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository,
-                Clock.systemUTC(), null);
+                Clock.systemUTC(), null, new ReservationAccessPolicy());
     }
 
     public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request, AuthenticatedUser user) {
-        return createReservation(roomId, request, user, true);
-    }
-
-    private ReservationResponse createReservation(
-            UUID roomId, ReservationCreateRequest request, AuthenticatedUser user, boolean honorNotificationChoice) {
         if (user == null || user.userId() == null || user.displayName() == null || user.displayName().isBlank()) {
-            throw new IllegalArgumentException("Authenticated creator identity is required.");
+            throw new IllegalArgumentException("Die Identität der angemeldeten Person ist erforderlich.");
         }
         String effectiveCreatedBy = user.displayName().trim();
         if (request.reservedFor() == null || request.reservedFor().isBlank()) {
-            throw new IllegalArgumentException("Designated person ('reservedFor') cannot be blank.");
+            throw new IllegalArgumentException("Die Person („reservedFor“) darf nicht leer sein.");
         }
         if (request.reservedFor().trim().length() > 255) {
-            throw new IllegalArgumentException("Designated person ('reservedFor') cannot exceed 255 characters.");
+            throw new IllegalArgumentException("Die Person („reservedFor“) darf höchstens 255 Zeichen lang sein.");
         }
         if (request.startTime() == null || request.endTime() == null) {
-            throw new IllegalArgumentException("Start time and end time are required.");
+            throw new IllegalArgumentException("Beginn und Ende sind erforderlich.");
         }
-        if (!request.startTime().isAfter(Instant.now())) {
-            throw new IllegalArgumentException("Reservation start time must be in the future.");
+        if (!request.startTime().isAfter(clock.instant())) {
+            throw new IllegalArgumentException("Der Beginn der Reservierung muss in der Zukunft liegen.");
         }
         if (!request.endTime().isAfter(request.startTime())) {
-            throw new IllegalArgumentException("Reservation end time must be strictly after start time.");
+            throw new IllegalArgumentException("Das Ende der Reservierung muss nach dem Beginn liegen.");
         }
         if (request.expectedAttendees() == null || request.expectedAttendees() < 1) {
-            throw new IllegalArgumentException("Expected attendees must be a positive integer greater than or equal to 1.");
+            throw new IllegalArgumentException("Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.");
         }
 
         // Concurrency control: acquire pessimistic write lock on the target Room
         Room room = roomRepository.findByIdForUpdate(roomId)
-                .orElseThrow(() -> new NotFoundException("Room " + roomId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
 
         if (room.getStatus() != EntityStatus.ACTIVE) {
-            throw new ConflictException("Room '" + room.getName() + "' is deactivated and cannot be reserved.");
+            throw new ConflictException("Raum '" + room.getName() + "' ist deaktiviert und kann nicht reserviert werden.");
         }
 
         // Validate seating arrangement belongs to this room
@@ -119,11 +119,11 @@ public class ReservationService {
                 .filter(sa -> sa.getId().equals(request.seatingArrangementId()))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException(
-                        "Seating arrangement " + request.seatingArrangementId() + " not found for room '" + room.getName() + "'."));
+                        "Sitzordnung " + request.seatingArrangementId() + " nicht gefunden für Raum '" + room.getName() + "'."));
 
         if (request.expectedAttendees() > seatingArrangement.getMaxCapacity()) {
-            throw new IllegalArgumentException("Expected attendees (" + request.expectedAttendees()
-                    + ") cannot exceed arrangement capacity (" + seatingArrangement.getMaxCapacity() + ").");
+            throw new IllegalArgumentException("Die Teilnehmerzahl (" + request.expectedAttendees()
+                    + ") überschreitet die Kapazität der Sitzordnung (" + seatingArrangement.getMaxCapacity() + ").");
         }
 
         // Turnover buffer: isolated calculation defaulting to zero Duration
@@ -134,7 +134,7 @@ public class ReservationService {
         // Conflict check against active and reserved bookings for this room
         List<Reservation> conflicts = reservationRepository.findConflictingReservations(roomId, checkStart, checkEnd);
         if (!conflicts.isEmpty()) {
-            throw new ConflictException("Scheduling conflict: The room is already reserved during this time.");
+            throw new ConflictException("Terminkonflikt: Der Raum ist in diesem Zeitraum bereits reserviert.");
         }
 
         Reservation reservation = new Reservation();
@@ -146,9 +146,7 @@ public class ReservationService {
         reservation.setExpectedAttendees(request.expectedAttendees());
         reservation.setNote(request.note());
         reservation.setCreatedBy(effectiveCreatedBy);
-        if (honorNotificationChoice) {
-            reservation.setCreatedByUserId(user.userId());
-        }
+        reservation.setCreatedByUserId(user.userId());
         reservation.setReservedFor(request.reservedFor().trim());
 
         if (request.additionalEquipmentTypeIds() != null && !request.additionalEquipmentTypeIds().isEmpty()) {
@@ -157,28 +155,19 @@ public class ReservationService {
         }
 
         Reservation saved = reservationRepository.save(reservation);
-        if (honorNotificationChoice && Boolean.TRUE.equals(request.emailNotification())) {
+        if (Boolean.TRUE.equals(request.emailNotification())) {
             if (confirmationQueue == null) {
                 throw new IllegalStateException("Booking confirmation queue is unavailable.");
             }
             confirmationQueue.enqueue(saved);
         }
-        return ReservationResponse.from(saved);
-    }
-
-    public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request) {
-        String legacyOwner = request.createdBy();
-        if (legacyOwner == null || legacyOwner.isBlank()) {
-            throw new IllegalArgumentException("Creator identity ('createdBy') cannot be blank.");
-        }
-        UUID legacyUserId = UUID.nameUUIDFromBytes(legacyOwner.trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        return createReservation(roomId, request, new AuthenticatedUser(legacyUserId, legacyOwner.trim()), false);
+        return ReservationResponse.from(saved, true);
     }
 
     @Transactional(readOnly = true)
     public List<EquipmentTypeResponse> getAvailableEquipment(UUID roomId) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Room " + roomId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
 
         List<UUID> installedIds = room.getEquipmentTypes().stream()
                 .map(eq -> eq.getId())
@@ -191,9 +180,9 @@ public class ReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReservationResponse> getReservationsForRoom(UUID roomId, Instant from, Instant to) {
+    public List<ReservationResponse> getReservationsForRoom(UUID roomId, Instant from, Instant to, Actor actor) {
         roomRepository.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Room " + roomId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
         List<Reservation> reservations;
         if (from == null && to == null) {
             reservations = reservationRepository.findByRoomIdOrderByStartTimeAsc(roomId);
@@ -205,29 +194,30 @@ public class ReservationService {
             reservations = reservationRepository.findByRoomIdAndEndTimeGreaterThanEqualAndStartTimeLessThanEqualOrderByStartTimeAsc(roomId, from, to);
         }
         return reservations.stream()
-                .map(ReservationResponse::from)
+                .map(reservation -> accessPolicy.view(reservation, actor))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public ReservationResponse getReservation(UUID reservationId) {
-        Reservation reservation = findReservationOrThrow(reservationId);
-        return ReservationResponse.from(reservation);
+    public ReservationResponse getReservation(UUID reservationId, Actor actor) {
+        Reservation reservation = findManageableOrThrow(reservationId, actor, "read");
+        return accessPolicy.view(reservation, actor);
     }
 
-    public ReservationResponse updateReservationMetadata(UUID reservationId, ReservationUpdateRequest request) {
-        Reservation reservation = findReservationOrThrow(reservationId);
+    public ReservationResponse updateReservationMetadata(UUID reservationId, ReservationUpdateRequest request,
+            Actor actor) {
+        Reservation reservation = findManageableOrThrow(reservationId, actor, "update");
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
-            throw new ConflictException("Only reservations in RESERVED status can be edited.");
+            throw new ConflictException("Nur reservierte Buchungen können bearbeitet werden.");
         }
         if (request.expectedAttendees() != null) {
             if (request.expectedAttendees() < 1) {
-                throw new IllegalArgumentException("Expected attendees must be a positive integer greater than or equal to 1.");
+                throw new IllegalArgumentException("Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.");
             }
             int maxCapacity = reservation.getSeatingArrangement().getMaxCapacity();
             if (request.expectedAttendees() > maxCapacity) {
-                throw new IllegalArgumentException("Expected attendees (" + request.expectedAttendees()
-                        + ") cannot exceed arrangement capacity (" + maxCapacity + ").");
+                throw new IllegalArgumentException("Die Teilnehmerzahl (" + request.expectedAttendees()
+                        + ") überschreitet die Kapazität der Sitzordnung (" + maxCapacity + ").");
             }
             reservation.setExpectedAttendees(request.expectedAttendees());
         }
@@ -237,26 +227,26 @@ public class ReservationService {
         if (request.reservedFor() != null) {
             String trimmed = request.reservedFor().trim();
             if (trimmed.isEmpty() || trimmed.length() > 255) {
-                throw new IllegalArgumentException("Reserved for cannot be blank and must not exceed 255 characters.");
+                throw new IllegalArgumentException("„Reserviert für“ darf nicht leer sein und höchstens 255 Zeichen lang sein.");
             }
             reservation.setReservedFor(trimmed);
         }
         Reservation saved = reservationRepository.save(reservation);
-        return ReservationResponse.from(saved);
+        return accessPolicy.view(saved, actor);
     }
 
-    public ReservationResponse activateReservation(UUID reservationId) {
-        Reservation reservation = findReservationOrThrow(reservationId);
+    public ReservationResponse activateReservation(UUID reservationId, Actor actor) {
+        Reservation reservation = findManageableOrThrow(reservationId, actor, "activate");
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
-            throw new ConflictException("Reservation cannot be activated from status: " + reservation.getStatus());
+            throw new ConflictException("Die Reservierung kann im Status nicht eingecheckt werden: " + reservation.getStatus());
         }
         Instant now = clock.instant();
         if (reservation.getEndTime() != null && !now.isBefore(reservation.getEndTime())) {
-            throw new ConflictException("Reservation scheduled time has elapsed and cannot be activated.");
+            throw new ConflictException("Der Reservierungszeitraum ist bereits vorbei; die Reservierung kann nicht eingecheckt werden.");
         }
         reservation.setStatus(ReservationStatus.ACTIVE);
         Reservation saved = reservationRepository.save(reservation);
-        return ReservationResponse.from(saved);
+        return accessPolicy.view(saved, actor);
     }
 
     public int expireUnattendedReservations() {
@@ -312,41 +302,47 @@ public class ReservationService {
         return new ReservationSweepResponse(expired, completed);
     }
 
-    public ReservationResponse completeReservation(UUID reservationId) {
-        Reservation reservation = findReservationOrThrow(reservationId);
+    public ReservationResponse completeReservation(UUID reservationId, Actor actor) {
+        Reservation reservation = findManageableOrThrow(reservationId, actor, "complete");
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
-            throw new ConflictException("Reservation cannot be completed from status: " + reservation.getStatus());
+            throw new ConflictException("Die Reservierung kann im Status nicht abgeschlossen werden: " + reservation.getStatus());
         }
         reservation.setStatus(ReservationStatus.COMPLETED);
         Reservation saved = reservationRepository.save(reservation);
-        return ReservationResponse.from(saved);
+        return accessPolicy.view(saved, actor);
     }
 
-    public ReservationResponse expireReservation(UUID reservationId) {
-        Reservation reservation = findReservationOrThrow(reservationId);
+    public ReservationResponse expireReservation(UUID reservationId, Actor actor) {
+        Reservation reservation = findManageableOrThrow(reservationId, actor, "expire");
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
-            throw new ConflictException("Reservation cannot be expired from status: " + reservation.getStatus());
+            throw new ConflictException("Die Reservierung kann im Status nicht als abgelaufen markiert werden: " + reservation.getStatus());
         }
         reservation.setStatus(ReservationStatus.EXPIRED);
         Reservation saved = reservationRepository.save(reservation);
-        return ReservationResponse.from(saved);
+        return accessPolicy.view(saved, actor);
     }
 
-    public ReservationResponse cancelReservation(UUID reservationId) {
-        Reservation reservation = findReservationOrThrow(reservationId);
+    public ReservationResponse cancelReservation(UUID reservationId, Actor actor) {
+        Reservation reservation = findManageableOrThrow(reservationId, actor, "cancel");
         if (reservation.getStatus() == ReservationStatus.COMPLETED
                 || reservation.getStatus() == ReservationStatus.EXPIRED
                 || reservation.getStatus() == ReservationStatus.CANCELLED) {
-            throw new ConflictException("Reservation is in terminal state " + reservation.getStatus() + " and cannot be cancelled.");
+            throw new ConflictException("Die Reservierung ist bereits im Endzustand " + reservation.getStatus() + " und kann nicht storniert werden.");
         }
         reservation.setStatus(ReservationStatus.CANCELLED);
         Reservation saved = reservationRepository.save(reservation);
-        return ReservationResponse.from(saved);
+        return accessPolicy.view(saved, actor);
+    }
+
+    private Reservation findManageableOrThrow(UUID reservationId, Actor actor, String action) {
+        Reservation reservation = findReservationOrThrow(reservationId);
+        accessPolicy.requireManage(reservation, actor, action);
+        return reservation;
     }
 
     private Reservation findReservationOrThrow(UUID reservationId) {
         return reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new NotFoundException("Reservation " + reservationId + " not found."));
+                .orElseThrow(() -> new NotFoundException("Reservierung " + reservationId + " nicht gefunden."));
     }
 
     private Duration calculateTurnoverBuffer(Room room, SeatingArrangement arrangement) {
@@ -360,28 +356,28 @@ public class ReservationService {
 
         return equipmentTypeIds.stream().map(id -> {
             EquipmentType eq = equipmentTypeRepository.findById(id)
-                    .orElseThrow(() -> new NotFoundException("Equipment type " + id + " not found."));
+                    .orElseThrow(() -> new NotFoundException("Ausstattungstyp " + id + " nicht gefunden."));
             if (eq.getStatus() != EntityStatus.ACTIVE) {
-                throw new IllegalArgumentException("Equipment type '" + eq.getName() + "' is deactivated and cannot be reserved.");
+                throw new IllegalArgumentException("Ausstattungstyp '" + eq.getName() + "' ist deaktiviert und kann nicht reserviert werden.");
             }
             if (installedIds.contains(id)) {
-                throw new IllegalArgumentException("Equipment type '" + eq.getName() + "' is already permanently installed in this room.");
+                throw new IllegalArgumentException("Ausstattungstyp '" + eq.getName() + "' ist in diesem Raum bereits fest installiert.");
             }
             return eq;
         }).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<ReservationResponse> getMyUpcomingReservations(String createdBy) {
-        if (createdBy == null || createdBy.isBlank()) {
+    public List<ReservationResponse> getMyUpcomingReservations(UUID userId) {
+        if (userId == null) {
             return List.of();
         }
         Instant now = clock.instant();
         List<ReservationStatus> statuses = List.of(ReservationStatus.RESERVED, ReservationStatus.ACTIVE);
         return reservationRepository
-                .findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(createdBy.trim(), statuses, now)
+                .findTop10ByCreatedByUserIdAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(userId, statuses, now)
                 .stream()
-                .map(ReservationResponse::from)
+                .map(reservation -> ReservationResponse.from(reservation, true))
                 .toList();
     }
 }

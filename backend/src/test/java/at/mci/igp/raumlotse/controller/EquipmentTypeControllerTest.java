@@ -3,7 +3,8 @@ package at.mci.igp.raumlotse.controller;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import at.mci.igp.raumlotse.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import at.mci.igp.raumlotse.security.WithMockAdmin;
+import at.mci.igp.raumlotse.service.UserRoleSafety;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,9 +31,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(EquipmentTypeController.class)
-@WithMockUser
+@WithMockAdmin
 @Import(SecurityConfig.class)
 class EquipmentTypeControllerTest {
+    // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
+    @org.springframework.test.context.bean.override.mockito.MockitoBean UserRoleSafety roleSafety;
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,7 +60,7 @@ class EquipmentTypeControllerTest {
     @Test
     void createWithDuplicateNameReturns409() throws Exception {
         when(equipmentTypeService.create(eq("Projector")))
-                .thenThrow(new ConflictException("An equipment type named 'Projector' already exists."));
+                .thenThrow(new ConflictException("Ein Ausstattungstyp mit dem Namen 'Projector' existiert bereits."));
 
         mockMvc.perform(post("/api/equipment-types").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

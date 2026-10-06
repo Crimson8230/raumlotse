@@ -45,7 +45,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 @WebMvcTest(ReservationController.class)
-@WithMockUser
+@at.mci.igp.raumlotse.security.WithMockAdmin
 @Import(SecurityConfig.class)
 class ReservationControllerTest {
 
@@ -67,6 +67,9 @@ class ReservationControllerTest {
 
     @MockitoBean
     private ReservationService reservationService;
+
+    @MockitoBean
+    private at.mci.igp.raumlotse.service.UserRoleSafety roleSafety;
 
     @Test
     void createReservation_bindsNotificationAsExplicitOptInWithFalseDefault() throws Exception {
@@ -264,7 +267,7 @@ class ReservationControllerTest {
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
         when(reservationService.createReservation(eq(roomId), any(), any()))
-                .thenThrow(new ConflictException("Scheduling conflict: The room is already reserved during this time."));
+                .thenThrow(new ConflictException("Terminkonflikt: Der Raum ist in diesem Zeitraum bereits reserviert."));
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -278,7 +281,7 @@ class ReservationControllerTest {
                                 }
                                 """.formatted(start, end, layoutId)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Scheduling conflict: The room is already reserved during this time."));
+                .andExpect(jsonPath("$.detail").value("Terminkonflikt: Der Raum ist in diesem Zeitraum bereits reserviert."));
     }
 
     @Test
@@ -289,7 +292,7 @@ class ReservationControllerTest {
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
         when(reservationService.createReservation(eq(roomId), any(), any()))
-                .thenThrow(new NotFoundException("Room " + roomId + " not found."));
+                .thenThrow(new NotFoundException("Raum " + roomId + " nicht gefunden."));
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -329,7 +332,7 @@ class ReservationControllerTest {
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
         when(reservationService.createReservation(eq(roomId), any(), any()))
-                .thenThrow(new IllegalArgumentException("Equipment type 'Old Cam' is deactivated and cannot be reserved."));
+                .thenThrow(new IllegalArgumentException("Ausstattungstyp 'Old Cam' ist deaktiviert und kann nicht reserviert werden."));
 
         mockMvc.perform(post("/api/rooms/{roomId}/reservations", roomId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -344,7 +347,7 @@ class ReservationControllerTest {
                                 }
                                 """.formatted(start, end, layoutId, eqId)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Equipment type 'Old Cam' is deactivated and cannot be reserved."));
+                .andExpect(jsonPath("$.detail").value("Ausstattungstyp 'Old Cam' ist deaktiviert und kann nicht reserviert werden."));
     }
 
     @Test
@@ -359,7 +362,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 20, List.of(), null, "Alice", Instant.now());
 
-        when(reservationService.getReservationsForRoom(eq(roomId), any(), any())).thenReturn(List.of(res));
+        when(reservationService.getReservationsForRoom(eq(roomId), any(), any(), any())).thenReturn(List.of(res));
 
         mockMvc.perform(get("/api/rooms/{roomId}/reservations", roomId))
                 .andExpect(status().isOk())
@@ -378,7 +381,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 20, List.of(), null, "Alice", Instant.now());
 
-        when(reservationService.getReservation(resId)).thenReturn(res);
+        when(reservationService.getReservation(eq(resId), any())).thenReturn(res);
 
         mockMvc.perform(get("/api/reservations/{reservationId}", resId))
                 .andExpect(status().isOk())
@@ -396,7 +399,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 25, List.of(), "Updated note", "Alice", Instant.now());
 
-        when(reservationService.updateReservationMetadata(eq(resId), any())).thenReturn(res);
+        when(reservationService.updateReservationMetadata(eq(resId), any(), any())).thenReturn(res);
 
         mockMvc.perform(patch("/api/reservations/{reservationId}", resId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -421,7 +424,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 20, List.of(), null, "Alice", Instant.now());
 
-        when(reservationService.activateReservation(resId)).thenReturn(res);
+        when(reservationService.activateReservation(eq(resId), any())).thenReturn(res);
 
         mockMvc.perform(post("/api/reservations/{reservationId}/activate", resId).with(csrf()))
                 .andExpect(status().isOk())
@@ -438,7 +441,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 20, List.of(), null, "Alice", Instant.now());
 
-        when(reservationService.completeReservation(resId)).thenReturn(res);
+        when(reservationService.completeReservation(eq(resId), any())).thenReturn(res);
 
         mockMvc.perform(post("/api/reservations/{reservationId}/complete", resId).with(csrf()))
                 .andExpect(status().isOk())
@@ -455,7 +458,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 20, List.of(), null, "Alice", Instant.now());
 
-        when(reservationService.expireReservation(resId)).thenReturn(res);
+        when(reservationService.expireReservation(eq(resId), any())).thenReturn(res);
 
         mockMvc.perform(post("/api/reservations/{reservationId}/expire", resId).with(csrf()))
                 .andExpect(status().isOk())
@@ -473,7 +476,7 @@ class ReservationControllerTest {
                 new SeatingArrangementResponse(UUID.randomUUID(), "Theater", 40),
                 20, List.of(), null, "Alice", Instant.now());
 
-        when(reservationService.cancelReservation(resId)).thenReturn(res);
+        when(reservationService.cancelReservation(eq(resId), any())).thenReturn(res);
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancel", resId).with(csrf()))
                 .andExpect(status().isOk())
@@ -484,7 +487,7 @@ class ReservationControllerTest {
     void cancelReservation_terminalState_returns409() throws Exception {
         UUID resId = UUID.randomUUID();
 
-        when(reservationService.cancelReservation(resId))
+        when(reservationService.cancelReservation(eq(resId), any()))
                 .thenThrow(new ConflictException("Reservation is in terminal state CANCELLED and cannot be cancelled."));
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancel", resId).with(csrf()))
@@ -496,30 +499,45 @@ class ReservationControllerTest {
     void expireUnattendedReservations_returns200() throws Exception {
         when(reservationService.sweepOverdueReservations()).thenReturn(new ReservationSweepResponse(2, 3));
 
-        mockMvc.perform(post("/api/reservations/expire-unattended").with(csrf()))
+        mockMvc.perform(post("/api/reservations/expire-unattended").with(csrf())
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                new AuthenticatedUser(UUID.randomUUID(), "Admin"), null, List.of()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.expiredCount").value(2))
                 .andExpect(jsonPath("$.completedCount").value(3));
     }
 
     @Test
+    void expireUnattendedReservations_refusesNonAdministrators() throws Exception {
+        org.mockito.Mockito.doThrow(new at.mci.igp.raumlotse.exception.UserRoleException(
+                403, "ADMIN_REQUIRED", "Administratorrechte erforderlich.")).when(roleSafety).requireAdmin(any());
+
+        mockMvc.perform(post("/api/reservations/expire-unattended").with(csrf())
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                new AuthenticatedUser(UUID.randomUUID(), "Regular"), null, List.of()))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ADMIN_REQUIRED"));
+        org.mockito.Mockito.verifyNoInteractions(reservationService);
+    }
+
+    @Test
     void activateReservation_terminalState_returns409() throws Exception {
         UUID resId = UUID.randomUUID();
 
-        when(reservationService.activateReservation(resId))
-                .thenThrow(new ConflictException("Reservation cannot be activated from status: EXPIRED"));
+        when(reservationService.activateReservation(eq(resId), any()))
+                .thenThrow(new ConflictException("Die Reservierung kann im Status nicht eingecheckt werden: EXPIRED"));
 
         mockMvc.perform(post("/api/reservations/{reservationId}/activate", resId).with(csrf()))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Reservation cannot be activated from status: EXPIRED"));
+                .andExpect(jsonPath("$.detail").value("Die Reservierung kann im Status nicht eingecheckt werden: EXPIRED"));
     }
 
     @Test
     void updateReservationMetadata_terminalState_returns409() throws Exception {
         UUID resId = UUID.randomUUID();
 
-        when(reservationService.updateReservationMetadata(eq(resId), any()))
-                .thenThrow(new ConflictException("Only reservations in RESERVED status can be edited."));
+        when(reservationService.updateReservationMetadata(eq(resId), any(), any()))
+                .thenThrow(new ConflictException("Nur reservierte Buchungen können bearbeitet werden."));
 
         mockMvc.perform(patch("/api/reservations/{reservationId}", resId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -529,7 +547,7 @@ class ReservationControllerTest {
                                 }
                                 """))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Only reservations in RESERVED status can be edited."));
+                .andExpect(jsonPath("$.detail").value("Nur reservierte Buchungen können bearbeitet werden."));
     }
 
     @Test
@@ -558,7 +576,7 @@ class ReservationControllerTest {
                 "Jane Doe",
                 Instant.now());
 
-        when(reservationService.getMyUpcomingReservations(userId.toString())).thenReturn(List.of(response));
+        when(reservationService.getMyUpcomingReservations(userId)).thenReturn(List.of(response));
 
         mockMvc.perform(get("/api/reservations/my-upcoming").with(actor))
                 .andExpect(status().isOk())
@@ -596,7 +614,7 @@ class ReservationControllerTest {
                 "Neues Projektteam",
                 Instant.now());
 
-        when(reservationService.updateReservationMetadata(eq(resId), any())).thenReturn(response);
+        when(reservationService.updateReservationMetadata(eq(resId), any(), any())).thenReturn(response);
 
         mockMvc.perform(patch("/api/reservations/{reservationId}", resId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

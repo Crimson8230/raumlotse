@@ -7,6 +7,10 @@ import * as reservationsApi from '../../API/reservations'
 import type { Room } from '../../types/room'
 import type { Reservation } from '../../types/reservation'
 
+const mode = vi.hoisted(() => ({ adminMode: false }))
+vi.mock('../../auth/useAdminMode', () => ({
+  useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode, setMode: vi.fn() }),
+}))
 vi.mock('../../API/reservations')
 
 const reservations = vi.mocked(reservationsApi)
@@ -41,12 +45,14 @@ function sampleReservation(overrides: Partial<Reservation> = {}): Reservation {
     createdBy: 'Prof. Smith',
     reservedFor: 'Team Alpha',
     createdAt: '2026-09-19T10:00:00Z',
+    ownedByMe: true,
     ...overrides,
   }
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mode.adminMode = false
 })
 
 describe('ReservationList', () => {
@@ -58,7 +64,7 @@ describe('ReservationList', () => {
 
     expect(await screen.findByText(/Prof\. Smith/)).toBeInTheDocument()
     expect(screen.getByText(/Team Alpha/)).toBeInTheDocument()
-    expect(screen.getByText('RESERVED')).toBeInTheDocument()
+    expect(screen.getByText('Reserviert')).toBeInTheDocument()
     expect(screen.getByText(/Theater/)).toBeInTheDocument()
     expect(screen.getByText(/Projector/)).toBeInTheDocument()
     expect(screen.getByText(/Initial note/)).toBeInTheDocument()
@@ -66,7 +72,7 @@ describe('ReservationList', () => {
       screen.getByText(formatDateTimeRange(res.startTime, res.endTime)),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(new RegExp(`Created:\\s+${formatDateTime(res.createdAt)}`)),
+      screen.getByText(new RegExp(`Erstellt:\\s+${formatDateTime(res.createdAt ?? '')}`)),
     ).toBeInTheDocument()
   })
 
@@ -75,7 +81,7 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    expect(await screen.findByText(/no reservations found/i)).toBeInTheDocument()
+    expect(await screen.findByText(/keine reservierungen/i)).toBeInTheDocument()
   })
 
   it('allows activating a RESERVED booking', async () => {
@@ -86,7 +92,7 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    const activateBtn = await screen.findByRole('button', { name: /activate/i })
+    const activateBtn = await screen.findByRole('button', { name: /einchecken/i })
     await user.click(activateBtn)
 
     await waitFor(() => {
@@ -102,7 +108,7 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    const completeBtn = await screen.findByRole('button', { name: /complete/i })
+    const completeBtn = await screen.findByRole('button', { name: /abschließen/i })
     await user.click(completeBtn)
 
     await waitFor(() => {
@@ -118,7 +124,7 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    const expireBtn = await screen.findByRole('button', { name: /expire/i })
+    const expireBtn = await screen.findByRole('button', { name: /verfallen lassen/i })
     await user.click(expireBtn)
 
     await waitFor(() => {
@@ -134,7 +140,7 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    const cancelBtn = await screen.findByRole('button', { name: /cancel reservation/i })
+    const cancelBtn = await screen.findByRole('button', { name: /stornieren/i })
     await user.click(cancelBtn)
 
     await waitFor(() => {
@@ -151,14 +157,14 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    await screen.findByText('COMPLETED')
-    expect(screen.getByText('EXPIRED')).toBeInTheDocument()
-    expect(screen.getByText('CANCELLED')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /activate/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /complete/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /expire/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /cancel reservation/i })).not.toBeInTheDocument()
+    await screen.findByText('Abgeschlossen')
+    expect(screen.getByText('Abgelaufen')).toBeInTheDocument()
+    expect(screen.getByText('Storniert')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /einchecken/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /abschließen/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /verfallen lassen/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /bearbeiten/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /stornieren/i })).not.toBeInTheDocument()
   })
 
   it('allows editing metadata on a RESERVED booking', async () => {
@@ -173,11 +179,11 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    const editBtn = await screen.findByRole('button', { name: /edit/i })
+    const editBtn = await screen.findByRole('button', { name: /bearbeiten/i })
     await user.click(editBtn)
 
-    const attendeesInput = screen.getByLabelText(/edit attendees/i)
-    const noteInput = screen.getByLabelText(/edit notes/i)
+    const attendeesInput = screen.getByLabelText(/teilnehmende bearbeiten/i)
+    const noteInput = screen.getByLabelText(/notizen bearbeiten/i)
     const reservedForInput = screen.getByLabelText(/reserviert für|edit reserved for/i)
 
     await user.clear(attendeesInput)
@@ -187,7 +193,7 @@ describe('ReservationList', () => {
     await user.clear(reservedForInput)
     await user.type(reservedForInput, 'Neues Team')
 
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    await user.click(screen.getByRole('button', { name: /speichern/i }))
 
     await waitFor(() => {
       expect(reservations.updateReservationMetadata).toHaveBeenCalledWith('res-1', {
@@ -205,15 +211,68 @@ describe('ReservationList', () => {
 
     render(<ReservationList room={sampleRoom()} />)
 
-    const editBtn = await screen.findByRole('button', { name: /edit/i })
+    const editBtn = await screen.findByRole('button', { name: /bearbeiten/i })
     await user.click(editBtn)
 
     const reservedForInput = screen.getByLabelText(/reserviert für|edit reserved for/i)
     await user.clear(reservedForInput)
 
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    await user.click(screen.getByRole('button', { name: /speichern/i }))
 
     expect(await screen.findByText(/reserviert für ist ein pflichtfeld|reserved for is required/i)).toBeInTheDocument()
     expect(reservations.updateReservationMetadata).not.toHaveBeenCalled()
+  })
+
+  describe('ownership (feature 013)', () => {
+    function redacted(): Reservation {
+      return sampleReservation({
+        id: 'res-other',
+        seatingArrangement: null,
+        expectedAttendees: null,
+        additionalEquipment: [],
+        note: null,
+        createdBy: null,
+        reservedFor: null,
+        createdAt: null,
+        ownedByMe: false,
+      })
+    }
+
+    it('shows other users\' bookings as occupied without personal details or actions', async () => {
+      reservations.listRoomReservations.mockResolvedValue([redacted()])
+
+      render(<ReservationList room={sampleRoom()} />)
+
+      expect(await screen.findByText('Belegt')).toBeInTheDocument()
+      expect(screen.queryByText(/Booked by/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Reserviert für/)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    })
+
+    it('offers no actions for a visible booking owned by somebody else outside administration mode', async () => {
+      reservations.listRoomReservations.mockResolvedValue([sampleReservation({ ownedByMe: false })])
+
+      render(<ReservationList room={sampleRoom()} />)
+
+      await screen.findByText(/Prof\. Smith/)
+      expect(screen.queryByRole('button', { name: 'Stornieren' })).not.toBeInTheDocument()
+    })
+
+    it('offers the owner the actions in the user view', async () => {
+      reservations.listRoomReservations.mockResolvedValue([sampleReservation({ ownedByMe: true })])
+
+      render(<ReservationList room={sampleRoom()} />)
+
+      expect(await screen.findByRole('button', { name: 'Stornieren' })).toBeInTheDocument()
+    })
+
+    it('lets administrators in administration mode manage other users\' bookings', async () => {
+      mode.adminMode = true
+      reservations.listRoomReservations.mockResolvedValue([sampleReservation({ ownedByMe: false })])
+
+      render(<ReservationList room={sampleRoom()} />)
+
+      expect(await screen.findByRole('button', { name: 'Stornieren' })).toBeInTheDocument()
+    })
   })
 })

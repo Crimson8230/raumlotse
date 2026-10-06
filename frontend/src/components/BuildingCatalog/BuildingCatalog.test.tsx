@@ -36,14 +36,14 @@ describe('BuildingCatalog', () => {
 
     render(<BuildingCatalog />)
 
-    await user.type(screen.getByLabelText(/new building name/i), 'Main')
-    await user.click(screen.getByRole('button', { name: /add building/i }))
+    await user.type(screen.getByLabelText(/name des neuen gebäudes/i), 'Main')
+    await user.click(screen.getByRole('button', { name: /gebäude hinzufügen/i }))
 
     await waitFor(() => expect(buildings.createBuilding).toHaveBeenCalledWith('Main', false))
     await screen.findByText('Main')
 
-    await user.type(screen.getByLabelText(/new floor name/i), '1')
-    await user.click(screen.getByRole('button', { name: /add floor/i }))
+    await user.type(screen.getByLabelText(/name des neuen stockwerks/i), '1')
+    await user.click(screen.getByRole('button', { name: /stockwerk zu main hinzufügen/i }))
 
     await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1', false))
   })
@@ -58,9 +58,9 @@ describe('BuildingCatalog', () => {
     render(<BuildingCatalog />)
     await screen.findByText('Main')
 
-    await user.clear(screen.getByLabelText(/rename building main/i))
-    await user.type(screen.getByLabelText(/rename building main/i), 'Main Building')
-    await user.click(screen.getByRole('button', { name: /save building name/i }))
+    await user.clear(screen.getByLabelText(/gebäude main umbenennen/i))
+    await user.type(screen.getByLabelText(/gebäude main umbenennen/i), 'Main Building')
+    await user.click(screen.getByRole('button', { name: /name des gebäudes main speichern/i }))
     await waitFor(() => expect(buildings.renameBuilding).toHaveBeenCalledWith('b1', 'Main Building'))
   })
 
@@ -75,10 +75,10 @@ describe('BuildingCatalog', () => {
     render(<BuildingCatalog />)
     await screen.findByText('Main')
 
-    await user.click(screen.getByRole('button', { name: /deactivate building main/i }))
+    await user.click(screen.getByRole('button', { name: /gebäude main deaktivieren/i }))
 
     await waitFor(() => expect(buildings.deactivateBuilding).toHaveBeenCalledWith('b1'))
-    expect(await screen.findAllByText(/deactivated/i)).not.toHaveLength(0)
+    expect(await screen.findAllByText(/deaktiviert/i)).not.toHaveLength(0)
   })
 
   it('shows an error and keeps the building when delete is blocked because it still has floors', async () => {
@@ -96,7 +96,7 @@ describe('BuildingCatalog', () => {
     render(<BuildingCatalog />)
     await screen.findByText('Main')
 
-    await user.click(screen.getByRole('button', { name: /delete building main/i }))
+    await user.click(screen.getByRole('button', { name: /gebäude main löschen/i }))
 
     await screen.findByText(/still has one or more floors/i)
     expect(screen.getByText('Main')).toBeInTheDocument()
@@ -108,9 +108,9 @@ describe('BuildingCatalog', () => {
 
     render(<BuildingCatalog />)
 
-    await user.type(screen.getByLabelText(/new building name/i), 'Main')
+    await user.type(screen.getByLabelText(/name des neuen gebäudes/i), 'Main')
     await user.click(screen.getByLabelText('Aufzug vorhanden'))
-    await user.click(screen.getByRole('button', { name: /add building/i }))
+    await user.click(screen.getByRole('button', { name: /gebäude hinzufügen/i }))
 
     await waitFor(() => expect(buildings.createBuilding).toHaveBeenCalledWith('Main', true))
   })
@@ -138,13 +138,13 @@ describe('BuildingCatalog', () => {
     render(<BuildingCatalog />)
     await screen.findByText('Main')
 
-    expect(screen.getByText('Erdgeschoss')).toBeInTheDocument()
-    await user.type(screen.getByLabelText(/new floor name/i), '1. OG')
+    expect(screen.getByText('Erdgeschoss', { selector: '.catalog-tag' })).toBeInTheDocument()
+    await user.type(screen.getByLabelText(/name des neuen stockwerks/i), '1. OG')
     await user.click(screen.getByLabelText('Erdgeschoss (stufenloser Zugang)'))
-    await user.click(screen.getByRole('button', { name: /add floor/i }))
+    await user.click(screen.getByRole('button', { name: /stockwerk zu main hinzufügen/i }))
     await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1. OG', true))
 
-    await user.click(screen.getByRole('checkbox', { name: 'Erdgeschoss: EG' }))
+    await user.click(screen.getByRole('checkbox', { name: /erdgeschoss\s*:\s*eg/i }))
     await waitFor(() => expect(floors.updateFloor).toHaveBeenCalledWith('f1', 'EG', false))
   })
 })

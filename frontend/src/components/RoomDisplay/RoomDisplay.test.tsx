@@ -19,6 +19,7 @@ function reservationFixture(): Reservation {
     createdBy: 'Alice',
     reservedFor: 'Team Alpha',
     createdAt: '2026-09-19T09:00:00.000Z',
+    ownedByMe: true,
   }
 }
 
@@ -56,8 +57,8 @@ describe('RoomDisplay smoke test', () => {
       screen.getByText(`${formatDate(currentDateTime)}, ${formatTime(currentDateTime)}`),
     ).toBeInTheDocument()
     expect(screen.getByText('Team meeting')).toBeInTheDocument()
-    expect(screen.getByText('Booked by: Alice')).toBeInTheDocument()
-    expect(screen.getByText('Reserved for: Team Alpha')).toBeInTheDocument()
+    expect(screen.getByText('Gebucht von: Alice')).toBeInTheDocument()
+    expect(screen.getByText('Reserviert für: Team Alpha')).toBeInTheDocument()
     expect(screen.getByText(formatTime(new Date(reservationFixture().startTime)))).toBeInTheDocument()
     expect(screen.getByText(formatTime(new Date(reservationFixture().endTime)))).toBeInTheDocument()
   })
@@ -75,13 +76,13 @@ describe('RoomDisplay smoke test', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
-    expect(screen.getByRole('status', { name: 'No current reservation' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Keine aktuelle Reservierung' })).toBeInTheDocument()
   })
 
   it('renders an explicit unavailable state without reservation details', () => {
     render(
       <RoomDisplay
-        roomName="Room unavailable"
+        roomName="Raum nicht verfügbar"
         currentDateTime={new Date(2026, 8, 20, 10, 0)}
         reservation={null}
         state="unavailable"
@@ -90,9 +91,9 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/unavailable/i)
-    expect(screen.queryByText('Available')).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Current reservation' })).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/nicht verfügbar/i)
+    expect(screen.queryByText('Frei')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Aktuelle Reservierung' })).not.toBeInTheDocument()
   })
 
   it('keeps long notes readable with an explicit truncation marker', () => {
@@ -109,14 +110,14 @@ describe('RoomDisplay smoke test', () => {
 
     expect(screen.getByTestId('room-display')).toHaveClass('room-display')
     expect(screen.getByText(/\.\.\.$/)).toBeInTheDocument()
-    expect(screen.getByText(/Start time/)).toBeInTheDocument()
-    expect(screen.getByText(/End time/)).toBeInTheDocument()
+    expect(screen.getByText(/Beginn/)).toBeInTheDocument()
+    expect(screen.getByText(/Ende/)).toBeInTheDocument()
   })
 
   it.each([
-    ['AVAILABLE', 'Available'],
-    ['RESERVED', 'Reserved'],
-    ['OCCUPIED', 'Reserved and Occupied'],
+    ['AVAILABLE', 'Frei'],
+    ['RESERVED', 'Reserviert'],
+    ['OCCUPIED', 'Belegt'],
   ] as const)('renders the %s status with a text label', (status, label) => {
     render(
       <RoomDisplay
@@ -145,8 +146,8 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    const status = screen.getByRole('status', { name: 'Available' })
-    const currentDateTime = screen.getByLabelText('Current date and time')
+    const status = screen.getByRole('status', { name: 'Frei' })
+    const currentDateTime = screen.getByLabelText('Aktuelles Datum und Uhrzeit')
 
     expect(status.compareDocumentPosition(currentDateTime) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -174,11 +175,11 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    expect(screen.getByText('Next Reservation')).toBeInTheDocument()
-    expect(screen.getByText('Reserved for: Next Team')).toBeInTheDocument()
+    expect(screen.getByText('Nächste Reservierung')).toBeInTheDocument()
+    expect(screen.getByText('Reserviert für: Next Team')).toBeInTheDocument()
     const nextReservationLine = screen.getByTestId('room-display-next-reservation-line')
-    expect(within(nextReservationLine).getByText('Start Time')).toBeInTheDocument()
-    expect(within(nextReservationLine).getByText('End Time')).toBeInTheDocument()
+    expect(within(nextReservationLine).getByText('Beginn')).toBeInTheDocument()
+    expect(within(nextReservationLine).getByText('Ende')).toBeInTheDocument()
   })
 
   it('renders the complete next reservation as one line', () => {
@@ -203,10 +204,10 @@ describe('RoomDisplay smoke test', () => {
     )
 
     const line = screen.getByTestId('room-display-next-reservation-line')
-    expect(line).toHaveTextContent('Next Reservation')
-    expect(line).toHaveTextContent('Reserved for: Next Team')
-    expect(within(line).getByText('Start Time')).toBeInTheDocument()
-    expect(within(line).getByText('End Time')).toBeInTheDocument()
+    expect(line).toHaveTextContent('Nächste Reservierung')
+    expect(line).toHaveTextContent('Reserviert für: Next Team')
+    expect(within(line).getByText('Beginn')).toBeInTheDocument()
+    expect(within(line).getByText('Ende')).toBeInTheDocument()
     expect(line.tagName).toBe('P')
   })
 
@@ -222,7 +223,7 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    expect(screen.getByRole('status', { name: 'No next reservation scheduled' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Keine weitere Reservierung geplant' })).toBeInTheDocument()
   })
 
   it('uses a visible fallback when reservedFor is blank', () => {
@@ -239,7 +240,7 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    expect(screen.getByText('Reserved for: Not specified')).toBeInTheDocument()
+    expect(screen.getByText('Reserviert für: Nicht angegeben')).toBeInTheDocument()
   })
 
 })

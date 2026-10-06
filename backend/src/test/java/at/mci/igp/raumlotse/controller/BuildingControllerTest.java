@@ -3,7 +3,8 @@ package at.mci.igp.raumlotse.controller;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import at.mci.igp.raumlotse.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import at.mci.igp.raumlotse.security.WithMockAdmin;
+import at.mci.igp.raumlotse.service.UserRoleSafety;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,9 +29,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(BuildingController.class)
-@WithMockUser
+@WithMockAdmin
 @Import(SecurityConfig.class)
 class BuildingControllerTest {
+    // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
+    @org.springframework.test.context.bean.override.mockito.MockitoBean UserRoleSafety roleSafety;
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,7 +56,7 @@ class BuildingControllerTest {
     @Test
     void createWithDuplicateNameReturns409() throws Exception {
         when(buildingService.create(eq("Main"), org.mockito.ArgumentMatchers.isNull()))
-                .thenThrow(new ConflictException("A building named 'Main' already exists."));
+                .thenThrow(new ConflictException("Ein Gebäude mit dem Namen 'Main' existiert bereits."));
 
         mockMvc.perform(post("/api/buildings").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -97,7 +101,7 @@ class BuildingControllerTest {
     @Test
     void deleteBlockedWhileItHasFloorsReturns409() throws Exception {
         UUID id = UUID.randomUUID();
-        Mockito.doThrow(new ConflictException("Building 'Main' still has one or more floors."))
+        Mockito.doThrow(new ConflictException("Gebäude 'Main' still has one or more floors."))
                 .when(buildingService).delete(id);
 
         mockMvc.perform(delete("/api/buildings/" + id).with(csrf()))

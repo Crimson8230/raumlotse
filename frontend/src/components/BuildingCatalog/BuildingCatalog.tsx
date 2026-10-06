@@ -19,6 +19,7 @@ import {
 } from '../../API/floors'
 import { formatApiError } from '../../API/client'
 import type { Building, Floor } from '../../types/room'
+import { entityStatusLabel } from '../../utils/labels'
 
 export interface BuildingCatalogProps {
   /** Called whenever a building/floor is created, so an embedding form can refresh its pickers. */
@@ -80,7 +81,7 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
   }
 
   return (
-    <section aria-label="Building and floor catalog" className="panel">
+    <section aria-label="Katalog der Gebäude und Stockwerke" className="panel">
       <h2>Gebäude</h2>
       {error && (
         <p role="alert" className="feedback-error">
@@ -100,7 +101,7 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
         }}
       >
         <div>
-          <label htmlFor="new-building-name">New building name</label>
+          <label htmlFor="new-building-name">Name des neuen Gebäudes</label>
           <input
             id="new-building-name"
             value={newBuildingName}
@@ -115,11 +116,11 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
           />
           Aufzug vorhanden
         </label>
-        <button type="submit">Add building</button>
+        <button type="submit">Gebäude hinzufügen</button>
       </form>
 
       {buildings.length === 0 ? (
-        <p className="status-empty">No buildings yet.</p>
+        <p className="status-empty">Noch keine Gebäude.</p>
       ) : (
         <ul className="list-plain">
         {buildings.map((building) => {
@@ -128,11 +129,11 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
           const newFloorId = `new-floor-${building.id}`
           return (
             <li key={building.id} className="panel">
-              <span>{building.name}</span>{' '}
+              <span className="catalog-name">{building.name}</span>{' '}
               <span className={building.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
-                ({building.status})
+                ({entityStatusLabel(building.status)})
               </span>{' '}
-              <span>{building.hasElevator ? 'Aufzug' : 'kein Aufzug'}</span>
+              <span className="catalog-tag">{building.hasElevator ? 'Aufzug' : 'kein Aufzug'}</span>
 
               <label className="checkbox-label">
                 <input
@@ -140,12 +141,12 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                   checked={building.hasElevator}
                   onChange={() => guarded(() => updateBuilding(building.id, building.name, !building.hasElevator))}
                 />
-                {`Aufzug in ${building.name}`}
+                Aufzug<span className="sr-only"> in {building.name}</span>
               </label>
 
               <div className="inline-form">
                 <div>
-                  <label htmlFor={renameId}>{`Rename building ${building.name}`}</label>
+                  <label className="sr-only" htmlFor={renameId}>{`Gebäude ${building.name} umbenennen`}</label>
                   <input
                     id={renameId}
                     value={renameDrafts[building.id] ?? building.name}
@@ -159,24 +160,16 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                   onClick={() =>
                     guarded(() => renameBuilding(building.id, renameDrafts[building.id] ?? building.name))
                   }
-                >
-                  {`Save building name for ${building.name}`}
-                </button>
+                 aria-label={`Name des Gebäudes ${building.name} speichern`}>Speichern</button>
               </div>
 
               <div className="actions">
                 {building.status === 'ACTIVE' ? (
-                  <button type="button" onClick={() => guarded(() => deactivateBuilding(building.id))}>
-                    {`Deactivate building ${building.name}`}
-                  </button>
+                  <button type="button" onClick={() => guarded(() => deactivateBuilding(building.id))} aria-label={`Gebäude ${building.name} deaktivieren`}>Deaktivieren</button>
                 ) : (
-                  <button type="button" onClick={() => guarded(() => reactivateBuilding(building.id))}>
-                    {`Reactivate building ${building.name}`}
-                  </button>
+                  <button type="button" onClick={() => guarded(() => reactivateBuilding(building.id))} aria-label={`Gebäude ${building.name} reaktivieren`}>Reaktivieren</button>
                 )}
-                <button type="button" onClick={() => guarded(() => deleteBuilding(building.id))}>
-                  {`Delete building ${building.name}`}
-                </button>
+                <button type="button" onClick={() => guarded(() => deleteBuilding(building.id))} aria-label={`Gebäude ${building.name} löschen`}>Löschen</button>
               </div>
 
               <form
@@ -191,7 +184,7 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                 }}
               >
                 <div>
-                  <label htmlFor={newFloorId}>{`New floor name for ${building.name}`}</label>
+                  <label className="sr-only" htmlFor={newFloorId}>{`Name des neuen Stockwerks in ${building.name}`}</label>
                   <input
                     id={newFloorId}
                     value={newFloorNames[building.id] ?? ''}
@@ -208,25 +201,25 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                   />
                   Erdgeschoss (stufenloser Zugang)
                 </label>
-                <button type="submit">{`Add floor to ${building.name}`}</button>
+                <button type="submit" aria-label={`Stockwerk zu ${building.name} hinzufügen`}>Hinzufügen</button>
               </form>
 
               {floors.length === 0 ? (
-                <p className="status-empty">No floors yet.</p>
+                <p className="status-empty">Noch keine Stockwerke.</p>
               ) : (
                 <ul className="list-plain">
                 {floors.map((floor) => {
                   const floorRenameId = `rename-floor-${floor.id}`
                   return (
                     <li key={floor.id}>
-                      <span>{floor.name}</span>{' '}
+                      <span className="catalog-name catalog-name-floor">{floor.name}</span>{' '}
                       <span className={floor.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
-                        ({floor.status})
+                        ({entityStatusLabel(floor.status)})
                       </span>
                       {floor.groundFloor && (
                         <>
                           {' '}
-                          <span>Erdgeschoss</span>
+                          <span className="catalog-tag">Erdgeschoss</span>
                         </>
                       )}
 
@@ -236,12 +229,12 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                           checked={floor.groundFloor}
                           onChange={() => guarded(() => updateFloor(floor.id, floor.name, !floor.groundFloor))}
                         />
-                        {`Erdgeschoss: ${floor.name}`}
+                        Erdgeschoss<span className="sr-only">: {floor.name}</span>
                       </label>
 
                       <div className="inline-form">
                         <div>
-                          <label htmlFor={floorRenameId}>{`Rename floor ${floor.name}`}</label>
+                          <label className="sr-only" htmlFor={floorRenameId}>{`Stockwerk ${floor.name} umbenennen`}</label>
                           <input
                             id={floorRenameId}
                             value={floorRenameDrafts[floor.id] ?? floor.name}
@@ -255,24 +248,16 @@ export function BuildingCatalog({ onCatalogChanged }: BuildingCatalogProps = {})
                           onClick={() =>
                             guarded(() => renameFloor(floor.id, floorRenameDrafts[floor.id] ?? floor.name))
                           }
-                        >
-                          {`Save floor name for ${floor.name}`}
-                        </button>
+                         aria-label={`Name des Stockwerks ${floor.name} speichern`}>Speichern</button>
                       </div>
 
                       <div className="actions">
                         {floor.status === 'ACTIVE' ? (
-                          <button type="button" onClick={() => guarded(() => deactivateFloor(floor.id))}>
-                            {`Deactivate floor ${floor.name}`}
-                          </button>
+                          <button type="button" onClick={() => guarded(() => deactivateFloor(floor.id))} aria-label={`Stockwerk ${floor.name} deaktivieren`}>Deaktivieren</button>
                         ) : (
-                          <button type="button" onClick={() => guarded(() => reactivateFloor(floor.id))}>
-                            {`Reactivate floor ${floor.name}`}
-                          </button>
+                          <button type="button" onClick={() => guarded(() => reactivateFloor(floor.id))} aria-label={`Stockwerk ${floor.name} reaktivieren`}>Reaktivieren</button>
                         )}
-                        <button type="button" onClick={() => guarded(() => deleteFloor(floor.id))}>
-                          {`Delete floor ${floor.name}`}
-                        </button>
+                        <button type="button" onClick={() => guarded(() => deleteFloor(floor.id))} aria-label={`Stockwerk ${floor.name} löschen`}>Löschen</button>
                       </div>
                     </li>
                   )

@@ -25,6 +25,8 @@ class UserRoleIntegrationTest extends AbstractIntegrationTest {
     static final List<String> ROLES = List.of("ADMIN","UNIVERSITY_STAFF","STUDENT","LECTURER","VIEWER");
 
     @BeforeEach void fixtures() {
+        db.update("delete from booking_confirmation");
+        db.update("delete from reservation");
         db.update("delete from role_assignment");
         db.update("delete from user_role_state");
         db.update("delete from user_account");

@@ -6,10 +6,18 @@ export const listUsers = (q = '', page = 0) =>
 export const getUserRoles = (id: string) =>
   apiRequest<UserRoles>('/api/admin/users/' + encodeURIComponent(id) + '/roles')
 export function saveUserRoles(id: string, roles: RoleCode[], expectedVersion: string) {
-  if (!isValidRoleSelection(roles)) return Promise.reject(new Error('Invalid role selection'))
+  if (!isValidRoleSelection(roles)) return Promise.reject(new Error('Ungültige Rollenauswahl'))
   return apiRequest<UserRoles>('/api/admin/users/' + encodeURIComponent(id) + '/roles', {
     method: 'PUT', body: JSON.stringify({ roles, expectedVersion }),
   })
 }
-export const getCurrentRoles = () => apiRequest<{ roles: RoleCode[]; ready: boolean }>('/api/auth/roles')
+export interface CurrentRoles {
+  roles: RoleCode[]
+  ready: boolean
+  /** Effective administration mode: only ever true while the user is an administrator. */
+  adminMode: boolean
+}
+export const getCurrentRoles = () => apiRequest<CurrentRoles>('/api/auth/roles')
+export const setAdminMode = (enabled: boolean) =>
+  apiRequest<{ adminMode: boolean }>('/api/auth/admin-mode', { method: 'PUT', body: JSON.stringify({ enabled }) })
 

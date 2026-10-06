@@ -47,6 +47,9 @@ import org.springframework.test.context.TestPropertySource;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private static final int ROOMS = 500;
     private static final int BUILDINGS = 10;
     private static final int RESERVATIONS = 200;
@@ -100,7 +103,7 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
         }
         for (int i = 0; i < RESERVATIONS; i++) {
             Room room = rooms.get(i * (ROOMS / RESERVATIONS));
-            reservationService.createReservation(room.getId(), new ReservationCreateRequest(
+            TestActors.create(jdbc, reservationService, room.getId(), new ReservationCreateRequest(
                     windowStart.plus(i % 8, ChronoUnit.HOURS), windowStart.plus(i % 8 + 1, ChronoUnit.HOURS),
                     room.getSeatingArrangements().get(0).getId(), 10, List.of(), null, "Perf"));
         }

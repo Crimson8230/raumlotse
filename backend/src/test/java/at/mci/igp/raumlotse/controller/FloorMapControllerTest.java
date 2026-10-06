@@ -91,7 +91,7 @@ class FloorMapControllerTest {
 
     @Test
     void putWithUnknownFloorReturns404() throws Exception {
-        when(service.saveForFloor(eq(floorId), any())).thenThrow(new NotFoundException("Floor not found."));
+        when(service.saveForFloor(eq(floorId), any())).thenThrow(new NotFoundException("Floor nicht gefunden."));
         mvc.perform(multipart(HttpMethod.PUT, "/api/floors/" + floorId + "/map").file(image()).with(admin()).with(csrf()))
                 .andExpect(status().isNotFound());
     }
@@ -99,7 +99,7 @@ class FloorMapControllerTest {
     @Test
     void putWithUnsupportedImageReturns415() throws Exception {
         when(service.saveForFloor(eq(floorId), any())).thenThrow(new MapRequestException(
-                HttpStatus.UNSUPPORTED_MEDIA_TYPE, "MAP_IMAGE_UNSUPPORTED", "Only PNG and JPEG images are supported."));
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE, "MAP_IMAGE_UNSUPPORTED", "Es werden nur PNG- und JPEG-Bilder unterstützt."));
         mvc.perform(multipart(HttpMethod.PUT, "/api/floors/" + floorId + "/map").file(image()).with(admin()).with(csrf()))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.code").value("MAP_IMAGE_UNSUPPORTED"));
@@ -108,7 +108,7 @@ class FloorMapControllerTest {
     @Test
     void putWithOversizedImageReturns413() throws Exception {
         when(service.saveForFloor(eq(floorId), any())).thenThrow(new MapRequestException(
-                HttpStatus.CONTENT_TOO_LARGE, "MAP_IMAGE_TOO_LARGE", "The image is larger than 10 MB."));
+                HttpStatus.CONTENT_TOO_LARGE, "MAP_IMAGE_TOO_LARGE", "Das Bild ist größer als 10 MB."));
         mvc.perform(multipart(HttpMethod.PUT, "/api/floors/" + floorId + "/map").file(image()).with(admin()).with(csrf()))
                 .andExpect(status().isContentTooLarge())
                 .andExpect(jsonPath("$.code").value("MAP_IMAGE_TOO_LARGE"));
@@ -132,7 +132,7 @@ class FloorMapControllerTest {
 
     @Test
     void getUnknownReturns404() throws Exception {
-        when(service.get(mapId)).thenThrow(new NotFoundException("Map not found."));
+        when(service.get(mapId)).thenThrow(new NotFoundException("Map nicht gefunden."));
         mvc.perform(get("/api/maps/" + mapId)).andExpect(status().isNotFound());
     }
 
@@ -161,7 +161,7 @@ class FloorMapControllerTest {
 
     @Test
     void deleteUnknownReturns404() throws Exception {
-        doThrow(new NotFoundException("Map not found.")).when(service).delete(mapId);
+        doThrow(new NotFoundException("Map nicht gefunden.")).when(service).delete(mapId);
         mvc.perform(delete("/api/maps/" + mapId).with(admin()).with(csrf())).andExpect(status().isNotFound());
     }
 }

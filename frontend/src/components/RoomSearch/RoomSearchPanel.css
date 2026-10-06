@@ -10,7 +10,7 @@
   min-width: 0;
 }
 
-.room-search-fields input,
+.room-search-fields input:not([type='checkbox']),
 .room-search-fields select {
   width: 100%;
 }

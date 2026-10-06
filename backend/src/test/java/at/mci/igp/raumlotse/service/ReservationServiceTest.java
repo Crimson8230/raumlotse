@@ -1,9 +1,12 @@
 package at.mci.igp.raumlotse.service;
 
+import at.mci.igp.raumlotse.TestActors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import at.mci.igp.raumlotse.domain.Building;
@@ -19,6 +22,7 @@ import at.mci.igp.raumlotse.dto.ReservationResponse;
 import at.mci.igp.raumlotse.dto.ReservationSweepResponse;
 import at.mci.igp.raumlotse.dto.ReservationUpdateRequest;
 import at.mci.igp.raumlotse.exception.ConflictException;
+import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
 import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
@@ -107,7 +111,7 @@ class ReservationServiceTest {
             return r;
         });
 
-        ReservationResponse response = reservationService.createReservation(roomId, request);
+        ReservationResponse response = reservationService.createReservation(roomId, request, TestActors.creatorOf(request));
 
         assertThat(response).isNotNull();
         assertThat(response.status()).isEqualTo(ReservationStatus.RESERVED);
@@ -127,9 +131,9 @@ class ReservationServiceTest {
         Reservation existing = new Reservation();
         when(reservationRepository.findConflictingReservations(roomId, start, end)).thenReturn(List.of(existing));
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("Scheduling conflict");
+                .hasMessageContaining("Terminkonflikt");
     }
 
     @Test
@@ -149,7 +153,7 @@ class ReservationServiceTest {
             return r;
         });
 
-        ReservationResponse response = reservationService.createReservation(roomId, request);
+        ReservationResponse response = reservationService.createReservation(roomId, request, TestActors.creatorOf(request));
         assertThat(response.status()).isEqualTo(ReservationStatus.RESERVED);
     }
 
@@ -163,9 +167,9 @@ class ReservationServiceTest {
 
         when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(activeRoom));
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("capacity");
+                .hasMessageContaining("Kapazität");
     }
 
     @Test
@@ -178,21 +182,21 @@ class ReservationServiceTest {
 
         when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(activeRoom));
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("deactivated");
+                .hasMessageContaining("deaktiviert");
     }
 
     @Test
     void createReservation_pastStartTimeThrowsIllegalArgument() {
-        Instant pastStart = Instant.now().minus(1, ChronoUnit.HOURS);
-        Instant end = Instant.now().plus(1, ChronoUnit.HOURS);
+        Instant pastStart = fixedNow.minus(1, ChronoUnit.HOURS);
+        Instant end = fixedNow.plus(1, ChronoUnit.HOURS);
         ReservationCreateRequest request = new ReservationCreateRequest(
                 pastStart, end, seatingArrangementId, 20, List.of(), null, "Jane Doe");
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("future");
+                .hasMessageContaining("Zukunft");
     }
 
     @Test
@@ -202,9 +206,9 @@ class ReservationServiceTest {
         ReservationCreateRequest request = new ReservationCreateRequest(
                 start, end, seatingArrangementId, 20, List.of(), null, "Jane Doe");
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("end time");
+                .hasMessageContaining("Ende");
     }
 
     @Test
@@ -262,9 +266,9 @@ class ReservationServiceTest {
         when(reservationRepository.findConflictingReservations(eq(roomId), any(), any())).thenReturn(List.of());
         when(equipmentTypeRepository.findById(deactId)).thenReturn(Optional.of(deactivatedEq));
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("deactivated");
+                .hasMessageContaining("deaktiviert");
     }
 
     @Test
@@ -284,9 +288,9 @@ class ReservationServiceTest {
         when(reservationRepository.findConflictingReservations(eq(roomId), any(), any())).thenReturn(List.of());
         when(equipmentTypeRepository.findById(micId)).thenReturn(Optional.of(mic));
 
-        assertThatThrownBy(() -> reservationService.createReservation(roomId, request))
+        assertThatThrownBy(() -> reservationService.createReservation(roomId, request, TestActors.creatorOf(request)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("already permanently installed");
+                .hasMessageContaining("fest installiert");
     }
 
     @Test
@@ -305,7 +309,7 @@ class ReservationServiceTest {
         when(roomRepository.findById(roomId)).thenReturn(Optional.of(activeRoom));
         when(reservationRepository.findByRoomIdOrderByStartTimeAsc(roomId)).thenReturn(List.of(r));
 
-        var list = reservationService.getReservationsForRoom(roomId, null, null);
+        var list = reservationService.getReservationsForRoom(roomId, null, null, TestActors.ADMIN);
         assertThat(list).hasSize(1);
         assertThat(list.get(0).createdBy()).isEqualTo("Alice");
     }
@@ -328,7 +332,7 @@ class ReservationServiceTest {
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         ReservationUpdateRequest update = new ReservationUpdateRequest(35, "Updated notes");
-        ReservationResponse updated = reservationService.updateReservationMetadata(resId, update);
+        ReservationResponse updated = reservationService.updateReservationMetadata(resId, update, TestActors.ADMIN);
 
         assertThat(updated.expectedAttendees()).isEqualTo(35);
         assertThat(updated.note()).isEqualTo("Updated notes");
@@ -346,9 +350,9 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
         ReservationUpdateRequest update = new ReservationUpdateRequest(50, null);
-        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update))
+        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update, TestActors.ADMIN))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("capacity");
+                .hasMessageContaining("Kapazität");
     }
 
     @Test
@@ -363,9 +367,9 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
         ReservationUpdateRequest update = new ReservationUpdateRequest(20, null);
-        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update))
+        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update, TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("RESERVED");
+                .hasMessageContaining("reservierte");
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -381,9 +385,9 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
         ReservationUpdateRequest update = new ReservationUpdateRequest(20, "Attempted update");
-        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update))
+        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId, update, TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("Only reservations in RESERVED status can be edited");
+                .hasMessageContaining("Nur reservierte Buchungen können bearbeitet werden");
     }
 
     @Test
@@ -402,7 +406,7 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        ReservationResponse res = reservationService.activateReservation(resId);
+        ReservationResponse res = reservationService.activateReservation(resId, TestActors.ADMIN);
         assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
     }
 
@@ -415,7 +419,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
-        assertThatThrownBy(() -> reservationService.activateReservation(resId))
+        assertThatThrownBy(() -> reservationService.activateReservation(resId, TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -434,7 +438,7 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        ReservationResponse res = reservationService.completeReservation(resId);
+        ReservationResponse res = reservationService.completeReservation(resId, TestActors.ADMIN);
         assertThat(res.status()).isEqualTo(ReservationStatus.COMPLETED);
     }
 
@@ -453,7 +457,7 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        ReservationResponse res = reservationService.expireReservation(resId);
+        ReservationResponse res = reservationService.expireReservation(resId, TestActors.ADMIN);
         assertThat(res.status()).isEqualTo(ReservationStatus.EXPIRED);
     }
 
@@ -472,12 +476,12 @@ class ReservationServiceTest {
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        ReservationResponse res = reservationService.cancelReservation(resId);
+        ReservationResponse res = reservationService.cancelReservation(resId, TestActors.ADMIN);
         assertThat(res.status()).isEqualTo(ReservationStatus.CANCELLED);
 
         // Cancel from ACTIVE
         setField(r, "status", ReservationStatus.ACTIVE);
-        res = reservationService.cancelReservation(resId);
+        res = reservationService.cancelReservation(resId, TestActors.ADMIN);
         assertThat(res.status()).isEqualTo(ReservationStatus.CANCELLED);
     }
 
@@ -490,7 +494,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
-        assertThatThrownBy(() -> reservationService.cancelReservation(resId))
+        assertThatThrownBy(() -> reservationService.cancelReservation(resId, TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -528,7 +532,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
-        assertThatThrownBy(() -> reservationService.activateReservation(resId))
+        assertThatThrownBy(() -> reservationService.activateReservation(resId, TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("EXPIRED");
     }
@@ -544,9 +548,9 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
 
-        assertThatThrownBy(() -> reservationService.activateReservation(resId))
+        assertThatThrownBy(() -> reservationService.activateReservation(resId, TestActors.ADMIN))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("elapsed");
+                .hasMessageContaining("vorbei");
     }
 
     @Test
@@ -626,5 +630,131 @@ class ReservationServiceTest {
 
         assertThat(count).isEqualTo(1);
         assertThat(r2.getStatus()).isEqualTo(ReservationStatus.EXPIRED);
+    }
+
+    // ---- Feature 013: ownership (FR-019 – FR-025) ----
+
+    private Reservation ownedReservation(UUID id, UUID ownerId, ReservationStatus status) throws Exception {
+        Reservation r = new Reservation();
+        setField(r, "id", id);
+        setField(r, "createdAt", fixedNow);
+        r.setRoom(activeRoom);
+        r.setSeatingArrangement(seatingArrangement);
+        r.setStartTime(fixedNow.plus(1, ChronoUnit.HOURS));
+        r.setEndTime(fixedNow.plus(2, ChronoUnit.HOURS));
+        r.setStatus(status);
+        r.setExpectedAttendees(10);
+        r.setNote("private");
+        r.setCreatedBy("Same Name");
+        r.setCreatedByUserId(ownerId);
+        r.setReservedFor("Someone");
+        return r;
+    }
+
+    @Test
+    void everyReservationActionIsRefusedAsNotFoundForAnotherUser() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = ownedReservation(resId, UUID.randomUUID(), ReservationStatus.RESERVED);
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+        var stranger = new at.mci.igp.raumlotse.dto.Actor(UUID.randomUUID(), false);
+
+        assertThatThrownBy(() -> reservationService.getReservation(resId, stranger))
+                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> reservationService.updateReservationMetadata(resId,
+                new at.mci.igp.raumlotse.dto.ReservationUpdateRequest(5, "x"), stranger))
+                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> reservationService.activateReservation(resId, stranger))
+                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> reservationService.completeReservation(resId, stranger))
+                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> reservationService.expireReservation(resId, stranger))
+                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> reservationService.cancelReservation(resId, stranger))
+                .isInstanceOf(NotFoundException.class);
+
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.RESERVED);
+        assertThat(r.getNote()).isEqualTo("private");
+        verify(reservationRepository, never()).save(any());
+    }
+
+    @Test
+    void ownerAndAdministratorMayCancel() throws Exception {
+        UUID ownerId = UUID.randomUUID();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        when(reservationRepository.findById(first))
+                .thenReturn(Optional.of(ownedReservation(first, ownerId, ReservationStatus.RESERVED)));
+        when(reservationRepository.findById(second))
+                .thenReturn(Optional.of(ownedReservation(second, ownerId, ReservationStatus.RESERVED)));
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(i -> i.getArgument(0));
+
+        var byOwner = reservationService.cancelReservation(first, new at.mci.igp.raumlotse.dto.Actor(ownerId, false));
+        var byAdmin = reservationService.cancelReservation(second, TestActors.ADMIN);
+
+        assertThat(byOwner.status()).isEqualTo(ReservationStatus.CANCELLED);
+        assertThat(byOwner.ownedByMe()).isTrue();
+        assertThat(byAdmin.status()).isEqualTo(ReservationStatus.CANCELLED);
+        assertThat(byAdmin.ownedByMe()).isFalse();
+    }
+
+    @Test
+    void roomScheduleHidesPersonalDetailsOfOtherUsersReservations() throws Exception {
+        UUID ownerId = UUID.randomUUID();
+        UUID mine = UUID.randomUUID();
+        UUID theirs = UUID.randomUUID();
+        when(roomRepository.findById(roomId)).thenReturn(Optional.of(activeRoom));
+        when(reservationRepository.findByRoomIdOrderByStartTimeAsc(roomId)).thenReturn(List.of(
+                ownedReservation(mine, ownerId, ReservationStatus.RESERVED),
+                ownedReservation(theirs, UUID.randomUUID(), ReservationStatus.RESERVED)));
+
+        var list = reservationService.getReservationsForRoom(roomId, null, null,
+                new at.mci.igp.raumlotse.dto.Actor(ownerId, false));
+
+        assertThat(list.get(0).ownedByMe()).isTrue();
+        assertThat(list.get(0).note()).isEqualTo("private");
+        assertThat(list.get(1).ownedByMe()).isFalse();
+        assertThat(list.get(1).note()).isNull();
+        assertThat(list.get(1).reservedFor()).isNull();
+        assertThat(list.get(1).createdBy()).isNull();
+        assertThat(list.get(1).startTime()).isEqualTo(fixedNow.plus(1, ChronoUnit.HOURS));
+    }
+
+    @Test
+    void myUpcomingReservationsAreSelectedByOwnerIdentity() throws Exception {
+        UUID ownerId = UUID.randomUUID();
+        var statuses = List.of(ReservationStatus.RESERVED, ReservationStatus.ACTIVE);
+        when(reservationRepository.findTop10ByCreatedByUserIdAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(
+                ownerId, statuses, fixedNow))
+                .thenReturn(List.of(ownedReservation(UUID.randomUUID(), ownerId, ReservationStatus.RESERVED)));
+
+        var list = reservationService.getMyUpcomingReservations(ownerId);
+
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).ownedByMe()).isTrue();
+        assertThat(reservationService.getMyUpcomingReservations(null)).isEmpty();
+    }
+
+    @Test
+    void createdReservationRecordsTheCreatorIdentity() {
+        Instant start = fixedNow.plus(1, ChronoUnit.DAYS);
+        ReservationCreateRequest request = new ReservationCreateRequest(
+                start, start.plus(1, ChronoUnit.HOURS), seatingArrangementId, 5, List.of(), null, "Guest");
+        var creator = new at.mci.igp.raumlotse.dto.AuthenticatedUser(UUID.randomUUID(), "Verified Name");
+        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(activeRoom));
+        when(reservationRepository.findConflictingReservations(any(), any(), any())).thenReturn(List.of());
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(invocation -> {
+            Reservation r = invocation.getArgument(0);
+            setField(r, "id", UUID.randomUUID());
+            setField(r, "createdAt", fixedNow);
+            return r;
+        });
+
+        var response = reservationService.createReservation(roomId, request, creator);
+
+        assertThat(response.ownedByMe()).isTrue();
+        assertThat(response.createdBy()).isEqualTo("Verified Name");
+        org.mockito.ArgumentCaptor<Reservation> saved = org.mockito.ArgumentCaptor.forClass(Reservation.class);
+        verify(reservationRepository).save(saved.capture());
+        assertThat(saved.getValue().getCreatedByUserId()).isEqualTo(creator.userId());
     }
 }

@@ -35,7 +35,7 @@ class FloorServiceMapGuardTest {
 
         assertThatThrownBy(() -> service.delete(id))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("map");
+                .hasMessageContaining("Karte");
         verify(floors, never()).delete(any());
     }
 }

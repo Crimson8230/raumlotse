@@ -8,7 +8,7 @@ export const canonicalEmail = (email: string) => email.replace(boundaryWhitespac
 // eslint-disable-next-line no-control-regex -- the Java-compatible pattern intentionally enumerates ASCII whitespace.
 const emailPattern = new RegExp('^[^\\u0020\\u0009-\\u000d@]+@[^\\u0020\\u0009-\\u000d@]+\\.[^\\u0020\\u0009-\\u000d@]+$')
 export const loginSchema = z.object({
-  email: z.string().transform(canonicalEmail).pipe(z.string().min(1, 'Enter your email address.')
-    .max(254, 'Email address is too long.').regex(emailPattern, 'Enter a valid email address.')),
-  password: z.string().min(1, 'Enter your password.').max(1024, 'Password is too long.'),
+  email: z.string().transform(canonicalEmail).pipe(z.string().min(1, 'Bitte E-Mail-Adresse eingeben.')
+    .max(254, 'Die E-Mail-Adresse ist zu lang.').regex(emailPattern, 'Bitte eine gültige E-Mail-Adresse eingeben.')),
+  password: z.string().min(1, 'Bitte Passwort eingeben.').max(1024, 'Das Passwort ist zu lang.'),
 })

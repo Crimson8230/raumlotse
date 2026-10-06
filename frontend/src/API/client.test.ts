@@ -25,7 +25,7 @@ describe('formatApiError', () => {
   })
 
   it('falls back to a generic message for a non-ApiError, non-Error value', () => {
-    expect(formatApiError('boom')).toBe('Something went wrong.')
+    expect(formatApiError('boom')).toBe('Etwas ist schiefgelaufen.')
   })
 })
 
@@ -49,5 +49,41 @@ describe('apiRequest multipart bodies', () => {
     const headers = secondCall[1].headers as Record<string, string>
     expect(headers['Content-Type']).toBeUndefined()
     expect(headers['X-CSRF-TOKEN']).toBe('t')
+  })
+})
+
+describe('apiRequest administrator refusals', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    clearCsrfToken()
+  })
+
+  function stubStatus(status: number, code: string) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ title: 'x', status, detail: 'd', code }), { status })),
+    )
+  }
+
+  it('asks every role consumer to re-read roles when the server refuses with ADMIN_REQUIRED', async () => {
+    stubStatus(403, 'ADMIN_REQUIRED')
+    const listener = vi.fn()
+    window.addEventListener('raumlotse:roles-changed', listener)
+
+    await expect(apiRequest('/api/rooms')).rejects.toBeInstanceOf(ApiError)
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    window.removeEventListener('raumlotse:roles-changed', listener)
+  })
+
+  it('does not signal a roles change for other refusals', async () => {
+    stubStatus(403, 'CSRF_INVALID')
+    const listener = vi.fn()
+    window.addEventListener('raumlotse:roles-changed', listener)
+
+    await expect(apiRequest('/api/rooms')).rejects.toBeInstanceOf(ApiError)
+
+    expect(listener).not.toHaveBeenCalled()
+    window.removeEventListener('raumlotse:roles-changed', listener)
   })
 })

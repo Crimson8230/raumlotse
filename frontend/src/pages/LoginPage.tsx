@@ -35,12 +35,12 @@ export default function LoginPage() {
     setError('')
     const parsed = loginSchema.safeParse({ email, password })
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Check your email address and password.')
+      setError(parsed.error.issues[0]?.message ?? 'Bitte E-Mail-Adresse und Passwort prüfen.')
       return
     }
     const emailKey = parsed.data.email.toLowerCase()
     if ((cooldowns[emailKey] ?? 0) > Date.now()) {
-      setError('Too many failed login attempts. Please wait before trying again.')
+      setError('Zu viele fehlgeschlagene Anmeldeversuche. Bitte warten Sie, bevor Sie es erneut versuchen.')
       return
     }
     setBusy(true)
@@ -56,11 +56,11 @@ export default function LoginPage() {
         setNow(receivedAt)
         setCooldowns((current) => ({ ...current, [emailKey]: receivedAt + retry * 1000 }))
         setPassword('')
-        setError('Too many failed login attempts. Please wait before trying again.')
+        setError('Zu viele fehlgeschlagene Anmeldeversuche. Bitte warten Sie, bevor Sie es erneut versuchen.')
       } else {
         setError(failure instanceof ApiError && failure.status === 401
-          ? 'Email address or password is incorrect.'
-          : 'Sign-in is temporarily unavailable. Please try again.')
+          ? 'E-Mail-Adresse oder Passwort ist falsch.'
+          : 'Die Anmeldung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.')
       }
     } finally {
       setBusy(false)
@@ -74,7 +74,7 @@ export default function LoginPage() {
       await retryAvailability()
       navigate('/', { replace: true })
     } catch {
-      setError('Sign-in is temporarily unavailable. Please try again.')
+      setError('Die Anmeldung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.')
     } finally {
       setBusy(false)
     }
@@ -86,22 +86,22 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <form className="login-card" onSubmit={submit} aria-labelledby="login-title" noValidate>
-        <h1 id="login-title">Sign in</h1>
-        <p>Use your email address and password to access Raumlotse.</p>
-        <label htmlFor="login-email">Email address</label>
+        <h1 id="login-title">Anmelden</h1>
+        <p>Melden Sie sich mit E-Mail-Adresse und Passwort bei Raumlotse an.</p>
+        <label htmlFor="login-email">E-Mail-Adresse</label>
         <input id="login-email" name="email" type="email" autoComplete="username" required maxLength={254}
           value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy} />
-        <label htmlFor="login-password">Password</label>
+        <label htmlFor="login-password">Passwort</label>
         <input id="login-password" name="password" type="password" autoComplete="current-password" required
           maxLength={1024} value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
         {remaining > 0
           ? <p className="login-error" role="status">Too many failed login attempts. Try again in {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}.</p>
           : error && <p className="login-error" role="alert">{error}</p>}
         <button type="submit" disabled={busy || remaining > 0 || state === 'loading' || state === 'finishing-login' || (state === 'unavailable' && !!user)}>
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? 'Anmeldung läuft…' : 'Anmelden'}
         </button>
         {state === 'unavailable' && user && <button type="button" onClick={retrySessionSetup} disabled={busy}>
-          {busy ? 'Retrying…' : 'Retry connection'}
+          {busy ? 'Neuer Versuch…' : 'Verbindung erneut versuchen'}
         </button>}
       </form>
     </main>

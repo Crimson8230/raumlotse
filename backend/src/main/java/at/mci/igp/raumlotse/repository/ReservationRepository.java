@@ -68,6 +68,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
 
     List<Reservation> findByStatusAndEndTimeLessThanEqual(ReservationStatus status, Instant endTime);
 
-    List<Reservation> findTop10ByCreatedByAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(
-            String createdBy, Collection<ReservationStatus> statuses, Instant now);
+    List<Reservation> findTop10ByCreatedByUserIdAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(
+            UUID createdByUserId, Collection<ReservationStatus> statuses, Instant now);
 }

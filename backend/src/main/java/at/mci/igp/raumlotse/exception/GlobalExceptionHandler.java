@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Problem> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
                 log.warn("map_request_rejected code=MAP_IMAGE_TOO_LARGE status=413");
                 return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).cacheControl(CacheControl.noStore())
-                                .body(Problem.of(413, "Content Too Large", "The image is larger than 10 MB.",
+                                .body(Problem.of(413, "Content Too Large", "Das Bild ist größer als 10 MB.",
                                                 "MAP_IMAGE_TOO_LARGE"));
         }
 
@@ -58,14 +58,14 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Problem> handleDeviceOperation(DeviceOperationException ex) {
                 log.warn("device_command_failed status=503");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                                .body(Problem.of(503, "Device Unavailable", "The device did not acknowledge the command.", "DEVICE_OPERATION_FAILED"));
+                                .body(Problem.of(503, "Device Unavailable", "Das Gerät hat den Befehl nicht bestätigt.", "DEVICE_OPERATION_FAILED"));
         }
 
         @ExceptionHandler(DeviceAccessDeniedException.class)
         public ResponseEntity<Problem> handleDeviceAccessDenied(DeviceAccessDeniedException ex) {
                 log.warn("device_authorization_denied status=403");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body(Problem.of(403, "Forbidden", "You do not have an active reservation for this room.", "DEVICE_ACCESS_DENIED"));
+                                .body(Problem.of(403, "Forbidden", "Sie haben für diesen Raum keine aktive Reservierung.", "DEVICE_ACCESS_DENIED"));
         }
 
         @ExceptionHandler(OptimisticLockingFailureException.class)
@@ -73,7 +73,7 @@ public class GlobalExceptionHandler {
                 log.warn("stale_write detail={}", ex.getMessage());
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                                 .body(Problem.of(409, "Conflict",
-                                                "The resource was modified by someone else since it was loaded. Reload and try again."));
+                                                "Der Datensatz wurde zwischenzeitlich von jemand anderem geändert. Bitte neu laden und erneut versuchen."));
         }
 
         @ExceptionHandler(DataIntegrityViolationException.class)
@@ -81,10 +81,10 @@ public class GlobalExceptionHandler {
                 log.warn("data_integrity_violation detail={}", ex.getMostSpecificCause().getMessage());
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                                 .body(Problem.of(409, "Conflict",
-                                                "The request conflicts with an existing record (e.g. a duplicate name)."));
+                                                "Die Anfrage kollidiert mit einem vorhandenen Datensatz (z. B. doppelter Name)."));
         }
 
-        private static final String INVALID_FORMAT = "has an invalid format";
+        private static final String INVALID_FORMAT = "hat ein ungültiges Format";
 
         @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<Problem> handleValidation(MethodArgumentNotValidException ex) {
@@ -101,7 +101,7 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Problem> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
                 log.warn("validation_failed fields={}", ex.getName());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).cacheControl(CacheControl.noStore())
-                                .body(Problem.of(400, "Validation Failed", "One or more parameters are invalid.",
+                                .body(Problem.of(400, "Validation Failed", "Ein oder mehrere Parameter sind ungültig.",
                                                 List.of(new Problem.FieldError(ex.getName(), INVALID_FORMAT)),
                                                 "VALIDATION_FAILED", null));
         }
@@ -117,7 +117,7 @@ public class GlobalExceptionHandler {
                                 .toList();
                 log.warn("validation_failed fields={}", errors.stream().map(Problem.FieldError::field).toList());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).cacheControl(CacheControl.noStore())
-                                .body(Problem.of(400, "Validation Failed", "One or more fields are invalid.", errors,
+                                .body(Problem.of(400, "Validation Failed", "Ein oder mehrere Felder sind ungültig.", errors,
                                                 "VALIDATION_FAILED", null));
         }
 
@@ -125,7 +125,7 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Problem> handleUnreadableRequest(HttpMessageNotReadableException ex) {
                 log.warn("request_failure code=VALIDATION_FAILED status=400");
                 return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).body(
-                                Problem.of(400, "Validation Failed", "The request body is invalid.",
+                                Problem.of(400, "Validation Failed", "Der Anfragetext ist ungültig.",
                                                 "VALIDATION_FAILED"));
         }
 
@@ -135,7 +135,7 @@ public class GlobalExceptionHandler {
                 return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).cacheControl(CacheControl.noStore())
                                 .body(
                                                 Problem.of(415, "Unsupported Media Type",
-                                                                "Use application/json for this request.",
+                                                                "Bitte application/json verwenden.",
                                                                 "UNSUPPORTED_MEDIA_TYPE"));
         }
 
