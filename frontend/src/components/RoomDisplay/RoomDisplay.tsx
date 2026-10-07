@@ -4,7 +4,7 @@ import type { RoomDisplayProps, RoomDisplayStatus } from './roomDisplayTypes'
 import './RoomDisplay.css'
 
 const STATUS_LABELS: Record<RoomDisplayStatus, string> = {
-  AVAILABLE: 'Frei',
+  AVAILABLE: 'Verfügbar',
   RESERVED: 'Reserviert',
   OCCUPIED: 'Belegt',
   UNAVAILABLE: 'Nicht verfügbar',

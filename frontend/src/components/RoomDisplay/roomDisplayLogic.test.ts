@@ -100,7 +100,7 @@ describe('deriveRoomDisplayStatus', () => {
     expect(deriveRoomDisplayStatus([], now, 'room-1')).toBe('AVAILABLE')
   })
 
-  it('derives RESERVED for a future RESERVED reservation', () => {
+  it('derives AVAILABLE for a future RESERVED reservation that has not started', () => {
     const future = reservationFixture({
       id: 'future',
       status: 'RESERVED',
@@ -108,7 +108,16 @@ describe('deriveRoomDisplayStatus', () => {
       endTime: '2026-09-20T12:00:00.000Z',
     })
 
-    expect(deriveRoomDisplayStatus([future], now, 'room-1')).toBe('RESERVED')
+    expect(deriveRoomDisplayStatus([future], now, 'room-1')).toBe('AVAILABLE')
+  })
+
+  it('derives RESERVED for a current RESERVED reservation without check-in', () => {
+    const currentReserved = reservationFixture({
+      id: 'current-reserved',
+      status: 'RESERVED',
+    })
+
+    expect(deriveRoomDisplayStatus([currentReserved], now, 'room-1')).toBe('RESERVED')
   })
 
   it('gives current ACTIVE occupancy precedence over future RESERVED bookings', () => {

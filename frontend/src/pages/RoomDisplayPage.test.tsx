@@ -162,7 +162,7 @@ describe('RoomDisplayPage', () => {
 
     renderPage()
 
-    expect(await screen.findByRole('status', { name: 'Reserviert' })).toBeInTheDocument()
+    expect(await screen.findByRole('status', { name: 'Verfügbar' })).toBeInTheDocument()
 
     await act(async () => {
       vi.setSystemTime(new Date('2026-09-20T10:01:00.000Z'))

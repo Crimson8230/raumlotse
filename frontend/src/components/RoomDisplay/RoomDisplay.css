@@ -145,12 +145,12 @@
 
 .room-display-status-reserved {
   color: var(--color-text);
-  background: var(--hatch), var(--color-busy);
+  background: var(--color-busy);
 }
 
 .room-display-status-occupied {
-  color: var(--color-text);
-  background: var(--hatch), var(--color-busy);
+  color: var(--color-background);
+  background: var(--color-error);
 }
 
 .room-display-current-time,

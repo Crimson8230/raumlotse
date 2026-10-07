@@ -54,29 +54,23 @@ export function deriveRoomDisplayStatus(
 ): RoomDisplayStatus {
   const currentTimestamp = currentDateTime.getTime()
   const roomReservations = reservations.filter((reservation) => reservation.roomId === roomId)
-  const currentActive = roomReservations.some((reservation) => {
-    return (
-      reservation.status === 'ACTIVE' &&
-      Date.parse(reservation.startTime) <= currentTimestamp &&
-      currentTimestamp < Date.parse(reservation.endTime)
-    )
-  })
-
-  if (currentActive) {
-    return 'OCCUPIED'
-  }
-
-  const hasReservedBooking = roomReservations.some((reservation) => {
+  const currentReservations = roomReservations.filter((reservation) => {
     const startTimestamp = Date.parse(reservation.startTime)
     const endTimestamp = Date.parse(reservation.endTime)
     return (
-      reservation.status === 'RESERVED' &&
-      (startTimestamp > currentTimestamp ||
-        (startTimestamp <= currentTimestamp && currentTimestamp < endTimestamp))
+      ACTIVE_STATUSES.has(reservation.status) &&
+      startTimestamp <= currentTimestamp &&
+      currentTimestamp < endTimestamp
     )
   })
 
-  return hasReservedBooking ? 'RESERVED' : 'AVAILABLE'
+  if (currentReservations.some((reservation) => reservation.status === 'ACTIVE')) {
+    return 'OCCUPIED'
+  }
+
+  return currentReservations.some((reservation) => reservation.status === 'RESERVED')
+    ? 'RESERVED'
+    : 'AVAILABLE'
 }
 
 export function selectNextReservation(

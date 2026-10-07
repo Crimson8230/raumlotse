@@ -92,7 +92,7 @@ describe('RoomDisplay smoke test', () => {
     )
 
     expect(screen.getByRole('alert')).toHaveTextContent(/nicht verfügbar/i)
-    expect(screen.queryByText('Frei')).not.toBeInTheDocument()
+    expect(screen.queryByText('Verfügbar')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Aktuelle Reservierung' })).not.toBeInTheDocument()
   })
 
@@ -115,7 +115,7 @@ describe('RoomDisplay smoke test', () => {
   })
 
   it.each([
-    ['AVAILABLE', 'Frei'],
+    ['AVAILABLE', 'Verfügbar'],
     ['RESERVED', 'Reserviert'],
     ['OCCUPIED', 'Belegt'],
   ] as const)('renders the %s status with a text label', (status, label) => {
@@ -130,7 +130,7 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    expect(screen.getByRole('status', { name: label })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: label })).toHaveClass(`room-display-status-${status.toLowerCase()}`)
     expect(screen.getByText(label)).toBeInTheDocument()
   })
 
@@ -146,7 +146,7 @@ describe('RoomDisplay smoke test', () => {
       />,
     )
 
-    const status = screen.getByRole('status', { name: 'Frei' })
+    const status = screen.getByRole('status', { name: 'Verfügbar' })
     const currentDateTime = screen.getByLabelText('Aktuelles Datum und Uhrzeit')
 
     expect(status.compareDocumentPosition(currentDateTime) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
