@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Room Status Visualization
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-10-01
+**Created**: 2026-10-07
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Validation completed after the layout clarification update; no issues remain.
+- Validation completed after updating the current-status precedence: future reservations leave a free room `Verfügbar`; an unclaimed reservation is `Reserviert` only during its period; a checked-in room is `Belegt`.

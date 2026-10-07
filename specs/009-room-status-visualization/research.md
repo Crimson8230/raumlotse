@@ -1,73 +1,38 @@
 # Research: Room Status Visualization
 
 **Feature**: [spec.md](spec.md)
-**Date**: 2026-10-01
+**Date**: 2026-10-07
 
-## Decision 1: Derive display status in the existing frontend display logic
+## Decision 1: Derive the current status from the current interval
 
-- **Decision**: Keep status and next-reservation derivation in the existing
-  `frontend/src/components/RoomDisplay/roomDisplayLogic.ts` boundary and pass a view model to
-  `RoomDisplay`.
-- **Rationale**: The page already loads the room and its reservations, and the feature is a
-  presentation rule. This avoids a new endpoint and keeps the rules directly unit-testable.
-- **Alternatives considered**: A backend-computed display-status endpoint would add a service
-  boundary and contract without requiring new source data; deriving status in CSS would make
-  lifecycle and time rules difficult to test.
+- **Decision**: Keep derivation in `frontend/src/components/RoomDisplay/roomDisplayLogic.ts`. Filter reservations to the displayed room and the half-open interval `startTime <= now < endTime`; return `OCCUPIED` for a current `ACTIVE` record, `RESERVED` for a current `RESERVED` record, and `AVAILABLE` otherwise.
+- **Rationale**: The existing response already provides the required lifecycle and time data. A future reservation must not make a currently free room look reserved.
+- **Alternatives considered**: A backend-computed status would add an unnecessary endpoint/service boundary; deriving status from all future records reproduces the reported defect.
 
-## Decision 2: Use explicit status precedence and half-open time windows
+## Decision 2: Give check-in precedence
 
-- **Decision**: Evaluate a current `ACTIVE` reservation first, then a future `RESERVED`
-  reservation, otherwise mark the room available. Current reservations use the existing
-  half-open interval `startTime <= now < endTime`.
-- **Rationale**: Red must win when a room is occupied even if another booking is later. The
-  interval matches the existing reservation conflict and display behavior, preventing an
-  ended booking from remaining current.
-- **Alternatives considered**: Sorting all reservations without status precedence could show
-  yellow while the room is occupied; inclusive end times would create overlap at back-to-back
-  reservations.
+- **Decision**: When current `ACTIVE` and current `RESERVED` records overlap, `OCCUPIED` wins. A `RESERVED` record becomes `RESERVED` only while its interval is active and no current check-in is present.
+- **Rationale**: The user-facing state must reflect actual occupancy when check-in exists.
+- **Alternatives considered**: Sorting by start time alone could show `RESERVED` while the room is occupied.
 
-## Decision 3: Select only future `RESERVED` records for `Next Reservation`
+## Decision 3: Keep future-reservation selection independent
 
-- **Decision**: Filter by displayed room, status `RESERVED`, and `startTime > now`; sort by
-  start time and then reservation id for deterministic ties.
-- **Rationale**: This directly records the clarification answer. `ACTIVE` means current
-  occupancy and must not be presented as a future booking.
-- **Alternatives considered**: Including every non-terminal status could expose an inconsistent
-  future `ACTIVE` record as the next booking and weaken the lifecycle contract.
+- **Decision**: `selectNextReservation` continues to select the earliest future `RESERVED` record by start time and deterministic id tie-breaker. This selection does not affect the current status.
+- **Rationale**: Users still need to see the next booking while the room remains currently available.
+- **Alternatives considered**: Removing next-reservation information would exceed the requested scope and lose an existing feature.
 
-## Decision 4: Refresh reservation data with the existing 30-second display cadence
+## Decision 4: Preserve refresh and failure behavior
 
-- **Decision**: Keep the current clock interval and use the same cadence to refresh the room's
-  reservation data while the display is mounted; retain the existing unavailable state on
-  failed refreshes rather than showing stale reservation details as current.
-- **Rationale**: The specification requires status changes to be reflected and existing code
-  already establishes a 30-second display update cadence, which keeps the implementation small.
-- **Alternatives considered**: WebSocket/server push would introduce a new integration and is
-  unnecessary for the stated 60-second freshness target.
+- **Decision**: Retain the 30-second clock/data refresh and show the existing unavailable state when required data cannot be loaded.
+- **Rationale**: This is sufficient for the feature's freshness requirement without introducing real-time infrastructure.
+- **Alternatives considered**: WebSocket/server-push would add unnecessary integration complexity.
 
-## Decision 5: Make status understandable without color
+## Decision 5: Use explicit German status labels and semantic cues
 
-- **Decision**: Render a semantic status label alongside a status class/visual treatment:
-  `Available`, `Reserved`, or `Reserved and Occupied`. Use accessible text and existing CSS
-  conventions; no new visual library is needed.
-- **Rationale**: It satisfies the specification's non-color requirement and remains legible on
-  the existing display mockup.
-- **Alternatives considered**: Color-only indicators are insufficient for accessibility and
-  ambiguous in low-contrast or monochrome display contexts.
-
-## Decision 6: Put status before the clock and keep the next reservation inline
-
-- **Decision**: Render the status block before the current date/time in the display hierarchy.
-  Render `Next Reservation`, `Reserved for:`, `Start Time`, and `End Time` as one compact,
-  non-wrapping line, using the existing display width and typography rules.
-- **Rationale**: The status is the primary at-a-glance signal, and the clarification requires
-  the next reservation to be readable as one line without losing any required label or value.
-  This is a presentation-only change and does not alter the reservation contract.
-- **Alternatives considered**: Keeping status after the clock weakens the visual priority;
-  separate paragraphs or a definition list violate the clarified one-line requirement.
+- **Decision**: Render `Verfügbar`, `Reserviert`, and `Belegt` as visible labels with the existing status classes and accessible status role. Update the available label from `Frei` to `Verfügbar`; retain existing layout and reservation labels.
+- **Rationale**: This matches the requested terminology and prevents color-only interpretation.
+- **Alternatives considered**: Color-only indicators or retaining `Frei` would not satisfy the requested wording.
 
 ## Unknowns resolved
 
-No unresolved technical choices remain for planning. Existing API response fields include room
-identity, reservation status, time window, and `reservedFor`; no migration or API version change
-is required.
+No unresolved technical choices remain. No backend contract, database migration, or new dependency is required.
