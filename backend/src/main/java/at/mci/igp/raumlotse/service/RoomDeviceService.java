@@ -5,6 +5,7 @@ import at.mci.igp.raumlotse.domain.EquipmentType;
 import at.mci.igp.raumlotse.domain.Reservation;
 import at.mci.igp.raumlotse.domain.RoomDeviceKind;
 import at.mci.igp.raumlotse.domain.RoomDeviceState;
+import at.mci.igp.raumlotse.domain.PermissionCode;
 import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.dto.RoomDeviceCommandRequest;
 import at.mci.igp.raumlotse.dto.RoomDeviceControlsResponse;
@@ -37,17 +38,31 @@ public class RoomDeviceService {
     private final RoomDeviceStateRepository stateRepository;
     private final RoomDeviceGateway gateway;
     private final Clock clock;
+    private final EffectivePermissionService permissions;
 
     @Autowired
     public RoomDeviceService(RoomRepository rooms, ReservationRepository reservations,
-            RoomDeviceStateRepository states, RoomDeviceGateway gateway) {
-        this(rooms, reservations, states, gateway, Clock.systemUTC());
+            RoomDeviceStateRepository states, RoomDeviceGateway gateway, EffectivePermissionService permissions) {
+        this(rooms, reservations, states, gateway, Clock.systemUTC(), permissions);
     }
 
     public RoomDeviceService(RoomRepository rooms, ReservationRepository reservations,
             RoomDeviceStateRepository states, RoomDeviceGateway gateway, Clock clock) {
+        this(rooms, reservations, states, gateway, clock, null);
+    }
+
+    /** Isolated legacy tests supply their own clock or use the system clock. */
+    public RoomDeviceService(RoomRepository rooms, ReservationRepository reservations,
+            RoomDeviceStateRepository states, RoomDeviceGateway gateway) {
+        this(rooms, reservations, states, gateway, Clock.systemUTC(), null);
+    }
+
+    public RoomDeviceService(RoomRepository rooms, ReservationRepository reservations,
+            RoomDeviceStateRepository states, RoomDeviceGateway gateway, Clock clock,
+            EffectivePermissionService permissions) {
         this.roomRepository = rooms; this.reservationRepository = reservations;
         this.stateRepository = states; this.gateway = gateway; this.clock = clock;
+        this.permissions = permissions;
     }
 
     @Transactional(readOnly = true)
@@ -85,11 +100,12 @@ public class RoomDeviceService {
     }
 
     private Reservation authorize(UUID roomId, Instant now) {
-        var room = roomRepository.findById(roomId).orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)) {
             throw new DeviceAccessDeniedException("Anmeldung erforderlich.");
         }
+        if (permissions != null) permissions.require(user.userId(), PermissionCode.OWN_ACTIVE_DEVICE_CONTROL);
+        roomRepository.findById(roomId).orElseThrow(() -> new NotFoundException("Raum " + roomId + " nicht gefunden."));
         return reservationRepository.findEligibleDeviceReservations(roomId, user.userId(), now).stream()
                 .findFirst().orElseThrow(() -> new DeviceAccessDeniedException("Keine passende aktive Reservierung."));
     }

@@ -12,10 +12,14 @@ import type { MapDetail, MapSummary } from '../types/map'
 vi.mock('../API/maps')
 vi.mock('../API/buildings')
 vi.mock('../API/floors')
+vi.mock('../auth/useCurrentRoles', () => ({ useCurrentRoles: () => ({
+  permissions: rightsOverride ?? (editable ? ['READ', 'MAP_MANAGE', 'ROOM_PLACEMENT_MANAGE', 'CONNECTION_MANAGE'] : ['READ']),
+}) }))
 
 const maps = vi.mocked(mapsApi)
 // Administration mode and the administrator role are decided by the /admin route guard; the page only gets `editable`.
 let editable = false
+let rightsOverride: string[] | undefined
 
 function summary(id: string, name: string): MapSummary {
   return { id, floorId: `f-${id}`, name, widthPx: 100, heightPx: 50, imageVersion: 1, placedRoomCount: 0 }
@@ -40,6 +44,7 @@ function renderPage(path = '/maps') {
 beforeEach(() => {
   vi.resetAllMocks()
   editable = false
+  rightsOverride = undefined
   maps.mapImageUrl.mockImplementation((m) => `/api/maps/${m.id}/image?v=${m.imageVersion}`)
   maps.listUnplacedRooms.mockResolvedValue([])
   maps.listConnections.mockResolvedValue([])
@@ -48,6 +53,18 @@ beforeEach(() => {
 })
 
 describe('MapPage', () => {
+  it('keeps room placements read-only for a connection manager', async () => {
+    editable = true
+    rightsOverride = ['READ', 'CONNECTION_MANAGE']
+    maps.listMaps.mockResolvedValue([summary('m1', 'Haus A – EG')])
+    maps.getMap.mockResolvedValue({ ...detail('m1', 'Haus A – EG'), placements: [
+      { room: { id: 'r1', name: 'Raum 1', status: 'ACTIVE' }, x: 0.25, y: 0.25 },
+    ] })
+    renderPage('/admin/maps')
+    await userEvent.click(await screen.findByRole('button', { name: 'Raum 1' }))
+    expect(screen.queryByRole('button', { name: 'Platzierung entfernen' })).not.toBeInTheDocument()
+    expect(maps.listUnplacedRooms).not.toHaveBeenCalled()
+  })
   it('shows an explanatory empty state instead of an error when no map exists', async () => {
     maps.listMaps.mockResolvedValue([])
     renderPage()
@@ -101,7 +118,7 @@ describe('MapPage', () => {
     window.dispatchEvent(new Event('focus'))
 
     await waitFor(() => expect(maps.getMap.mock.calls.length).toBeGreaterThan(before))
-    expect(maps.listUnplacedRooms.mock.calls.length).toBeGreaterThan(1)
+    expect(maps.listUnplacedRooms).not.toHaveBeenCalled()
   })
 
   describe('placement', () => {
@@ -117,6 +134,7 @@ describe('MapPage', () => {
     })
 
     it('shows placed rooms as labeled markers and the other rooms in the unplaced list', async () => {
+      editable = true
       renderPage()
       expect(await screen.findByRole('button', { name: 'Raum 1' })).toBeInTheDocument()
       const list = await screen.findByRole('list', { name: /nicht platzierte räume/i })

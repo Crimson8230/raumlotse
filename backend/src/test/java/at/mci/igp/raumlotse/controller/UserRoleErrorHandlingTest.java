@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({SecurityConfig.class, at.mci.igp.raumlotse.exception.UserRoleExceptionHandler.class})
 @ExtendWith(OutputCaptureExtension.class)
 class UserRoleErrorHandlingTest {
+    @MockitoBean EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mvc;
     @MockitoBean UserRoleService service;
     @MockitoBean UserRoleSafety safety;

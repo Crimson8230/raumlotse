@@ -50,6 +50,8 @@ class BookingConfirmationIntegrationTest extends AbstractIntegrationTest {
         jdbc.update("delete from booking_confirmation where reservation_id in (select id from reservation where created_by_user_id=?)",
                 actor.userId());
         jdbc.update("delete from reservation where created_by_user_id=?", actor.userId());
+        jdbc.update("delete from role_assignment where user_id=?", actor.userId());
+        jdbc.update("delete from user_role_state where user_id=?", actor.userId());
         users.deleteById(actor.userId());
     }
 
@@ -59,6 +61,8 @@ class BookingConfirmationIntegrationTest extends AbstractIntegrationTest {
                 "mail-" + java.util.UUID.randomUUID() + "@example.test", "Booker",
                 "{pbkdf2-sha256-600000-v1}" + "x".repeat(40)));
         actor = new AuthenticatedUser(account.getId(), account.getDisplayName());
+        jdbc.update("delete from role_assignment where user_id=?", actor.userId());
+        jdbc.update("insert into role_assignment(user_id,role_code) values (?, 'STUDENT')", actor.userId());
         var building = buildings.save(new Building("Mail " + java.util.UUID.randomUUID()));
         var floor = floors.save(new Floor(building, "Ground"));
         room = new Room("Besprechung", floor);
@@ -81,7 +85,7 @@ class BookingConfirmationIntegrationTest extends AbstractIntegrationTest {
         assertThat(confirmations.findByReservationId(first.id())).isPresent();
         assertThat(confirmations.findByReservationId(second.id())).isEmpty();
         assertThat(confirmations.count()).isEqualTo(before + 1);
-        reservations.getReservation(first.id(), TestActors.ADMIN);
+        reservations.getReservation(first.id(), new at.mci.igp.raumlotse.dto.Actor(actor.userId(), false));
         assertThat(confirmations.count()).isEqualTo(before + 1);
     }
 
@@ -109,7 +113,7 @@ class BookingConfirmationIntegrationTest extends AbstractIntegrationTest {
 
         var confirmation = confirmations.findByReservationId(created.id()).orElseThrow();
         assertThat(confirmation.getStatus()).isEqualTo(BookingConfirmationStatus.FAILED);
-        assertThat(reservations.getReservation(created.id(), TestActors.ADMIN).status()).isEqualTo(at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED);
+        assertThat(reservations.getReservation(created.id(), new at.mci.igp.raumlotse.dto.Actor(actor.userId(), false)).status()).isEqualTo(at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED);
         worker.processPending();
         org.mockito.Mockito.verify(gateway).send(org.mockito.ArgumentMatchers.any());
     }

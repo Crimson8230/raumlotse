@@ -48,7 +48,7 @@ class MapAuthorizationIntegrationTest extends AbstractIntegrationTest {
         UUID id = UUID.randomUUID();
         db.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)",
                 id, email, "Fixture", "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
-        db.update("insert into user_role_state(user_id) values (?)", id);
+        db.update("delete from role_assignment where user_id=?", id);
         db.update("insert into role_assignment(user_id,role_code) values (?,?)", id, role);
         return id;
     }
@@ -92,7 +92,7 @@ class MapAuthorizationIntegrationTest extends AbstractIntegrationTest {
         for (Call call : writes()) {
             mvc.perform(call.build().with(actor(user)).with(csrf()))
                     .andExpect(status().isForbidden())
-                    .andExpect(jsonPath("$.code").value("ADMIN_REQUIRED"));
+                    .andExpect(jsonPath("$.code").value("PERMISSION_REQUIRED"));
         }
     }
 

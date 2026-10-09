@@ -17,10 +17,14 @@ public class AdminModeService {
 
     /** The mode as the client should see it: the flag, and only while the actor is an administrator. */
     public boolean effective(HttpSession session, Actor actor) {
+        return effective(session, actor.admin());
+    }
+
+    public boolean effective(HttpSession session, boolean canUseAdminMode) {
         if (session == null || !Boolean.TRUE.equals(session.getAttribute(ATTRIBUTE))) {
             return false;
         }
-        if (!actor.admin()) {
+        if (!canUseAdminMode) {
             session.removeAttribute(ATTRIBUTE);
             return false;
         }
@@ -28,9 +32,13 @@ public class AdminModeService {
     }
 
     public boolean set(HttpSession session, Actor actor, boolean enabled) {
-        if (!actor.admin()) {
-            AccessDeniedLog.admin("PUT", "/api/auth/admin-mode", actor.userId());
-            throw new UserRoleException(403, "ADMIN_REQUIRED", "Administratorrechte erforderlich.");
+        return set(session, actor.userId(), actor.admin(), enabled);
+    }
+
+    public boolean set(HttpSession session, java.util.UUID userId, boolean canUseAdminMode, boolean enabled) {
+        if (enabled && !canUseAdminMode) {
+            AccessDeniedLog.admin("PUT", "/api/auth/admin-mode", userId);
+            throw new UserRoleException(403, "ADMIN_MODE_NOT_ALLOWED", "Der Administrationsmodus ist nicht verfügbar.");
         }
         if (enabled) {
             session.setAttribute(ATTRIBUTE, Boolean.TRUE);

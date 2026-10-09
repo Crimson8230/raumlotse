@@ -38,7 +38,9 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 @WithMockUser
 @Import(SecurityConfig.class)
 class ConnectionControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mvc;
     @MockitoBean ConnectionService service;
     @MockitoBean UserRoleSafety roleSafety;
@@ -60,7 +62,7 @@ class ConnectionControllerTest {
     @Test
     void listReturnsConnectionsWithPointsAndIncompleteFlag() throws Exception {
         when(service.list()).thenReturn(List.of(ConnectionResponse.from(connection())));
-        mvc.perform(get("/api/connections"))
+        mvc.perform(get("/api/connections").with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Aufzug A"))
                 .andExpect(jsonPath("$[0].type").value("ELEVATOR"))

@@ -77,7 +77,7 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
     }
     const problem = await parseErrorBody(response)
     // The server no longer sees the user as administrator: re-read roles and administration mode (feature 013).
-    if (response.status === 403 && problem?.code === 'ADMIN_REQUIRED') {
+    if (response.status === 403 && ['ADMIN_REQUIRED', 'PERMISSION_REQUIRED', 'ADMIN_MODE_NOT_ALLOWED'].includes(problem?.code ?? '')) {
       window.dispatchEvent(new Event('raumlotse:roles-changed'))
     }
     throw new ApiError(response.status, problem, Number(response.headers.get('Retry-After')) || undefined)

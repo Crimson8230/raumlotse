@@ -10,11 +10,13 @@ import at.mci.igp.raumlotse.domain.ReservationStatus;
 import at.mci.igp.raumlotse.domain.Room;
 import at.mci.igp.raumlotse.domain.RoomDeviceKind;
 import at.mci.igp.raumlotse.domain.RoomDeviceState;
+import at.mci.igp.raumlotse.domain.PermissionCode;
 import at.mci.igp.raumlotse.domain.Floor;
 import at.mci.igp.raumlotse.domain.Building;
 import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.dto.RoomDeviceCommandRequest;
 import at.mci.igp.raumlotse.exception.DeviceAccessDeniedException;
+import at.mci.igp.raumlotse.exception.UserRoleException;
 import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomDeviceStateRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
@@ -38,6 +40,7 @@ class RoomDeviceServiceTest {
     @Mock ReservationRepository reservations;
     @Mock RoomDeviceStateRepository states;
     @Mock RoomDeviceGateway gateway;
+    @Mock EffectivePermissionService permissions;
 
     @AfterEach void clearSecurity() { SecurityContextHolder.clearContext(); }
 
@@ -77,5 +80,23 @@ class RoomDeviceServiceTest {
         assertThatThrownBy(() -> service.setState(roomId, RoomDeviceKind.LIGHTING, new RoomDeviceCommandRequest(true)))
                 .isInstanceOf(DeviceAccessDeniedException.class);
         verifyNoInteractions(gateway, states);
+    }
+
+    @Test
+    void currentDevicePermissionIsRequiredForReadAndCommandBeforeRoomLookup() {
+        UUID roomId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(new AuthenticatedUser(userId, "Owner"), null, List.of()));
+        doThrow(new UserRoleException(403, "PERMISSION_REQUIRED", "Nicht erlaubt."))
+                .when(permissions).require(userId, PermissionCode.OWN_ACTIVE_DEVICE_CONTROL);
+        var service = new RoomDeviceService(rooms, reservations, states, gateway,
+                Clock.systemUTC(), permissions);
+
+        assertThatThrownBy(() -> service.getControls(roomId))
+                .isInstanceOf(UserRoleException.class);
+        assertThatThrownBy(() -> service.setState(roomId, RoomDeviceKind.LIGHTING,
+                new RoomDeviceCommandRequest(true))).isInstanceOf(UserRoleException.class);
+        verifyNoInteractions(rooms, reservations, states, gateway);
     }
 }

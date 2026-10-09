@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAdminMode } from '../auth/useAdminMode'
 import { getRoom } from '../API/rooms'
+import { listRoomReservations } from '../API/reservations'
 import { ReservationForm } from '../components/ReservationForm/ReservationForm'
 import { ReservationList } from '../components/ReservationList/ReservationList'
 import type { Room } from '../types/room'
@@ -20,7 +21,7 @@ function bookingWindow(start: string | null, end: string | null): { start: strin
 
 export default function RoomDetailPage() {
   const { roomId } = useParams<{ roomId: string }>()
-  const { adminMode } = useAdminMode()
+  const { adminMode, permissions } = useAdminMode()
   const [searchParams] = useSearchParams()
   const requestedStart = searchParams.get('start')
   const requestedEnd = searchParams.get('end')
@@ -32,6 +33,24 @@ export default function RoomDetailPage() {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [refreshSignal, setRefreshSignal] = useState(0)
+  const [deviceEligibility, setDeviceEligibility] = useState<{ key: string; eligible: boolean }>()
+  const eligibilityKey = `${roomId ?? ''}:${refreshSignal}:${permissions.includes('OWN_ACTIVE_DEVICE_CONTROL')}`
+
+  useEffect(() => {
+    if (!roomId || !permissions.includes('OWN_ACTIVE_DEVICE_CONTROL')) {
+      return
+    }
+    let ignore = false
+    listRoomReservations(roomId).then((entries) => {
+      if (!ignore) setDeviceEligibility({
+        key: eligibilityKey,
+        eligible: entries.some((entry) => entry.ownedByMe && entry.status === 'ACTIVE'),
+      })
+    }).catch(() => {
+      if (!ignore) setDeviceEligibility({ key: eligibilityKey, eligible: false })
+    })
+    return () => { ignore = true }
+  }, [roomId, refreshSignal, permissions, eligibilityKey])
 
   useEffect(() => {
     if (!roomId) return
@@ -92,8 +111,8 @@ export default function RoomDetailPage() {
         <h1>{room.name}</h1>
         <div>
           <Link to={`/rooms/${room.id}/display`}>Raumanzeige</Link>{' '}
-          <Link to={`/rooms/${room.id}/control`}>Geräte steuern</Link>{' '}
-          {adminMode && <Link to={`/admin/rooms/${room.id}/edit`}>Raum bearbeiten</Link>}
+          {permissions.includes('OWN_ACTIVE_DEVICE_CONTROL') && deviceEligibility?.key === eligibilityKey && deviceEligibility.eligible && <Link to={`/rooms/${room.id}/control`}>Geräte steuern</Link>}{' '}
+          {adminMode && permissions.includes('ROOM_MANAGE') && <Link to={`/admin/rooms/${room.id}/edit`}>Raum bearbeiten</Link>}
         </div>
       </div>
 
@@ -123,7 +142,7 @@ export default function RoomDetailPage() {
       <section className="room-reservations-section">
         <div className="room-reservations-header">
           <h2>Reservierungen</h2>
-          {room.status === 'ACTIVE' && (
+          {room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
             <button
               type="button"
               onClick={() => {
@@ -136,7 +155,7 @@ export default function RoomDetailPage() {
           )}
         </div>
 
-        {showBookingForm && room.status === 'ACTIVE' && (
+        {showBookingForm && room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
           <ReservationForm
             room={room}
             onSaved={handleReservationSaved}
@@ -146,7 +165,7 @@ export default function RoomDetailPage() {
           />
         )}
 
-        <ReservationList room={room} refreshSignal={refreshSignal} />
+        <ReservationList room={room} refreshSignal={refreshSignal} onReservationChanged={() => setRefreshSignal((prev) => prev + 1)} />
       </section>
     </main>
   )

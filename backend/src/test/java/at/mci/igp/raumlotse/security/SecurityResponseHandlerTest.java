@@ -21,7 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(SecurityConfig.class)
 @org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 class SecurityResponseHandlerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Test
     void securityFailuresEmitSafeStructuredEvents(org.springframework.boot.test.system.CapturedOutput output)
             throws Exception {

@@ -97,6 +97,22 @@ describe('MapCanvas', () => {
     expect(onPlace).not.toHaveBeenCalled()
   })
 
+  it('places a connection point without allowing room placement edits', () => {
+    const onPlace = vi.fn()
+    const onMove = vi.fn()
+    const onRemove = vi.fn()
+    render(<MapCanvas map={map} placements={placements} editable={false} placementActive
+      onPlace={onPlace} onMove={onMove} onRemove={onRemove} />)
+    fireEvent.pointerDown(screen.getByRole('button', { name: /raum 1/i }), { clientX: 50, clientY: 75 })
+    act(() => window.dispatchEvent(new MouseEvent('pointerup', { clientX: 100, clientY: 50, bubbles: true })))
+    fireEvent.click(screen.getByTestId('map-plane'), { clientX: 50, clientY: 25 })
+    fireEvent.click(screen.getByRole('button', { name: /raum 1/i }))
+
+    expect(onPlace).toHaveBeenCalledWith({ x: 0.25, y: 0.25 })
+    expect(onMove).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Platzierung entfernen' })).not.toBeInTheDocument()
+  })
+
   it('shows name and identifier of a room when its marker is selected', () => {
     render(<MapCanvas map={map} placements={placements} editable={false} />)
     fireEvent.click(screen.getByRole('button', { name: /raum 1/i }))

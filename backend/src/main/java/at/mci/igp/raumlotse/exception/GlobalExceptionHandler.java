@@ -28,7 +28,15 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Problem> handleNotFound(NotFoundException ex) {
                 log.warn("not_found detail={}", ex.getMessage());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body(Problem.of(404, "Not Found", ex.getMessage()));
+                                .body(ex.getCode() == null ? Problem.of(404, "Not Found", ex.getMessage())
+                                                : Problem.of(404, "Not Found", ex.getMessage(), ex.getCode()));
+        }
+
+        @ExceptionHandler(UserRoleException.class)
+        public ResponseEntity<Problem> handleUserRole(UserRoleException ex) {
+                return ResponseEntity.status(ex.getStatus()).cacheControl(CacheControl.noStore())
+                                .body(Problem.of(ex.getStatus(), HttpStatus.valueOf(ex.getStatus()).getReasonPhrase(),
+                                                ex.getMessage(), ex.getCode()));
         }
 
         @ExceptionHandler(ConflictException.class)

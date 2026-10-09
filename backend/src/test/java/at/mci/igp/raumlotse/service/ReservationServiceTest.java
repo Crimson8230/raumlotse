@@ -311,7 +311,7 @@ class ReservationServiceTest {
 
         var list = reservationService.getReservationsForRoom(roomId, null, null, TestActors.ADMIN);
         assertThat(list).hasSize(1);
-        assertThat(list.get(0).createdBy()).isEqualTo("Alice");
+        assertThat(list.get(0).createdBy()).isNull();
     }
 
     @Test

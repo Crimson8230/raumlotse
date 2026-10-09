@@ -13,7 +13,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
-/** Feature 013, US3: master data and maintenance endpoints are administrator-only (FR-013, FR-014, FR-017). */
+/** Master data and maintenance endpoints require their assigned role permissions. */
 class MasterDataAuthorizationIntegrationTest extends MapIntegrationSupport {
 
     @Test
@@ -24,7 +24,7 @@ class MasterDataAuthorizationIntegrationTest extends MapIntegrationSupport {
 
         mvc.perform(post("/api/buildings").with(actor(user)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Neu\"}"))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ADMIN_REQUIRED"));
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PERMISSION_REQUIRED"));
         mvc.perform(put("/api/buildings/" + building).with(actor(user)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Umbenannt\"}"))
                 .andExpect(status().isForbidden());

@@ -18,7 +18,7 @@ class UnplacedRoomsIntegrationTest extends MapIntegrationSupport {
         UUID deactivated = room("R-EG-OFF", floorEg);
         db.update("update room set status='DEACTIVATED' where id=?", deactivated);
 
-        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(user)))
+        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("R-EG"))
@@ -28,7 +28,7 @@ class UnplacedRoomsIntegrationTest extends MapIntegrationSupport {
                         .contentType("application/json").content("{\"x\":0.1,\"y\":0.1}"))
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(user)))
+        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(admin)))
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("R-EG"));
     }
@@ -43,13 +43,13 @@ class UnplacedRoomsIntegrationTest extends MapIntegrationSupport {
 
         mvc.perform(get("/api/maps/" + map).with(actor(user)))
                 .andExpect(jsonPath("$.placements[0].room.status").value("DEACTIVATED"));
-        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(user)))
+        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(admin)))
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void unknownMapReturns404AndAnonymousIsDenied() throws Exception {
-        mvc.perform(get("/api/maps/" + UUID.randomUUID() + "/unplaced-rooms").with(actor(user)))
+        mvc.perform(get("/api/maps/" + UUID.randomUUID() + "/unplaced-rooms").with(actor(admin)))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/api/maps/" + UUID.randomUUID() + "/unplaced-rooms")).andExpect(status().isUnauthorized());
     }

@@ -8,9 +8,10 @@ import * as buildingsApi from '../API/buildings'
 import * as equipmentTypesApi from '../API/equipmentTypes'
 import type { Room } from '../types/room'
 
-const mode = vi.hoisted(() => ({ adminMode: true }))
+const mode = vi.hoisted(() => ({ adminMode: true, permissions: ['READ', 'RESERVE', 'ROOM_MANAGE'] as string[] }))
 vi.mock('../auth/useAdminMode', () => ({
-  useAdminMode: () => ({ loading: false, failed: false, admin: true, adminMode: mode.adminMode, setMode: vi.fn() }),
+  useAdminMode: () => ({ loading: false, failed: false, admin: true, adminMode: mode.adminMode,
+    permissions: mode.permissions, setMode: vi.fn() }),
 }))
 vi.mock('../API/rooms')
 vi.mock('../API/buildings')
@@ -64,6 +65,7 @@ function lastSearchQuery(): string {
 
 beforeEach(() => {
   mode.adminMode = true
+  mode.permissions = ['READ', 'RESERVE', 'ROOM_MANAGE']
 })
 
 beforeEach(() => {
@@ -79,6 +81,15 @@ beforeEach(() => {
 })
 
 describe('RoomListPage', () => {
+  it('hides room management and booking actions when only READ is granted', async () => {
+    mode.permissions = ['READ']
+    rooms.searchRooms.mockResolvedValue([room()])
+    renderPage()
+    await screen.findByText('Room 101')
+    expect(screen.queryByRole('link', { name: /neuen raum/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /deaktivieren|löschen/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Buchen' })).not.toBeInTheDocument()
+  })
   it('renders rooms with name, building, floor, and status', async () => {
     rooms.searchRooms.mockResolvedValue([room()])
 

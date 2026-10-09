@@ -41,7 +41,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @WithMockUser
 @Import(SecurityConfig.class)
 class FloorMapControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mvc;
     @MockitoBean FloorMapService service;
     // Writes pass through RoleAccessFilter; the role check itself is covered by MapAuthorizationIntegrationTest.
@@ -66,7 +68,7 @@ class FloorMapControllerTest {
     @Test
     void listReturnsMaps() throws Exception {
         when(service.list()).thenReturn(List.of(summary(null)));
-        mvc.perform(get("/api/maps"))
+        mvc.perform(get("/api/maps").with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Haus A – EG"))
                 .andExpect(jsonPath("$[0].placedRoomCount").value(0))
@@ -124,7 +126,7 @@ class FloorMapControllerTest {
     void getReturnsDetail() throws Exception {
         when(service.get(mapId)).thenReturn(
                 new MapDetailResponse(mapId, floorId, "Haus A – EG", 200, 100, 1, 0, List.of(), List.of()));
-        mvc.perform(get("/api/maps/" + mapId))
+        mvc.perform(get("/api/maps/" + mapId).with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.placements").isArray())
                 .andExpect(jsonPath("$.connections").isArray());
@@ -133,13 +135,13 @@ class FloorMapControllerTest {
     @Test
     void getUnknownReturns404() throws Exception {
         when(service.get(mapId)).thenThrow(new NotFoundException("Map nicht gefunden."));
-        mvc.perform(get("/api/maps/" + mapId)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/maps/" + mapId).with(admin())).andExpect(status().isNotFound());
     }
 
     @Test
     void imageIsServedWithEtagAndNosniff() throws Exception {
         when(service.image(mapId)).thenReturn(new FloorMapService.MapImage("image/png", 3, new byte[] {1, 2, 3}));
-        mvc.perform(get("/api/maps/" + mapId + "/image"))
+        mvc.perform(get("/api/maps/" + mapId + "/image").with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("ETag", "\"3\""))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
@@ -150,7 +152,7 @@ class FloorMapControllerTest {
     @Test
     void imageReturns304WhenEtagMatches() throws Exception {
         when(service.image(mapId)).thenReturn(new FloorMapService.MapImage("image/png", 3, new byte[] {1, 2, 3}));
-        mvc.perform(get("/api/maps/" + mapId + "/image").header("If-None-Match", "\"3\""))
+        mvc.perform(get("/api/maps/" + mapId + "/image").header("If-None-Match", "\"3\"").with(admin()))
                 .andExpect(status().isNotModified());
     }
 

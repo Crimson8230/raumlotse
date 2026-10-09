@@ -72,7 +72,7 @@ export function MapCanvas({ map, placements, editable, activeRoomId, placementAc
   }, [draggingId, onMove])
 
   function handlePlaneClick(event: ReactMouseEvent) {
-    if (!editable || !(activeRoomId || placementActive)) return
+    if (!(editable && activeRoomId) && !placementActive) return
     const position = toPosition(event.clientX, event.clientY)
     if (!position) {
       setHint('Bitte innerhalb der Karte klicken.')
@@ -102,7 +102,7 @@ export function MapCanvas({ map, placements, editable, activeRoomId, placementAc
         <div
           ref={planeRef}
           data-testid="map-plane"
-          className={`map-canvas-plane${editable && (activeRoomId || placementActive) ? ' map-canvas-plane--placing' : ''}`}
+          className={`map-canvas-plane${(editable && activeRoomId) || placementActive ? ' map-canvas-plane--placing' : ''}`}
           style={{ width: `${zoom * 100}%` }}
           onClick={handlePlaneClick}
         >

@@ -62,7 +62,7 @@ abstract class MapIntegrationSupport extends AbstractIntegrationTest {
         UUID id = UUID.randomUUID();
         db.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)",
                 id, email, "Fixture", "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
-        db.update("insert into user_role_state(user_id) values (?)", id);
+        db.update("delete from role_assignment where user_id=?", id);
         db.update("insert into role_assignment(user_id,role_code) values (?,?)", id, role);
         return id;
     }

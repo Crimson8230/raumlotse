@@ -39,10 +39,18 @@ class AdminModeServiceTest {
         assertThatThrownBy(() -> service.set(session, regular, true))
                 .isInstanceOfSatisfying(UserRoleException.class, ex -> {
                     assertThat(ex.getStatus()).isEqualTo(403);
-                    assertThat(ex.getCode()).isEqualTo("ADMIN_REQUIRED");
+                    assertThat(ex.getCode()).isEqualTo("ADMIN_MODE_NOT_ALLOWED");
                 });
         assertThat(service.effective(session, regular)).isFalse();
         assertThat(session.getAttribute(AdminModeService.ATTRIBUTE)).isNull();
+    }
+
+    @Test
+    void managementPermissionAllowsModeWithoutAdminRole() {
+        var session = new MockHttpSession();
+        assertThat(service.set(session, regular.userId(), true, true)).isTrue();
+        assertThat(service.effective(session, true)).isTrue();
+        assertThat(service.effective(session, false)).isFalse();
     }
 
     @Test

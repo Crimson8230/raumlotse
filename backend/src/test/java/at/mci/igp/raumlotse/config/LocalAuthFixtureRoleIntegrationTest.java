@@ -15,6 +15,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /** The local fixture account must be usable as administrator without manual SQL. */
 class LocalAuthFixtureRoleIntegrationTest extends AbstractIntegrationTest {
@@ -23,6 +24,7 @@ class LocalAuthFixtureRoleIntegrationTest extends AbstractIntegrationTest {
     @Autowired UserAccountRepository accounts;
     @Autowired PasswordEncoder encoder;
     @Autowired Environment environment;
+    @Autowired PlatformTransactionManager transactions;
 
     @BeforeEach
     void clean() {
@@ -35,7 +37,8 @@ class LocalAuthFixtureRoleIntegrationTest extends AbstractIntegrationTest {
 
     void runFixture() throws Exception {
         ApplicationRunner runner = new LocalAuthFixtureConfiguration().provisionLocalAuthFixture(accounts, encoder,
-                new EmailCanonicalizer(), environment, db, "Fixture@Example.test", "Fixture", "fixture-password");
+                new EmailCanonicalizer(), environment, db, transactions,
+                "Fixture@Example.test", "Fixture", "fixture-password");
         runner.run(new DefaultApplicationArguments(new String[0]));
     }
 
@@ -61,14 +64,14 @@ class LocalAuthFixtureRoleIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void existingFixtureAccountWithoutRolesBecomesAdminAndKeepsItsPassword() throws Exception {
+    void existingFixtureAccountKeepsViewerAndItsPassword() throws Exception {
         UUID id = UUID.randomUUID();
         db.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)",
                 id, "fixture@example.test", "Fixture", "{pbkdf2-sha256-600000-v1}persisted-fixture-hash");
 
         runFixture();
 
-        assertThat(rolesOf("fixture@example.test")).containsExactly("ADMIN");
+        assertThat(rolesOf("fixture@example.test")).containsExactly("VIEWER");
         assertThat(db.queryForObject("select password_hash from user_account where id=?", String.class, id))
                 .isEqualTo("{pbkdf2-sha256-600000-v1}persisted-fixture-hash");
     }
@@ -78,7 +81,7 @@ class LocalAuthFixtureRoleIntegrationTest extends AbstractIntegrationTest {
         UUID id = UUID.randomUUID();
         db.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)",
                 id, "fixture@example.test", "Fixture", "{pbkdf2-sha256-600000-v1}persisted-fixture-hash");
-        db.update("insert into user_role_state(user_id) values (?)", id);
+        db.update("delete from role_assignment where user_id=?", id);
         db.update("insert into role_assignment(user_id,role_code) values (?,'STUDENT')", id);
 
         runFixture();

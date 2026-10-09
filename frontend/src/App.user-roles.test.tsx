@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import * as roles from './API/userRoles'
 import { ApiError } from './API/client'
+import type { PermissionCode } from './types/permission'
+import { permissionCodes } from './test/permissionFixtures'
+import * as equipmentApi from './API/equipmentTypes'
 const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
 vi.mock('./API/auth', () => ({ authApi: auth }))
 vi.mock('./API/userRoles')
@@ -12,9 +15,12 @@ vi.mock('./API/buildings', () => ({ listBuildings: vi.fn().mockResolvedValue([])
 vi.mock('./API/equipmentTypes', () => ({ listEquipmentTypes: vi.fn().mockResolvedValue([]) }))
 vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 'ok' }) }))
 
-const admin = { roles: ['ADMIN'], ready: true, adminMode: true } as const
-const adminModeOff = { roles: ['ADMIN'], ready: true, adminMode: false } as const
-const viewer = { roles: ['VIEWER'], ready: true, adminMode: false } as const
+const admin = { roles: ['ADMIN'], ready: true, adminMode: true,
+  permissions: [...permissionCodes] as PermissionCode[], canUseAdminMode: true } as const
+const adminModeOff = { roles: ['ADMIN'], ready: true, adminMode: false,
+  permissions: [...permissionCodes] as PermissionCode[], canUseAdminMode: true } as const
+const viewer = { roles: ['VIEWER'], ready: true, adminMode: false,
+  permissions: ['READ'] as PermissionCode[], canUseAdminMode: false } as const
 
 function open(path: string) {
   return render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
@@ -24,6 +30,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Administration' })
   auth.refreshCsrfToken.mockResolvedValue(undefined)
+  vi.mocked(equipmentApi.listEquipmentTypes).mockResolvedValue([])
   vi.mocked(roles.getCurrentRoles).mockResolvedValue({ ...admin, roles: [...admin.roles] })
   vi.mocked(roles.listUsers).mockResolvedValue({ items: [], page: 0, size: 25, totalElements: 0 })
 })
@@ -102,7 +109,7 @@ describe('administration routes and mode', () => {
     vi.mocked(roles.getCurrentRoles).mockResolvedValue({ ...viewer, roles: [...viewer.roles] })
     open('/maps')
     await screen.findByRole('navigation', { name: 'Hauptnavigation' })
-    expect(screen.getByRole('link', { name: 'Räume' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'Räume' })).toBeVisible()
     expect(screen.queryByRole('link', { name: 'Standorte' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Karten bearbeiten' })).not.toBeInTheDocument()
   })

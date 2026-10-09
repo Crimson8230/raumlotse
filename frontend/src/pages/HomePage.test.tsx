@@ -7,7 +7,13 @@ import * as reservationsApi from '../API/reservations'
 
 vi.mock('../API/health')
 vi.mock('../API/reservations')
+vi.mock('../auth/useCurrentRoles', () => ({ useCurrentRoles: () => ({
+  loading: false, failed: mockRolesFailed,
+  permissions: mockAuthState.state === 'authenticated' ? mockPermissions : [],
+}) }))
 
+let mockPermissions: string[] = ['READ']
+let mockRolesFailed = false
 let mockAuthState = {
   state: 'anonymous',
   user: null as { userId: string; displayName: string } | null,
@@ -27,6 +33,8 @@ describe('HomePage', () => {
       state: 'anonymous',
       user: null,
     }
+    mockPermissions = ['READ']
+    mockRolesFailed = false
     health.getHealth.mockResolvedValue({ status: 'UP' })
     reservations.getMyUpcomingReservations.mockResolvedValue([])
   })
@@ -87,5 +95,22 @@ describe('HomePage', () => {
       expect(screen.getByRole('heading', { name: /meine nächsten reservierungen|my upcoming reservations/i })).toBeInTheDocument()
     })
     expect(reservations.getMyUpcomingReservations).toHaveBeenCalled()
+  })
+
+  it('shows a clear empty state when no functions are granted', async () => {
+    mockAuthState = { state: 'authenticated', user: { userId: 'u1', displayName: 'Viewer' } }
+    mockPermissions = []
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    expect(screen.getByRole('status')).toHaveTextContent('keine Funktionen freigegeben')
+    expect(reservations.getMyUpcomingReservations).not.toHaveBeenCalled()
+  })
+
+  it('does not show reservation data after a permission lookup fails', () => {
+    mockAuthState = { state: 'authenticated', user: { userId: 'u1', displayName: 'Viewer' } }
+    mockPermissions = []
+    mockRolesFailed = true
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    expect(reservations.getMyUpcomingReservations).not.toHaveBeenCalled()
+    expect(screen.queryByText(/keine Funktionen freigegeben/)).not.toBeInTheDocument()
   })
 })

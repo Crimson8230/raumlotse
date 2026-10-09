@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import * as roomsApi from './API/rooms'
 import * as reservationsApi from './API/reservations'
+import * as roleApi from './API/userRoles'
 import type { Room } from './types/room'
 
 vi.mock('./API/rooms')
 vi.mock('./API/reservations')
+vi.mock('./API/userRoles')
 const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
 vi.mock('./API/auth', () => ({ authApi: auth }))
 vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 'ok' }) }))
@@ -32,6 +34,8 @@ beforeEach(() => {
   vi.resetAllMocks()
   auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Administration' })
   auth.refreshCsrfToken.mockResolvedValue(undefined)
+  vi.mocked(roleApi.getCurrentRoles).mockResolvedValue({ roles: ['VIEWER'], ready: true, adminMode: false,
+    permissions: ['READ'], canUseAdminMode: false })
   rooms.getRoom.mockResolvedValue(sampleRoom)
   reservations.listRoomReservations.mockResolvedValue([])
   reservations.getAvailableEquipment.mockResolvedValue([])

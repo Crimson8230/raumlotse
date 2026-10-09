@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @WebMvcTest({ AuthController.class, CsrfController.class })
 @Import({ SecurityConfig.class, LoginService.class, EmailCanonicalizer.class })
 class AuthControllerTest {
+        @MockitoBean
+        at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
         @Autowired
         MockMvc mvc;
         @MockitoBean

@@ -2,10 +2,16 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAdminStatistics } from '../API/adminStatistics'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { RequirePermission } from '../auth/RequirePermission'
 import AdminStatisticsPage from './AdminStatisticsPage'
 import type { AdminStatisticsResponse } from '../types/adminStatistics'
 
 vi.mock('../API/adminStatistics')
+let allowed = false
+vi.mock('../auth/useCurrentRoles', () => ({ useCurrentRoles: () => ({
+  loading: false, failed: false, permissions: allowed ? ['READ', 'STATISTICS_READ'] : ['READ'],
+}) }))
 
 const response: AdminStatisticsResponse = {
   period: { from: '2026-01-01', to: '2026-02-01', timezone: 'Europe/Berlin' },
@@ -25,10 +31,20 @@ const response: AdminStatisticsResponse = {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  allowed = false
   vi.mocked(getAdminStatistics).mockResolvedValue(response)
 })
 
 describe('AdminStatisticsPage', () => {
+  it('does not load statistics for a direct route without STATISTICS_READ', () => {
+    render(<MemoryRouter initialEntries={['/admin/statistics']}><Routes>
+      <Route element={<RequirePermission any={['STATISTICS_READ']} />}>
+        <Route path="/admin/statistics" element={<AdminStatisticsPage />} />
+      </Route>
+    </Routes></MemoryRouter>)
+    expect(screen.getByRole('alert')).toHaveTextContent('nicht verfügbar')
+    expect(getAdminStatistics).not.toHaveBeenCalled()
+  })
   it('loads the shared snapshot and renders all metric groups', async () => {
     render(<AdminStatisticsPage />)
     expect(screen.getByRole('status')).toHaveTextContent(/geladen/i)

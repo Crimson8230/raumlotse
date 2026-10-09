@@ -4,6 +4,7 @@ import {
   cancelReservation,
   completeReservation,
   expireReservation,
+  getReservation,
   listRoomReservations,
   updateReservationMetadata,
 } from '../../API/reservations'
@@ -14,6 +15,7 @@ import type { Room } from '../../types/room'
 import type { Reservation } from '../../types/reservation'
 import './ReservationList.css'
 import { reservationStatusLabels } from '../../utils/labels'
+import { reservationMetadataSchema } from './reservationMetadataSchema'
 
 export interface ReservationListProps {
   room: Room
@@ -26,12 +28,13 @@ export function ReservationList({
   refreshSignal,
   onReservationChanged,
 }: ReservationListProps) {
-  const { adminMode } = useAdminMode()
+  const { permissions } = useAdminMode()
   const [reservations, setReservations] = useState<Reservation[]>([])
+  const [foreignDetails, setForeignDetails] = useState<Record<string, Reservation>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editAttendees, setEditAttendees] = useState<number | ''>(1)
+  const [editAttendees, setEditAttendees] = useState<string>('1')
   const [editNote, setEditNote] = useState<string>('')
   const [editReservedFor, setEditReservedFor] = useState<string>('')
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
@@ -40,6 +43,7 @@ export function ReservationList({
     try {
       const data = await listRoomReservations(room.id)
       setReservations(data)
+      setForeignDetails({})
     } catch (err) {
       setError(formatApiError(err))
     }
@@ -67,7 +71,7 @@ export function ReservationList({
 
   function handleStartEdit(res: Reservation) {
     setEditingId(res.id)
-    setEditAttendees(res.expectedAttendees ?? '')
+    setEditAttendees(res.expectedAttendees == null ? '' : String(res.expectedAttendees))
     setEditNote(res.note ?? '')
     setEditReservedFor(res.reservedFor ?? '')
     setError(null)
@@ -79,26 +83,14 @@ export function ReservationList({
   }
 
   async function handleSaveEdit(res: Reservation) {
-    const attendeesNum = Number(editAttendees)
-    if (!editAttendees || isNaN(attendeesNum) || attendeesNum < 1) {
-      setError('Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.')
-      return
-    }
     const maxCapacity = res.seatingArrangement?.maxCapacity
-    if (maxCapacity !== undefined && attendeesNum > maxCapacity) {
-      setError(
-        `Die Teilnehmerzahl (${attendeesNum}) überschreitet die Kapazität der Sitzordnung (${maxCapacity}).`,
-      )
-      return
-    }
-
-    if (!editReservedFor.trim()) {
-      setError('Reserviert für ist ein Pflichtfeld.')
-      return
-    }
-
-    if (editReservedFor.trim().length > 255) {
-      setError('Reserviert für darf maximal 255 Zeichen lang sein.')
+    const parsed = reservationMetadataSchema(maxCapacity).safeParse({
+      expectedAttendees: editAttendees,
+      reservedFor: editReservedFor,
+      note: editNote,
+    })
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Die Eingaben sind ungültig.')
       return
     }
 
@@ -106,9 +98,9 @@ export function ReservationList({
     setError(null)
     try {
       await updateReservationMetadata(res.id, {
-        expectedAttendees: attendeesNum,
-        note: editNote.trim() || undefined,
-        reservedFor: editReservedFor.trim(),
+        expectedAttendees: parsed.data.expectedAttendees,
+        note: parsed.data.note.trim() || undefined,
+        reservedFor: parsed.data.reservedFor,
       })
       setEditingId(null)
       await reload()
@@ -151,11 +143,12 @@ export function ReservationList({
       ) : (
         <ul className="list-plain reservation-list">
           {reservations.map((res) => {
+            const visible = foreignDetails[res.id] ?? res
             const isEditing = editingId === res.id
             const isBusy = actionInProgress === res.id
-            // Other users' bookings only show as occupied; owners (and administrators in administration mode) manage.
-            const canManage = res.ownedByMe || adminMode
-            const hasDetails = res.seatingArrangement !== null
+            const canManage = res.ownedByMe ? permissions.includes('OWN_RESERVATION_MANAGE')
+              : permissions.includes('OTHER_RESERVATION_MANAGE')
+            const hasDetails = visible.seatingArrangement !== null
 
             return (
               <li key={res.id} className="panel reservation-card">
@@ -170,32 +163,37 @@ export function ReservationList({
 
                 {!hasDetails && <p className="reservation-occupied">Belegt</p>}
 
+                {!res.ownedByMe && permissions.includes('OTHER_RESERVATION_MANAGE') && !foreignDetails[res.id] &&
+                  <button type="button" onClick={() => { void getReservation(res.id).then(detail =>
+                    setForeignDetails(current => ({ ...current, [res.id]: detail }))).catch(err => setError(formatApiError(err))) }}>
+                    Details anzeigen
+                  </button>}
                 {hasDetails && <div className="reservation-details">
                   <p>
-                    <strong>Sitzordnung:</strong> {res.seatingArrangement?.name} (Max:{' '}
-                    {res.seatingArrangement?.maxCapacity})
+                    <strong>Sitzordnung:</strong> {visible.seatingArrangement?.name} (Max:{' '}
+                    {visible.seatingArrangement?.maxCapacity})
                   </p>
                   <p>
-                    <strong>Attendees:</strong> {res.expectedAttendees}
+                    <strong>Attendees:</strong> {visible.expectedAttendees}
                   </p>
                   <p>
-                    <strong>Reserviert für:</strong> {res.reservedFor}
+                    <strong>Reserviert für:</strong> {visible.reservedFor}
                   </p>
                   <p>
-                    <strong>Gebucht von:</strong> {res.createdBy}
+                    <strong>Gebucht von:</strong> {visible.createdBy}
                   </p>
                   <p className="reservation-created-at">
-                    <small>Erstellt: {res.createdAt ? formatDateTime(res.createdAt) : ''}</small>
+                    <small>Erstellt: {visible.createdAt ? formatDateTime(visible.createdAt) : ''}</small>
                   </p>
-                  {res.additionalEquipment && res.additionalEquipment.length > 0 && (
+                  {visible.additionalEquipment && visible.additionalEquipment.length > 0 && (
                     <p>
                       <strong>Zusätzliche Ausstattung:</strong>{' '}
-                      {res.additionalEquipment.map((eq) => eq.name).join(', ')}
+                      {visible.additionalEquipment.map((eq) => eq.name).join(', ')}
                     </p>
                   )}
-                  {res.note && (
+                  {visible.note && (
                     <p className="reservation-note">
-                      <strong>Notes:</strong> {res.note}
+                      <strong>Notes:</strong> {visible.note}
                     </p>
                   )}
                 </div>}
@@ -206,7 +204,7 @@ export function ReservationList({
                     noValidate
                     onSubmit={(e) => {
                       e.preventDefault()
-                      handleSaveEdit(res)
+                      handleSaveEdit(visible)
                     }}
                   >
                     <div>
@@ -215,13 +213,13 @@ export function ReservationList({
                         id={`edit-attendees-${res.id}`}
                         type="number"
                         min="1"
-                        max={res.seatingArrangement?.maxCapacity}
+                        max={visible.seatingArrangement?.maxCapacity}
                         required
                         value={editAttendees}
                         onChange={(e) =>
                           setEditAttendees(
-                            e.target.value === '' ? '' : parseInt(e.target.value, 10),
-                          )
+                          e.target.value,
+                        )
                         }
                       />
                     </div>
@@ -257,7 +255,7 @@ export function ReservationList({
                   </form>
                 ) : (
                   <div className="actions reservation-actions">
-                    {res.status === 'RESERVED' && (
+                    {visible.status === 'RESERVED' && (
                       <>
                         <button
                           type="button"
@@ -279,7 +277,7 @@ export function ReservationList({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleStartEdit(res)}
+                          onClick={() => handleStartEdit(visible)}
                           disabled={isBusy}
                         >
                           Bearbeiten
@@ -297,7 +295,7 @@ export function ReservationList({
                       </>
                     )}
 
-                    {res.status === 'ACTIVE' && (
+                    {visible.status === 'ACTIVE' && (
                       <>
                         <button
                           type="button"
