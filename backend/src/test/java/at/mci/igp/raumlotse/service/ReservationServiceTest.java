@@ -58,6 +58,12 @@ class ReservationServiceTest {
     @Mock
     private EquipmentTypeRepository equipmentTypeRepository;
 
+    @Mock
+    private RoomAutomationService roomAutomation;
+
+    @Mock
+    private CheckInSettingsService checkInSettings;
+
     private ReservationService reservationService;
     private Clock clock;
     private Instant fixedNow;
@@ -76,7 +82,14 @@ class ReservationServiceTest {
                 roomRepository,
                 seatingArrangementRepository,
                 equipmentTypeRepository,
-                clock);
+                clock,
+                roomAutomation,
+                checkInSettings);
+        org.mockito.Mockito.lenient().when(checkInSettings.current()).thenReturn(CheckInPolicy.DEFAULT);
+        org.mockito.Mockito.lenient().when(roomAutomation.prepare(any()))
+                .thenReturn(new RoomAutomationService.AutomationResult(List.of()));
+        org.mockito.Mockito.lenient().when(roomAutomation.release(any()))
+                .thenReturn(new RoomAutomationService.AutomationResult(List.of()));
 
         roomId = UUID.randomUUID();
         seatingArrangementId = UUID.randomUUID();
@@ -401,6 +414,7 @@ class ReservationServiceTest {
         setField(r, "expectedAttendees", 20);
         setField(r, "createdBy", "Alice");
         setField(r, "createdAt", Instant.now());
+        setField(r, "startTime", fixedNow);
         setField(r, "endTime", fixedNow.plus(Duration.ofHours(1)));
 
         when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
@@ -408,6 +422,65 @@ class ReservationServiceTest {
 
         ReservationResponse res = reservationService.activateReservation(resId, TestActors.ADMIN);
         assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+    }
+
+    @Test
+    void activateReservation_recordsManualCheckIn() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "room", activeRoom);
+        setField(r, "seatingArrangement", seatingArrangement);
+        setField(r, "status", ReservationStatus.RESERVED);
+        setField(r, "createdBy", "Alice");
+        setField(r, "createdAt", Instant.now());
+        setField(r, "startTime", fixedNow);
+        setField(r, "endTime", fixedNow.plus(Duration.ofHours(1)));
+
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+        when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        reservationService.activateReservation(resId, TestActors.ADMIN);
+
+        assertThat(r.getCheckInMethod()).isEqualTo(at.mci.igp.raumlotse.domain.CheckInMethod.MANUAL);
+        assertThat(r.getCheckedInByUserId()).isEqualTo(TestActors.ADMIN.userId());
+        assertThat(r.getCheckedInAt()).isEqualTo(fixedNow);
+        verify(roomAutomation).prepare(r);
+    }
+
+    @Test
+    void activateReservation_deviceFailureKeepsTheReservationActive() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "room", activeRoom);
+        setField(r, "seatingArrangement", seatingArrangement);
+        setField(r, "status", ReservationStatus.RESERVED);
+        setField(r, "createdBy", "Alice");
+        setField(r, "createdAt", Instant.now());
+        setField(r, "startTime", fixedNow);
+        setField(r, "endTime", fixedNow.plus(Duration.ofHours(1)));
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+        when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(roomAutomation.prepare(r)).thenReturn(new RoomAutomationService.AutomationResult(
+                List.of(at.mci.igp.raumlotse.domain.RoomDeviceKind.DOOR)));
+
+        ReservationResponse res = reservationService.activateReservation(resId, TestActors.ADMIN);
+
+        assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+    }
+
+    @Test
+    void activateReservation_rejectedActivationNeverPreparesTheRoom() throws Exception {
+        UUID resId = UUID.randomUUID();
+        Reservation r = new Reservation();
+        setField(r, "id", resId);
+        setField(r, "status", ReservationStatus.COMPLETED);
+        when(reservationRepository.findById(resId)).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> reservationService.activateReservation(resId, TestActors.ADMIN))
+                .isInstanceOf(ConflictException.class);
+        verify(roomAutomation, never()).prepare(any());
     }
 
     @Test
@@ -757,4 +830,146 @@ class ReservationServiceTest {
         verify(reservationRepository).save(saved.capture());
         assertThat(saved.getValue().getCreatedByUserId()).isEqualTo(creator.userId());
     }
+
+    private Reservation reservationWithStatus(ReservationStatus status) throws Exception {
+        Reservation r = new Reservation();
+        setField(r, "id", UUID.randomUUID());
+        setField(r, "room", activeRoom);
+        setField(r, "seatingArrangement", seatingArrangement);
+        setField(r, "status", status);
+        setField(r, "createdBy", "Alice");
+        setField(r, "createdAt", Instant.now());
+        setField(r, "startTime", fixedNow.minus(Duration.ofHours(1)));
+        setField(r, "endTime", fixedNow);
+        return r;
+    }
+
+    @Test
+    void completingOrCancellingAnActiveBookingReleasesTheRoom() throws Exception {
+        Reservation completed = reservationWithStatus(ReservationStatus.ACTIVE);
+        Reservation cancelled = reservationWithStatus(ReservationStatus.ACTIVE);
+        when(reservationRepository.findById(completed.getId())).thenReturn(Optional.of(completed));
+        when(reservationRepository.findById(cancelled.getId())).thenReturn(Optional.of(cancelled));
+        when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        reservationService.completeReservation(completed.getId(), TestActors.ADMIN);
+        reservationService.cancelReservation(cancelled.getId(), TestActors.ADMIN);
+
+        verify(roomAutomation).release(completed);
+        verify(roomAutomation).release(cancelled);
+    }
+
+    @Test
+    void cancellingABookingThatWasNeverInUseDoesNotTouchTheRoom() throws Exception {
+        Reservation reserved = reservationWithStatus(ReservationStatus.RESERVED);
+        when(reservationRepository.findById(reserved.getId())).thenReturn(Optional.of(reserved));
+        when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        reservationService.cancelReservation(reserved.getId(), TestActors.ADMIN);
+
+        verify(roomAutomation, never()).release(any());
+    }
+
+    @Test
+    void sweepReleasesEveryCompletedRoomEvenIfOneReleaseFails() throws Exception {
+        Reservation first = reservationWithStatus(ReservationStatus.ACTIVE);
+        Reservation second = reservationWithStatus(ReservationStatus.ACTIVE);
+        when(reservationRepository.findByStatusAndEndTimeLessThanEqual(ReservationStatus.ACTIVE, fixedNow))
+                .thenReturn(List.of(first, second));
+        when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(roomAutomation.release(first)).thenThrow(new IllegalStateException("device store down"));
+
+        int completed = reservationService.completeOverdueActiveReservations();
+
+        assertThat(completed).isEqualTo(2);
+        assertThat(first.getStatus()).isEqualTo(ReservationStatus.COMPLETED);
+        assertThat(second.getStatus()).isEqualTo(ReservationStatus.COMPLETED);
+        verify(roomAutomation).release(second);
+    }
+
+    @Test
+    void expiringUnattendedBookingsNeverTouchesTheRoom() throws Exception {
+        Reservation unattended = reservationWithStatus(ReservationStatus.RESERVED);
+        when(reservationRepository.findUnattendedReservationsForExpiration(eq(ReservationStatus.RESERVED), any(), any()))
+                .thenReturn(List.of(unattended));
+        when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        reservationService.expireUnattendedReservations();
+
+        verify(roomAutomation, never()).release(any());
+    }
+
+    private Reservation reservedStartingAt(Instant start) throws Exception {
+        Reservation r = reservationWithStatus(ReservationStatus.RESERVED);
+        setField(r, "startTime", start);
+        setField(r, "endTime", start.plus(Duration.ofHours(1)));
+        when(reservationRepository.findById(r.getId())).thenReturn(Optional.of(r));
+        org.mockito.Mockito.lenient().when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        return r;
+    }
+
+    @Test
+    void manualCheckInIsPossibleTenMinutesBeforeTheStart() throws Exception {
+        Reservation r = reservedStartingAt(fixedNow.plus(Duration.ofMinutes(10)));
+
+        ReservationResponse res = reservationService.activateReservation(r.getId(), TestActors.ADMIN);
+
+        assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+    }
+
+    @Test
+    void manualCheckInMoreThanTenMinutesEarlyIsRejected() throws Exception {
+        Reservation r = reservedStartingAt(fixedNow.plus(Duration.ofMinutes(11)));
+
+        assertThatThrownBy(() -> reservationService.activateReservation(r.getId(), TestActors.ADMIN))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("ab");
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.RESERVED);
+        verify(roomAutomation, never()).prepare(any());
+    }
+
+    @Test
+    void manualEarlyCheckInIsRejectedWhileTheRoomIsStillOccupied() throws Exception {
+        Reservation r = reservedStartingAt(fixedNow.plus(Duration.ofMinutes(5)));
+        Reservation ongoing = reservationWithStatus(ReservationStatus.ACTIVE);
+        setField(ongoing, "endTime", fixedNow.plus(Duration.ofMinutes(5)));
+        when(reservationRepository.findCovering(roomId, fixedNow)).thenReturn(List.of(ongoing));
+
+        assertThatThrownBy(() -> reservationService.activateReservation(r.getId(), TestActors.ADMIN))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("noch belegt");
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.RESERVED);
+    }
+
+    @Test
+    void manualCheckInAfterTheGracePeriodIsRejected() throws Exception {
+        Reservation r = reservedStartingAt(fixedNow.minus(Duration.ofMinutes(6)));
+
+        assertThatThrownBy(() -> reservationService.activateReservation(r.getId(), TestActors.ADMIN))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void manualCheckInFollowsTheAdministratorsSettings() throws Exception {
+        when(checkInSettings.current()).thenReturn(new CheckInPolicy(Duration.ZERO, Duration.ofMinutes(15)));
+        Reservation early = reservedStartingAt(fixedNow.plus(Duration.ofMinutes(1)));
+        assertThatThrownBy(() -> reservationService.activateReservation(early.getId(), TestActors.ADMIN))
+                .isInstanceOf(ConflictException.class);
+
+        Reservation late = reservedStartingAt(fixedNow.minus(Duration.ofMinutes(14)));
+        assertThat(reservationService.activateReservation(late.getId(), TestActors.ADMIN).status())
+                .isEqualTo(ReservationStatus.ACTIVE);
+    }
+
+    @Test
+    void expirySweepUsesTheConfiguredGracePeriod() {
+        when(checkInSettings.current()).thenReturn(new CheckInPolicy(Duration.ofMinutes(10), Duration.ofMinutes(15)));
+        when(reservationRepository.findUnattendedReservationsForExpiration(any(), any(), any())).thenReturn(List.of());
+
+        reservationService.expireUnattendedReservations();
+
+        verify(reservationRepository).findUnattendedReservationsForExpiration(
+                ReservationStatus.RESERVED, fixedNow.minus(Duration.ofMinutes(15)), fixedNow);
+    }
 }
+

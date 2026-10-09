@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { getRoom } from '../API/rooms'
 import { listRoomReservations } from '../API/reservations'
+import { getRoomStatus } from '../API/roomStatus'
 import { RoomDisplay } from '../components/RoomDisplay/RoomDisplay'
+import { PresenceSimulateButton } from '../components/PresenceSimulateButton/PresenceSimulateButton'
 import {
   deriveRoomDisplayStatus,
   selectNextReservation,
   selectCurrentReservation,
 } from '../components/RoomDisplay/roomDisplayLogic'
 import type { Reservation } from '../types/reservation'
+import type { RoomStatus } from '../types/roomStatus'
 import type { Room } from '../types/room'
+import { checkInLink } from '../utils/checkInLink'
 
 export default function RoomDisplayPage() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -17,8 +21,9 @@ export default function RoomDisplayPage() {
     roomId: string | null
     room: Room | null
     reservations: Reservation[]
+    roomStatus: RoomStatus | null
     errorMessage: string | null
-  }>({ roomId: null, room: null, reservations: [], errorMessage: null })
+  }>({ roomId: null, room: null, reservations: [], roomStatus: null, errorMessage: null })
   const [currentDateTime, setCurrentDateTime] = useState(() => new Date())
 
   useEffect(() => {
@@ -33,13 +38,15 @@ export default function RoomDisplayPage() {
 
     let ignore = false
     const loadRoomData = () => {
-      Promise.all([getRoom(roomId), listRoomReservations(roomId)]).then(
-        ([loadedRoom, loadedReservations]) => {
+      // Device icons are optional: a failing status request must not take the whole display down (feature 014).
+      Promise.all([getRoom(roomId), listRoomReservations(roomId), getRoomStatus(roomId).catch(() => null)]).then(
+        ([loadedRoom, loadedReservations, loadedStatus]) => {
           if (!ignore) {
             setRequestState({
               roomId,
               room: loadedRoom,
               reservations: loadedReservations,
+              roomStatus: loadedStatus,
               errorMessage: null,
             })
           }
@@ -50,6 +57,7 @@ export default function RoomDisplayPage() {
               roomId,
               room: null,
               reservations: [],
+              roomStatus: null,
               errorMessage: 'Rauminformationen sind nicht verfügbar.',
             })
           }
@@ -116,14 +124,25 @@ export default function RoomDisplayPage() {
   }
 
   return (
-    <RoomDisplay
-      roomName={room?.name ?? 'Raum nicht verfügbar'}
-      currentDateTime={currentDateTime}
-      reservation={currentReservation}
-      status={displayStatus}
-      nextReservation={nextReservation}
-      state={errorMessage ? 'unavailable' : currentReservation ? 'reservation' : 'no-reservation'}
-      errorMessage={errorMessage ?? undefined}
-    />
+    <>
+      <p className="room-display-back"><Link to={`/rooms/${roomId}`}>Zurück zum Raum</Link></p>
+      <RoomDisplay
+        roomName={room?.name ?? 'Raum nicht verfügbar'}
+        currentDateTime={currentDateTime}
+        reservation={currentReservation}
+        status={displayStatus}
+        nextReservation={nextReservation}
+        state={errorMessage ? 'unavailable' : currentReservation ? 'reservation' : 'no-reservation'}
+        errorMessage={errorMessage ?? undefined}
+        checkInLink={checkInLink(roomId, 'qr')}
+        devices={requestMatchesRoom ? requestState.roomStatus?.devices : null}
+        adminControls={
+          <PresenceSimulateButton
+            roomId={roomId}
+            lastPresenceAt={requestMatchesRoom ? requestState.roomStatus?.lastPresenceAt ?? null : null}
+          />
+        }
+      />
+    </>
   )
 }

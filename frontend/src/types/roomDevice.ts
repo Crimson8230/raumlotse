@@ -1,4 +1,4 @@
-export type RoomDeviceKind = 'LIGHTING' | 'VENTILATION' | 'PROJECTOR'
+export type RoomDeviceKind = 'LIGHTING' | 'VENTILATION' | 'PROJECTOR' | 'DOOR'
 
 export interface RoomDevice {
   kind: RoomDeviceKind

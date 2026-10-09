@@ -71,6 +71,19 @@ public class Reservation {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "check_in_method")
+    private CheckInMethod checkInMethod;
+
+    @Column(name = "checked_in_at")
+    private Instant checkedInAt;
+
+    @Column(name = "checked_in_by_user_id")
+    private UUID checkedInByUserId;
+
+    @Column(name = "last_presence_at")
+    private Instant lastPresenceAt;
+
     @Version
     private Long version;
 
@@ -171,6 +184,20 @@ public class Reservation {
         }
         this.createdByUserId = createdByUserId;
     }
+
+    public CheckInMethod getCheckInMethod() { return checkInMethod; }
+    public Instant getCheckedInAt() { return checkedInAt; }
+    public UUID getCheckedInByUserId() { return checkedInByUserId; }
+
+    /** Records how, by whom and when the reservation was checked in; the three values are always set together. */
+    public void recordCheckIn(CheckInMethod method, UUID actorUserId, Instant at) {
+        this.checkInMethod = method;
+        this.checkedInByUserId = actorUserId;
+        this.checkedInAt = at;
+    }
+
+    public Instant getLastPresenceAt() { return lastPresenceAt; }
+    public void setLastPresenceAt(Instant lastPresenceAt) { this.lastPresenceAt = lastPresenceAt; }
 
     public Instant getCreatedAt() {
         return createdAt;

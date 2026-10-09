@@ -100,6 +100,14 @@ describe('ReservationList', () => {
     })
   })
 
+  it('shows an ACTIVE booking as in use', async () => {
+    reservations.listRoomReservations.mockResolvedValue([sampleReservation({ status: 'ACTIVE' })])
+
+    render(<ReservationList room={sampleRoom()} />)
+
+    expect(await screen.findByText('In Nutzung')).toHaveClass('status-badge')
+  })
+
   it('allows completing an ACTIVE booking', async () => {
     const user = userEvent.setup()
     const res = sampleReservation({ status: 'ACTIVE' })

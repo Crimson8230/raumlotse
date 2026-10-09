@@ -38,6 +38,12 @@ public class GlobalExceptionHandler {
                                 .body(Problem.of(409, "Conflict", ex.getMessage()));
         }
 
+        @ExceptionHandler(CheckInRejectedException.class)
+        public ResponseEntity<Problem> handleCheckInRejected(CheckInRejectedException ex) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                                .body(Problem.of(409, "Check-in nicht möglich", ex.getMessage(), ex.getReason().name()));
+        }
+
         @ExceptionHandler(MapRequestException.class)
         public ResponseEntity<Problem> handleMapRequest(MapRequestException ex) {
                 log.warn("map_request_rejected code={} status={}", ex.getCode(), ex.getStatus().value());

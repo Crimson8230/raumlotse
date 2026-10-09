@@ -78,6 +78,7 @@ describe('selectCurrentReservation', () => {
     const ended = reservationFixture({ id: 'ended', endTime: '2026-09-20T09:59:00.000Z' })
     const future = reservationFixture({
       id: 'future',
+      status: 'RESERVED',
       startTime: '2026-09-20T10:01:00.000Z',
     })
     const completed = reservationFixture({ id: 'completed', status: 'COMPLETED' })
@@ -92,6 +93,27 @@ describe('selectCurrentReservation', () => {
         'room-1',
       ),
     ).toBeNull()
+  })
+})
+
+describe('bookings checked in early (feature 014)', () => {
+  const checkedInEarly = reservationFixture({
+    id: 'early',
+    status: 'ACTIVE',
+    startTime: '2026-09-20T10:08:00.000Z',
+    endTime: '2026-09-20T11:00:00.000Z',
+  })
+
+  it('treats an ACTIVE booking as current before its start time', () => {
+    expect(selectCurrentReservation([checkedInEarly], now, 'room-1')).toBe(checkedInEarly)
+  })
+
+  it('shows the room as occupied as soon as the booking is checked in', () => {
+    expect(deriveRoomDisplayStatus([checkedInEarly], now, 'room-1')).toBe('OCCUPIED')
+  })
+
+  it('still ends an ACTIVE booking at its end time', () => {
+    expect(selectCurrentReservation([checkedInEarly], new Date('2026-09-20T11:00:00.000Z'), 'room-1')).toBeNull()
   })
 })
 

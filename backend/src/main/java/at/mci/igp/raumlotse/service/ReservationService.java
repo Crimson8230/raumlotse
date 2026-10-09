@@ -1,5 +1,6 @@
 package at.mci.igp.raumlotse.service;
 
+import at.mci.igp.raumlotse.domain.CheckInMethod;
 import at.mci.igp.raumlotse.domain.EntityStatus;
 import at.mci.igp.raumlotse.domain.EquipmentType;
 import at.mci.igp.raumlotse.domain.Reservation;
@@ -19,11 +20,11 @@ import at.mci.igp.raumlotse.repository.EquipmentTypeRepository;
 import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
 import at.mci.igp.raumlotse.repository.SeatingArrangementRepository;
-import at.mci.igp.raumlotse.config.ReservationPolicyConstants;
 import java.time.Duration;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,8 @@ public class ReservationService {
     private final Clock clock;
     private final BookingConfirmationQueueService confirmationQueue;
     private final ReservationAccessPolicy accessPolicy;
+    private final RoomAutomationService roomAutomation;
+    private final CheckInSettingsService checkInSettings;
 
     @Autowired
     public ReservationService(
@@ -54,13 +57,17 @@ public class ReservationService {
             EquipmentTypeRepository equipmentTypeRepository,
             Clock clock,
             BookingConfirmationQueueService confirmationQueue,
-            ReservationAccessPolicy accessPolicy) {
+            ReservationAccessPolicy accessPolicy,
+            RoomAutomationService roomAutomation,
+            CheckInSettingsService checkInSettings) {
         this.reservationRepository = reservationRepository;
         this.roomRepository = roomRepository;
         this.equipmentTypeRepository = equipmentTypeRepository;
         this.clock = clock;
         this.confirmationQueue = confirmationQueue;
         this.accessPolicy = accessPolicy;
+        this.roomAutomation = roomAutomation;
+        this.checkInSettings = checkInSettings;
     }
 
     public ReservationService(
@@ -70,7 +77,19 @@ public class ReservationService {
             EquipmentTypeRepository equipmentTypeRepository,
             Clock clock) {
         this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, clock, null,
-                new ReservationAccessPolicy());
+                null);
+    }
+
+    public ReservationService(
+            ReservationRepository reservationRepository,
+            RoomRepository roomRepository,
+            SeatingArrangementRepository seatingArrangementRepository,
+            EquipmentTypeRepository equipmentTypeRepository,
+            Clock clock,
+            RoomAutomationService roomAutomation,
+            CheckInSettingsService checkInSettings) {
+        this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository, clock, null,
+                new ReservationAccessPolicy(), roomAutomation, checkInSettings);
     }
 
     public ReservationService(
@@ -79,7 +98,7 @@ public class ReservationService {
             SeatingArrangementRepository seatingArrangementRepository,
             EquipmentTypeRepository equipmentTypeRepository) {
         this(reservationRepository, roomRepository, seatingArrangementRepository, equipmentTypeRepository,
-                Clock.systemUTC(), null, new ReservationAccessPolicy());
+                Clock.systemUTC(), null, new ReservationAccessPolicy(), null, null);
     }
 
     public ReservationResponse createReservation(UUID roomId, ReservationCreateRequest request, AuthenticatedUser user) {
@@ -244,14 +263,34 @@ public class ReservationService {
         if (reservation.getEndTime() != null && !now.isBefore(reservation.getEndTime())) {
             throw new ConflictException("Der Reservierungszeitraum ist bereits vorbei; die Reservierung kann nicht eingecheckt werden.");
         }
+        // The same check-in window as on site (feature 014, FR-004, FR-022).
+        CheckInPolicy policy = checkInPolicy();
+        if (CheckInWindow.missed(reservation, now, policy)) {
+            throw new ConflictException("Die Buchung ist abgelaufen, weil nicht rechtzeitig eingecheckt wurde.");
+        }
+        if (!CheckInWindow.timeOpen(reservation, now, policy)) {
+            throw new ConflictException(CheckInWindow.tooEarlyMessage(CheckInWindow.earliest(reservation, policy), false));
+        }
+        if (CheckInWindow.beforeStart(reservation, now)) {
+            Optional<Instant> occupiedUntil = CheckInWindow.occupiedUntil(reservation,
+                    reservationRepository.findCovering(reservation.getRoom().getId(), now));
+            if (occupiedUntil.isPresent()) {
+                throw new ConflictException(CheckInWindow.tooEarlyMessage(
+                        CheckInWindow.opensAt(reservation, occupiedUntil, policy), true));
+            }
+        }
         reservation.setStatus(ReservationStatus.ACTIVE);
+        reservation.recordCheckIn(CheckInMethod.MANUAL, actor.userId(), now);
         Reservation saved = reservationRepository.save(reservation);
+        if (roomAutomation != null) {
+            roomAutomation.prepare(saved);
+        }
         return accessPolicy.view(saved, actor);
     }
 
     public int expireUnattendedReservations() {
         Instant now = clock.instant();
-        Instant cutoff = now.minus(ReservationPolicyConstants.CHECK_IN_GRACE_PERIOD);
+        Instant cutoff = now.minus(checkInPolicy().gracePeriod());
         List<Reservation> candidates = reservationRepository.findUnattendedReservationsForExpiration(
                 ReservationStatus.RESERVED, cutoff, now);
 
@@ -285,6 +324,7 @@ public class ReservationService {
                 reservation.setUpdatedAt(now);
                 reservationRepository.save(reservation);
                 count++;
+                releaseRoom(reservation);
                 log.info("Auto-completed concluded active reservation id={} roomId={} endTime={}",
                         reservation.getId(),
                         reservation.getRoom() != null ? reservation.getRoom().getId() : null,
@@ -309,6 +349,7 @@ public class ReservationService {
         }
         reservation.setStatus(ReservationStatus.COMPLETED);
         Reservation saved = reservationRepository.save(reservation);
+        releaseRoom(saved);
         return accessPolicy.view(saved, actor);
     }
 
@@ -329,9 +370,31 @@ public class ReservationService {
                 || reservation.getStatus() == ReservationStatus.CANCELLED) {
             throw new ConflictException("Die Reservierung ist bereits im Endzustand " + reservation.getStatus() + " und kann nicht storniert werden.");
         }
+        boolean wasInUse = reservation.getStatus() == ReservationStatus.ACTIVE;
         reservation.setStatus(ReservationStatus.CANCELLED);
         Reservation saved = reservationRepository.save(reservation);
+        if (wasInUse) {
+            releaseRoom(saved);
+        }
         return accessPolicy.view(saved, actor);
+    }
+
+    /** The admin-editable check-in times (feature 014, FR-022); the former constants when built without settings. */
+    private CheckInPolicy checkInPolicy() {
+        return checkInSettings != null ? checkInSettings.current() : CheckInPolicy.DEFAULT;
+    }
+
+    /** Room automation must never undo or block a status change (feature 014, FR-010). */
+    private void releaseRoom(Reservation reservation) {
+        if (roomAutomation == null) {
+            return;
+        }
+        try {
+            roomAutomation.release(reservation);
+        } catch (RuntimeException ex) {
+            log.warn("room_release_failed roomId={} reservationId={}",
+                    reservation.getRoom() != null ? reservation.getRoom().getId() : null, reservation.getId(), ex);
+        }
     }
 
     private Reservation findManageableOrThrow(UUID reservationId, Actor actor, String action) {

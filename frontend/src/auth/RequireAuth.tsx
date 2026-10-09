@@ -11,6 +11,6 @@ export function RequireAuth() {
   if (state === 'unavailable') {
     return <main role="alert" className="auth-status">Die Anmeldung ist vorübergehend nicht verfügbar. Seite neu laden und erneut versuchen.</main>
   }
-  if (state !== 'authenticated') return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (state !== 'authenticated') return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   return <><Navigation /><Outlet /></>
 }

@@ -56,6 +56,7 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: 'Standorte' })).toHaveAttribute('href', '/admin/locations')
     expect(screen.getByRole('link', { name: 'Karten bearbeiten' })).toHaveAttribute('href', '/admin/maps')
     expect(screen.getByRole('link', { name: 'Benutzerrollen' })).toHaveAttribute('href', '/admin/users')
+    expect(screen.getByRole('link', { name: 'Einstellungen' })).toHaveAttribute('href', '/admin/settings')
     expect(screen.getByRole('status')).toHaveTextContent('Administrationsmodus aktiv')
     await user.click(screen.getByRole('button', { name: 'Administrationsmodus beenden' }))
 

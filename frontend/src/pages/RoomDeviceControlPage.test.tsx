@@ -27,4 +27,11 @@ describe('RoomDeviceControlPage', () => {
     render(<MemoryRouter initialEntries={['/rooms/r1/control']}><Routes><Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} /></Routes></MemoryRouter>)
     expect(performance.now() - started).toBeLessThan(1000)
   })
+
+  it('links back to the room page', () => {
+    api.getRoomDeviceControls.mockResolvedValue({ roomId: 'r1', reservationId: 'b1', devices: [] })
+    render(<MemoryRouter initialEntries={['/rooms/r1/control']}><Routes><Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} /></Routes></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Zurück zum Raum' })).toHaveAttribute('href', '/rooms/r1')
+  })
 })
+

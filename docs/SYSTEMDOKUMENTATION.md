@@ -18,12 +18,13 @@ Raumlotse ist eine Web-Anwendung zur Seminar-/Raumreservierung (MCI, Kontext Hoc
 | Login | E-Mail/Passwort, Session-Cookie, CSRF, Login-Cooldown | 004/005 |
 | Reservierungen | Anlegen, Konfliktprüfung, Statusmaschine, Check-in, Auto-Expire | 004, 007, 009 |
 | Anzeige / Status | Raum-Display mit aktueller/nächster Reservierung | 005, 009 |
-| Gerätesteuerung | Licht/Lüftung/Beamer pro Raum (Stub-Gateway) | 006 |
+| Gerätesteuerung | Licht/Lüftung/Beamer/Tür pro Raum (Stub-Gateway) | 006, 014 |
 | Raumsuche | Filter nach Kapazität, Gebäude, Bestuhlung, Ausstattung, Barrierefreiheit, Zeitfenster | 008 |
 | Mail-Bestätigung | Optionale Buchungsbestätigung über DB-Queue + SMTP | 010 |
 | Kartenplatzierung | Etagenpläne (PNG/JPEG), Raum-Platzierung, Treppen/Aufzug-Verbindungen | 012 |
+| Anwesenheits-Check-in | Check-in per QR-Code/NFC-Link (ab 10 min vor Beginn, Zeiten unter `/admin/settings` einstellbar), automatische Raumvorbereitung (Licht, Lüftung, Tür) und Freigabe am Ende, Gerätesymbole auf dem Display, simulierter Bewegungsmelder | 014 |
 
-Noch **nicht** vorhanden: Routing/Wegfindung (012 bereitet sie nur vor), Statistik (Branch `origin/011-admin-statistics`, nicht gemergt), Hochschul-Anbindung (LDAP/SSO/LMS), echte Geräteanbindung, rollenbasierte Autorisierung außerhalb von Admin-Bereichen (siehe §10).
+Noch **nicht** vorhanden: Routing/Wegfindung (012 bereitet sie nur vor), Statistik (Branch `origin/011-admin-statistics`, nicht gemergt), Hochschul-Anbindung (LDAP/SSO/LMS), echte Geräteanbindung (inkl. E-Ink-Display, LED, Bewegungsmelder; 014 bietet dafür den lesenden Raumstatus), rollenbasierte Autorisierung außerhalb von Admin-Bereichen (siehe §10).
 
 ## 2. Architektur
 
@@ -111,11 +112,11 @@ Weitere Tabellen: `login_attempt_state` (HMAC-Schlüssel → Fehlzeitpunkte, Spe
 ```mermaid
 stateDiagram-v2
   [*] --> RESERVED
-  RESERVED --> ACTIVE: activate (Check-in)
-  RESERVED --> EXPIRED: expire / Scheduler (Start+5 min oder Ende)
+  RESERVED --> ACTIVE: activate / Check-in vor Ort (QR, NFC) → Raum vorbereiten
+  RESERVED --> EXPIRED: expire / Scheduler (Start + Kulanzzeit oder Ende)
   RESERVED --> CANCELLED: cancel
-  ACTIVE --> COMPLETED: complete / Scheduler (nach Ende)
-  ACTIVE --> CANCELLED: cancel
+  ACTIVE --> COMPLETED: complete / Scheduler (nach Ende) → Raum freigeben
+  ACTIVE --> CANCELLED: cancel → Raum freigeben
 ```
 
 Konflikte werden nur für RESERVED/ACTIVE geprüft (halboffenes Intervall, `findConflictingReservations`); Anlegen sperrt die Raumzeile pessimistisch (`findByIdForUpdate`).
@@ -159,6 +160,7 @@ Vollständige Liste: `README.md`; Verträge: `specs/*/contracts/`.
 | `RoomSearchController` | `/api/rooms/search`, `/search/seating-arrangements` | `RoomSearchCriteria` entscheidet in-memory (`matches`) |
 | `ReservationController` | s. §5-Matrix | Eigene `resolveUser`-Logik (dupliziert Identitätsauflösung, enthält Fallback auf `UserDetails`) |
 | `RoomDeviceController` | `/api/rooms/{id}/device-controls[/{kind}]` | |
+| `CheckInController`, `RoomStatusController`, `PresenceEventController` | `/api/rooms/{id}/check-in` (GET/POST), `/api/rooms/{id}/status`, `POST /api/admin/rooms/{id}/presence-events` | Feature 014 |
 | `FloorMapController`, `RoomPlacementController`, `ConnectionController` | `/api/maps…`, `/api/connections…`, `PUT /api/floors/{id}/map` | Multipart-Upload, ≤10 MB |
 | `HealthController` | `/api/health` | |
 
@@ -179,6 +181,10 @@ Fehlerabbildung zentral: `GlobalExceptionHandler` (Validation → 400 mit `error
 ### 6.4 Gerätesteuerung
 
 `RoomDeviceService` → `RoomDeviceGateway` (Interface). Einzige Implementierung `PersistedRoomDeviceGateway` ist ein **No-Op** („bis physische Anbindung verfügbar"); Zustand wird nur in `room_device_state` persistiert. Beamer-Steuerung nur, wenn Raum aktiven Equipment-Typ mit Code `PROJECTOR` hat (Code per V11 aus Name abgeleitet). Zustandszeilen werden lazy beim Lesen angelegt (Schreiben in `readOnly`-Transaktion – siehe §10).
+
+Seit Feature 014 gibt es zusätzlich die Tür (`DOOR`, `state = true` heißt entriegelt) und die Raumautomatik: `RoomAutomationService.prepare` (Licht an, Lüftung an, Tür entriegelt) läuft nach jedem Übergang `RESERVED → ACTIVE` (Check-in per QR/NFC über `CheckInService` oder manuelles `activate`), `release` (Licht und Lüftung aus, Tür unverändert) nach `ACTIVE → COMPLETED/CANCELLED`, außer eine andere Buchung des Raums ist bereits `ACTIVE`. Geschaltet wird über `RoomDeviceService.apply` (ohne Benutzerprüfung, sendet bei unverändertem Zustand nichts). Ein nicht bestätigendes Gerät wird geloggt (`room_automation_device_failed roomId reservationId kind phase`) und rollt den Statuswechsel nicht zurück (`noRollbackFor = DeviceOperationException`). `RoomStatusService` liefert den Raumstatus und die Gerätezustände **ohne** Zeilen anzulegen (fehlende Zeilen = aus/verriegelt).
+
+Check-in-Zeiten: Tabelle `check_in_settings` (genau eine Zeile, V15) mit frühem Check-in (0–60 min, Standard 10) und Kulanzzeit (1–30 min, Standard 5). `CheckInSettingsService.current()` wird bei jeder Check-in-Entscheidung (QR/NFC, manuelles `activate`) und bei jedem Ablauf-Sweep gelesen; damit ist die in Feature 007 fest verdrahtete 5-Minuten-Konstante jetzt eine Admin-Einstellung (`GET/PUT /api/admin/check-in-settings`, Seite `/admin/settings`). Änderungen werden mit `check_in_settings_changed … by=<userId>` geloggt.
 
 ### 6.5 Mail-Benachrichtigung (Transactional-Outbox-Muster)
 
@@ -269,7 +275,7 @@ Schwere: **K** kritisch (Sicherheit/Fachlichkeit), **H** hoch, **M** mittel, **N
 | F5 | **M** | Scheduler-Sweeps laufen je Instanz. Mehrere Backend-Instanzen → doppelte Arbeit (optimistisches Locking fängt Konflikte, aber ohne Leader-Election/`SELECT … FOR UPDATE SKIP LOCKED`). Mail-Worker `claimPending` ist per Queue-Service für Parallelität vorgesehen (Annahme, nicht geprüft). | `ReservationExpirationScheduler`, `BookingConfirmationWorker` |
 | F6 | **M** | Scheduler-Sweep lädt alle Kandidaten und speichert einzeln in **einer** `@Transactional`-Service-Methode; ein `OptimisticLockingFailureException` wird *innerhalb* der Transaktion gefangen, die dadurch ggf. bereits als rollback-only markiert ist. Verhalten bei Fehlern unklar/unverifiziert. | `ReservationService.expireUnattendedReservations/completeOverdue…` |
 | F7 | **M** | Mail: genau ein Versuch, kein Retry/Backoff; transiente SMTP-Fehler führen dauerhaft zu `FAILED`. Bewusste Spec-Entscheidung („at most once"), für Produktion zu überdenken. | `BookingConfirmationWorker`, V12 |
-| F8 | **M** | Gerätesteuerung: `GET` schreibt Zustandszeilen lazy (`response()` → `save` in `readOnly=true`-Transaktion; je nach Provider wirkungslos oder fehlerhaft) und Gateway ist No-Op → Zustand „an" bedeutet nicht, dass etwas geschaltet wurde. | `RoomDeviceService`, `PersistedRoomDeviceGateway` |
+| F8 | **M** · teilweise behoben in Feature 014 (`GET /api/rooms/{id}/status` schreibt nicht mehr; `getControls` legt Zeilen weiterhin lazy an) | Gerätesteuerung: `GET` schreibt Zustandszeilen lazy (`response()` → `save` in `readOnly=true`-Transaktion; je nach Provider wirkungslos oder fehlerhaft) und Gateway ist No-Op → Zustand „an" bedeutet nicht, dass etwas geschaltet wurde. | `RoomDeviceService`, `PersistedRoomDeviceGateway` |
 | F9 | **N** | `calculateTurnoverBuffer` (immer 0), `ReservationCreateRequest.createdBy` (Legacy), `seatingArrangementRepository`-Parameter ungenutzt → toter Code. | `ReservationService` |
 
 ### 10.3 Struktur, Design, Wartbarkeit

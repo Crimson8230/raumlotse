@@ -1,4 +1,6 @@
 import { formatDate, formatTime } from '../../utils/date'
+import { CheckInQrCode } from '../CheckInQrCode/CheckInQrCode'
+import { RoomDeviceIcons } from '../RoomDeviceIcons/RoomDeviceIcons'
 import { getNotePreview } from './roomDisplayLogic'
 import type { RoomDisplayProps, RoomDisplayStatus } from './roomDisplayTypes'
 import './RoomDisplay.css'
@@ -18,6 +20,9 @@ export function RoomDisplay({
   nextReservation,
   state,
   errorMessage,
+  checkInLink,
+  devices,
+  adminControls,
 }: RoomDisplayProps) {
   return (
     <main
@@ -33,6 +38,9 @@ export function RoomDisplay({
           {STATUS_LABELS[status]}
         </p>
       )}
+
+      {state !== 'unavailable' && devices && <RoomDeviceIcons devices={devices} />}
+      {state !== 'unavailable' && adminControls}
 
       <header className="room-display-header">
         <h1>{roomName}</h1>
@@ -97,6 +105,12 @@ export function RoomDisplay({
         </p>
       )}
 
+      {state !== 'unavailable' && checkInLink && (
+        <section className="room-display-check-in" aria-label="Check-in">
+          <CheckInQrCode link={checkInLink} roomName={roomName} />
+          <p>Zum Einchecken scannen</p>
+        </section>
+      )}
     </main>
   )
 }

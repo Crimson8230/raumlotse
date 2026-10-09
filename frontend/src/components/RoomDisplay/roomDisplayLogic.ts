@@ -23,6 +23,15 @@ export function getNotePreview(note: string | null | undefined, maxLength = 280)
   }
 }
 
+/**
+ * Whether a reservation is ongoing now: RESERVED within [start, end); ACTIVE from its check-in until its end, which
+ * may be up to 10 minutes before the start (feature 014).
+ */
+function isOngoing(reservation: Reservation, currentTimestamp: number): boolean {
+  if (!ACTIVE_STATUSES.has(reservation.status) || currentTimestamp >= Date.parse(reservation.endTime)) return false
+  return reservation.status === 'ACTIVE' || Date.parse(reservation.startTime) <= currentTimestamp
+}
+
 export function selectCurrentReservation(
   reservations: Reservation[],
   currentDateTime: Date,
@@ -31,16 +40,7 @@ export function selectCurrentReservation(
   const currentTimestamp = currentDateTime.getTime()
 
   return reservations
-    .filter((reservation) => {
-      const startTimestamp = Date.parse(reservation.startTime)
-      const endTimestamp = Date.parse(reservation.endTime)
-      return (
-        reservation.roomId === roomId &&
-        ACTIVE_STATUSES.has(reservation.status) &&
-        startTimestamp <= currentTimestamp &&
-        currentTimestamp < endTimestamp
-      )
-    })
+    .filter((reservation) => reservation.roomId === roomId && isOngoing(reservation, currentTimestamp))
     .sort((left, right) => {
       const startDifference = Date.parse(left.startTime) - Date.parse(right.startTime)
       return startDifference || left.id.localeCompare(right.id)
@@ -54,15 +54,7 @@ export function deriveRoomDisplayStatus(
 ): RoomDisplayStatus {
   const currentTimestamp = currentDateTime.getTime()
   const roomReservations = reservations.filter((reservation) => reservation.roomId === roomId)
-  const currentReservations = roomReservations.filter((reservation) => {
-    const startTimestamp = Date.parse(reservation.startTime)
-    const endTimestamp = Date.parse(reservation.endTime)
-    return (
-      ACTIVE_STATUSES.has(reservation.status) &&
-      startTimestamp <= currentTimestamp &&
-      currentTimestamp < endTimestamp
-    )
-  })
+  const currentReservations = roomReservations.filter((reservation) => isOngoing(reservation, currentTimestamp))
 
   if (currentReservations.some((reservation) => reservation.status === 'ACTIVE')) {
     return 'OCCUPIED'

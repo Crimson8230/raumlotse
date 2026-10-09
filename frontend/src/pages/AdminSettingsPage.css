@@ -1,0 +1,28 @@
+.check-in-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 36rem;
+}
+
+.check-in-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+.check-in-settings input {
+  max-width: 8rem;
+}
+
+.check-in-settings button {
+  align-self: flex-start;
+  margin-top: 1rem;
+}
+
+.field-hint {
+  margin: 0;
+  color: var(--color-muted);
+}

@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Presence Check-In API
+  version: 1.0.0
+  description: >
+    On-site check-in by QR code or NFC, read-only room status for displays and future devices,
+    simulated motion events, and the door as an additional device kind. All routes require an
+    authenticated session and, for POST, the CSRF token, like every other application route.
+# Changes to existing contracts:
+# - specs/006-room-device-control/contracts/room-device-control-api.yaml: DeviceKind gains DOOR
+#   (state true = unlocked). GET /device-controls lists DOOR for every room. Additive, so there is no version bump.
+# - POST /api/reservations/{id}/activate: unchanged shape. It now also records checkInMethod=MANUAL
+#   and prepares the room.
+paths:
+  /api/rooms/{roomId}/check-in:
+    get:
+      summary: Preview the booking that an on-site check-in would confirm
+      description: >
+        Used by the check-in page before the user confirms. Selects the reservation for this room as
+        described in POST, without changing anything.
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200':
+          description: Check-in preview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckInPreview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      summary: Confirm presence on site for the booking whose check-in window is open
+      description: >
+        Selects the RESERVED reservation of this room with startTime - 10 min <= now <= startTime + 5 min
+        and now < endTime; before startTime only while no other reservation of the room is ongoing. Non-admin callers must own it; administrators may confirm any. On success the
+        reservation becomes ACTIVE, the method and actor are recorded, and lighting and ventilation
+        are switched on and the door unlocked. A device failure does not undo the check-in.
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckInRequest' }
+      responses:
+        '200':
+          description: Checked in (or already ACTIVE; idempotent)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckInResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >
+            No booking can be confirmed now. Problem.code is one of TOO_EARLY, EXPIRED or NO_MATCH;
+            the detail explains it in German.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/rooms/{roomId}/status:
+    get:
+      summary: Read-only room status and simulated device states
+      description: >
+        For the room display and future polling devices (e-ink display, LED controller). Contains
+        no personal data. Never creates or changes device state rows; missing rows are reported
+        with their defaults (off / locked).
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200':
+          description: Current room status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoomStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/rooms/{roomId}/presence-events:
+    post:
+      summary: Simulate a motion-sensor event for a room (administrators only)
+      description: >
+        Processed like a real sensor event. If a reservation of this room is ACTIVE and covers now,
+        its lastPresenceAt is set to now. Never changes a reservation status or a device.
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '200':
+          description: Event processed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PresenceEventResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: Caller is not an administrator
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/check-in-settings:
+    get:
+      summary: Current check-in times (administrators only)
+      responses:
+        '200':
+          description: Current settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckInSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: Caller is not an administrator
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+    put:
+      summary: Change the check-in times (administrators only); applies immediately
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckInSettingsUpdate' }
+      responses:
+        '200':
+          description: Saved settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckInSettings' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: Caller is not an administrator
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+components:
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    CheckInMethod:
+      type: string
+      enum: [QR, NFC]
+    CheckInRequest:
+      type: object
+      required: [method]
+      additionalProperties: false
+      properties:
+        method: { $ref: '#/components/schemas/CheckInMethod' }
+    CheckInPreview:
+      type: object
+      required: [roomId, roomName, outcome]
+      properties:
+        roomId: { type: string, format: uuid }
+        roomName: { type: string }
+        outcome:
+          type: string
+          enum: [READY, ALREADY_ACTIVE, TOO_EARLY, EXPIRED, NO_MATCH]
+        reservation:
+          type: object
+          nullable: true
+          description: Present for READY, ALREADY_ACTIVE and TOO_EARLY.
+          allOf: [{ $ref: '#/components/schemas/CheckInReservation' }]
+        checkInOpensAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set for TOO_EARLY.
+        detail:
+          type: string
+          nullable: true
+          description: >
+            Why the booking cannot be checked in now (TOO_EARLY, EXPIRED, NO_MATCH), e.g. "Der Raum ist noch belegt.
+            Der Check-in ist ab 10:05 Uhr möglich."; null for READY and ALREADY_ACTIVE.
+    CheckInReservation:
+      type: object
+      required: [id, startTime, endTime, reservedFor]
+      properties:
+        id: { type: string, format: uuid }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        reservedFor: { type: string }
+    CheckInResult:
+      type: object
+      required: [reservationId, status, alreadyActive, checkInMethod, checkedInAt, devices, failedDevices]
+      properties:
+        reservationId: { type: string, format: uuid }
+        status: { type: string, enum: [ACTIVE] }
+        alreadyActive:
+          type: boolean
+          description: True if the booking was already ACTIVE; nothing was changed or switched.
+        checkInMethod: { type: string, enum: [QR, NFC, MANUAL] }
+        checkedInAt: { type: string, format: date-time }
+        devices: { $ref: '#/components/schemas/DeviceStates' }
+        failedDevices:
+          type: array
+          items: { type: string, enum: [LIGHTING, VENTILATION, DOOR] }
+    DeviceStates:
+      type: object
+      required: [lighting, ventilation, door]
+      properties:
+        lighting: { type: boolean, description: true = on }
+        ventilation: { type: boolean, description: true = on }
+        door: { type: string, enum: [LOCKED, UNLOCKED] }
+    RoomStatus:
+      type: object
+      required: [roomId, status, devices, lastPresenceAt]
+      properties:
+        roomId: { type: string, format: uuid }
+        status: { type: string, enum: [AVAILABLE, RESERVED, OCCUPIED] }
+        devices: { $ref: '#/components/schemas/DeviceStates' }
+        lastPresenceAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Latest detected presence of the ACTIVE booking; always null for non-administrators.
+    PresenceEventResult:
+      type: object
+      required: [recorded, lastPresenceAt]
+      properties:
+        recorded:
+          type: boolean
+          description: False when no reservation of the room is ACTIVE now.
+        lastPresenceAt: { type: string, format: date-time, nullable: true }
+    CheckInSettingsUpdate:
+      type: object
+      required: [earlyCheckInMinutes, gracePeriodMinutes]
+      additionalProperties: false
+      properties:
+        earlyCheckInMinutes: { type: integer, minimum: 0, maximum: 60 }
+        gracePeriodMinutes: { type: integer, minimum: 1, maximum: 30 }
+    CheckInSettings:
+      type: object
+      required: [earlyCheckInMinutes, gracePeriodMinutes, updatedAt]
+      properties:
+        earlyCheckInMinutes: { type: integer }
+        gracePeriodMinutes: { type: integer }
+        updatedAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [title, status, detail]
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string }
+  responses:
+    BadRequest:
+      description: Missing or unknown check-in method
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Room not found or not active
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }

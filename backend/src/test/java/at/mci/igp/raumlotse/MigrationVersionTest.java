@@ -26,6 +26,20 @@ class MigrationVersionTest {
     }
 
     @Test
+    void presenceCheckInMigrationFollowsRoomMapMigration() throws Exception {
+        var resources = new PathMatchingResourcePatternResolver()
+                .getResources("classpath*:db/migration/V*__*.sql");
+        List<String> orderedNames = java.util.Arrays.stream(resources)
+                .map(resource -> resource.getFilename())
+                .sorted((left, right) -> versionOf(left).compareTo(versionOf(right)))
+                .toList();
+
+        assertThat(orderedNames).containsSubsequence(
+                "V13__create_room_map_tables.sql",
+                "V14__presence_checkin.sql");
+    }
+
+    @Test
     void packagedMigrationsHaveUniqueFlywayVersions() throws Exception {
         var resources = new PathMatchingResourcePatternResolver()
                 .getResources("classpath*:db/migration/V*__*.sql");
