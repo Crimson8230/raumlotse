@@ -85,7 +85,8 @@ class RoomDeviceAuthorizationTest {
         authenticate(userId);
 
         var controls = new RoomDeviceService(rooms, reservations, states, gateway, Clock.fixed(start, ZoneOffset.UTC)).getControls(roomId);
-        assertThat(controls.devices()).hasSize(2);
+        // Lighting, ventilation and (since feature 014) the door; no projector in this room.
+        assertThat(controls.devices()).hasSize(3);
     }
 
     @Test

@@ -22,7 +22,7 @@ class RolePermissionMigrationIntegrationTest {
     void seedsFiveFixedRolesAndPreservesAssignmentsThenDefaultsNewAccountsToViewer() {
         var source = new DriverManagerDataSource(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
-        Flyway.configure().dataSource(source).target("13").load().migrate();
+        Flyway.configure().dataSource(source).target("15").load().migrate();
         var db = new JdbcTemplate(source);
         UUID existing = insertAccount(db);
         db.update("insert into user_role_state(user_id,roles_version) values (?,4)", existing);

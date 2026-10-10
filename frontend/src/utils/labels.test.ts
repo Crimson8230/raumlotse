@@ -10,5 +10,7 @@ describe('labels', () => {
   it('names every reservation status', () => {
     expect(Object.values(reservationStatusLabels).every((label) => label.length > 0)).toBe(true)
     expect(reservationStatusLabels.CANCELLED).toBe('Storniert')
+    // A booking in use is "in Nutzung" (feature 014); rooms and buildings stay "Aktiv".
+    expect(reservationStatusLabels.ACTIVE).toBe('In Nutzung')
   })
 })

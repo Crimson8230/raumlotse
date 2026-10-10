@@ -1,8 +1,8 @@
 # Implementation Plan: Rollenrechte verwalten
 
-**Branch**: `014-role-permission-management` | **Date**: 2026-10-08 | **Spec**: [spec.md](./spec.md)
+**Branch**: `015-role-permission-management` | **Date**: 2026-10-08 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/014-role-permission-management/spec.md`
+**Input**: Feature specification from `specs/015-role-permission-management/spec.md`
 
 ## Summary
 
@@ -16,7 +16,7 @@ Die Umsetzung erweitert die vorhandene Java/Spring/PostgreSQL- und React-Anwendu
 
 **Primary Dependencies**: Spring Boot 4.1.1, Spring Security, Spring Data JPA/JDBC, Flyway; React Router 7, Zod, Vitest/Testing Library. Keine neue Laufzeitabhängigkeit geplant.
 
-**Storage**: PostgreSQL 17; nächste Flyway-Migration nach V13 für fünf Rollenrechte-Versionen, bis zu 70 Rollenrecht-Zeilen und Viewer-Standard bei neuer Kontoanlage. Der Administrationsmodus bleibt Sitzungszustand.
+**Storage**: PostgreSQL 17; Flyway-Migration V16 nach den Check-in-Migrationen V14 und V15 für fünf Rollenrechte-Versionen, bis zu 70 Rollenrecht-Zeilen und Viewer-Standard bei neuer Kontoanlage. Der Administrationsmodus bleibt Sitzungszustand.
 
 **Testing**: JUnit 5, MockMvc und Testcontainers/PostgreSQL im Backend; Vitest, Testing Library, ESLint und TypeScript-Build im Frontend. Für jede Implementierung zuerst ein fehlschlagender Test gemäß Verfassung.
 
@@ -50,7 +50,7 @@ Keine unbegründete Verfassungsabweichung und keine offene technische Klärung. 
 ### Documentation (this feature)
 
 ```text
-specs/014-role-permission-management/
+specs/015-role-permission-management/
 ├── spec.md
 ├── plan.md
 ├── research.md
@@ -68,7 +68,7 @@ specs/014-role-permission-management/
 
 ```text
 backend/src/main/
-├── resources/db/migration/V14__*.sql          # Rollenrechte, Startwerte, Viewer-Standard
+├── resources/db/migration/V16__*.sql          # Rollenrechte, Startwerte, Viewer-Standard
 └── java/at/mci/igp/raumlotse/
     ├── domain/Role.java, PermissionCode.java  # feste Kataloge
     ├── repository/                             # versionierte Rollenrechte und aktuelle Rechteabfrage

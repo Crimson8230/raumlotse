@@ -52,11 +52,17 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "GET", "/api/connections", PermissionCode.READ);
         add(result, "GET", "/api/rooms/[^/]+/(available-equipment|reservations)", PermissionCode.READ);
         add(result, "GET", "/api/reservations/(my-upcoming|[^/]+)", PermissionCode.READ);
+        add(result, "GET", "/api/rooms/[^/]+/check-in", IDENTITY);
+        add(result, "GET", "/api/rooms/[^/]+/status", PermissionCode.READ);
         add(result, "POST", "/api/rooms/[^/]+/reservations", PermissionCode.RESERVE);
         add(result, "PATCH", "/api/reservations/[^/]+", IDENTITY);
         add(result, "POST", "/api/reservations/[^/]+/(activate|complete|expire|cancel)", IDENTITY);
         add(result, "GET", "/api/rooms/[^/]+/device-controls", PermissionCode.OWN_ACTIVE_DEVICE_CONTROL);
         add(result, "POST", "/api/rooms/[^/]+/device-controls/[^/]+", PermissionCode.OWN_ACTIVE_DEVICE_CONTROL);
+        add(result, "POST", "/api/rooms/[^/]+/check-in", IDENTITY);
+        add(result, "GET", "/api/admin/check-in-settings", ADMIN);
+        add(result, "PUT", "/api/admin/check-in-settings", ADMIN);
+        add(result, "POST", "/api/admin/rooms/[^/]+/presence-events", ADMIN);
         add(result, "POST", "/api/buildings", PermissionCode.BUILDING_MANAGE);
         add(result, "PUT", "/api/buildings/[^/]+", PermissionCode.BUILDING_MANAGE);
         add(result, "POST", "/api/buildings/[^/]+/(deactivate|reactivate)", PermissionCode.BUILDING_MANAGE);
@@ -95,7 +101,6 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         for (Entry entry : RULES) if (entry.matches(method, path)) return entry.rule();
         return null;
     }
-
     private final EffectivePermissionService permissions;
     private final ObjectMapper mapper;
 

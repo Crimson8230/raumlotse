@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAdminMode } from '../auth/useAdminMode'
 import { getRoom } from '../API/rooms'
 import { listRoomReservations } from '../API/reservations'
+import { getRoomStatus } from '../API/roomStatus'
 import { ReservationForm } from '../components/ReservationForm/ReservationForm'
 import { ReservationList } from '../components/ReservationList/ReservationList'
+import { CheckInQrCode } from '../components/CheckInQrCode/CheckInQrCode'
+import { RoomDeviceControlsDialog } from '../components/RoomDeviceControls/RoomDeviceControlsDialog'
+import { PresenceSimulateButton } from '../components/PresenceSimulateButton/PresenceSimulateButton'
+import { checkInLink } from '../utils/checkInLink'
 import type { Room } from '../types/room'
 import type { Reservation } from '../types/reservation'
 import './RoomDetailPage.css'
@@ -51,6 +56,20 @@ export default function RoomDetailPage() {
     })
     return () => { ignore = true }
   }, [roomId, refreshSignal, permissions, eligibilityKey])
+  const [nfcCopied, setNfcCopied] = useState(false)
+  const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
+  const [lastPresence, setLastPresence] = useState<{ roomId: string; at: string | null } | null>(null)
+
+  // Administrators see when someone was last detected in the room (feature 014, FR-019).
+  useEffect(() => {
+    if (!roomId || !adminMode) return
+    let ignore = false
+    getRoomStatus(roomId).then(
+      (status) => { if (!ignore) setLastPresence({ roomId, at: status.lastPresenceAt }) },
+      () => { if (!ignore) setLastPresence({ roomId, at: null }) },
+    )
+    return () => { ignore = true }
+  }, [roomId, adminMode])
 
   useEffect(() => {
     if (!roomId) return
@@ -79,6 +98,8 @@ export default function RoomDetailPage() {
       ignore = true
     }
   }, [roomId, requestedStart, requestedEnd, bookRequested])
+
+  const closeDeviceDialog = useCallback(() => setDeviceDialogOpen(false), [])
 
   function handleReservationSaved(reservation: Reservation) {
     setSuccessMessage(`Reservierung erfolgreich durch ${reservation.createdBy} gebucht.`)
@@ -111,10 +132,16 @@ export default function RoomDetailPage() {
         <h1>{room.name}</h1>
         <div>
           <Link to={`/rooms/${room.id}/display`}>Raumanzeige</Link>{' '}
-          {permissions.includes('OWN_ACTIVE_DEVICE_CONTROL') && deviceEligibility?.key === eligibilityKey && deviceEligibility.eligible && <Link to={`/rooms/${room.id}/control`}>Geräte steuern</Link>}{' '}
+          {permissions.includes('OWN_ACTIVE_DEVICE_CONTROL') && deviceEligibility?.key === eligibilityKey && deviceEligibility.eligible && (
+            <button type="button" onClick={() => setDeviceDialogOpen(true)}>Geräte steuern</button>
+          )}{' '}
           {adminMode && permissions.includes('ROOM_MANAGE') && <Link to={`/admin/rooms/${room.id}/edit`}>Raum bearbeiten</Link>}
         </div>
       </div>
+
+      {deviceDialogOpen && (
+        <RoomDeviceControlsDialog roomId={room.id} roomName={room.name} onClose={closeDeviceDialog} />
+      )}
 
       <dl className="panel room-detail-metadata">
         <dt>Gebäude</dt>
@@ -132,6 +159,32 @@ export default function RoomDetailPage() {
         <dt>Barrierefrei erreichbar</dt>
         <dd>{room.barrierFreeReachable ? 'Ja' : 'Nein'}</dd>
       </dl>
+
+      {adminMode && (
+        <section className="panel room-check-in-codes" aria-labelledby="room-check-in-codes-title">
+          <h2 id="room-check-in-codes-title">Check-in-Codes</h2>
+          <p>Zum Aushängen am Raum: Nutzer:innen scannen den Code und bestätigen ihre Anwesenheit.</p>
+          <CheckInQrCode link={checkInLink(room.id, 'qr')} roomName={room.name} />
+          <button type="button" onClick={() => window.print()}>Drucken</button>
+          <p>
+            NFC-Link (als URL-Eintrag auf einen beliebigen NFC-Tag schreiben):{' '}
+            <code>{checkInLink(room.id, 'nfc')}</code>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(checkInLink(room.id, 'nfc')).then(() => setNfcCopied(true))
+            }}
+          >
+            NFC-Link kopieren
+          </button>
+          {nfcCopied && <span role="status">Kopiert</span>}
+          <PresenceSimulateButton
+            roomId={room.id}
+            lastPresenceAt={lastPresence?.roomId === room.id ? lastPresence.at : null}
+          />
+        </section>
+      )}
 
       {successMessage && (
         <p role="status" className="feedback-success">

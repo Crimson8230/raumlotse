@@ -1,6 +1,6 @@
 # Feature Specification: Rollenrechte verwalten
 
-**Feature Branch**: `014-role-permission-management`
+**Feature Branch**: `015-role-permission-management`
 **Created**: 2026-10-08
 **Status**: Draft
 **Input**: Ausgehend von Feature 003 und 013 sollen Admins Nutzern mehrere der fünf festen Rollen zuweisen und die Berechtigungen jeder Rolle für vorhandene Funktionen getrennt verwalten. Neue Nutzer erhalten Viewer. Vereinigte Rechte gelten sofort; der letzte Admin bleibt geschützt. Änderungen werden dauerhaft gespeichert.

@@ -22,6 +22,8 @@ The first feature, **room management**, is implemented: administrators can maint
 
 **User view and administration mode**: every signed-in user gets the booking and overview pages (`/`, `/rooms`, `/rooms/:id`, `/maps`, ...). Administration pages live under `/admin/*` (`/admin/locations`, `/admin/rooms/new`, `/admin/rooms/:id/edit`, `/admin/maps`, `/admin/users`) and are only reachable for administrators who switched administration mode on in the navigation; the mode is off after every sign-in and ends with the session. On the server every write request under `/api` requires the ADMIN role unless it is on the short list of user actions (book a room, manage own reservations, device control); reservations can only be read in detail, changed or cancelled by their owner or an administrator. See [`specs/013-user-view-admin-mode`](specs/013-user-view-admin-mode/spec.md).
 
+**On-site check-in** (feature 014): every room has a QR code (shown on the room display `/rooms/:id/display`, printable by administrators from the room page) that opens `/rooms/:id/check-in?method=qr`; the same link with `?method=nfc` can be written onto any NFC tag. The booking owner or an administrator confirms their presence within the check-in window (from 10 minutes before the start, if no other booking of the room is still ongoing, up to 5 minutes after the start; the in-app "Einchecken" action follows the same window), which sets the booking to "In Nutzung" (`ACTIVE`) from that moment on, switches light and ventilation on and unlocks the door. When the booking ends, is completed early or cancelled, light and ventilation are switched off again (the door stays as it is), unless the next booking of the room is already in use. All devices are simulated: commands go through the stub `RoomDeviceGateway` and only the last acknowledged state is stored. The room display shows that state as icons and reads it from the read-only `GET /api/rooms/{roomId}/status`, which future e-ink displays or LED controllers can poll as well. There is no real motion sensor; administrators can press "Bewegung simulieren" on the room display or room page, which records the latest detected presence of the booking in use and changes nothing else. Administrators can change both check-in times (early check-in 0–60 minutes, default 10; grace period 1–30 minutes, default 5, which is also when unattended bookings expire) on `/admin/settings` ("Einstellungen"); changes apply immediately. See [`specs/014-presence-checkin/`](specs/014-presence-checkin/spec.md) and its [API contract](specs/014-presence-checkin/contracts/presence-checkin-api.yaml).
+
 Available backend endpoints:
 
 ```text
@@ -76,6 +78,13 @@ PUT    /api/connections/{connectionId}
 DELETE /api/connections/{connectionId}
 PUT    /api/connections/{connectionId}/points/{mapId}
 DELETE /api/connections/{connectionId}/points/{mapId}
+
+GET    /api/rooms/{roomId}/check-in                (what an on-site check-in would confirm)
+POST   /api/rooms/{roomId}/check-in                (body {"method": "QR" | "NFC"})
+GET    /api/rooms/{roomId}/status                  (room status + simulated device states)
+POST   /api/admin/rooms/{roomId}/presence-events   (simulated motion sensor, administrators)
+GET    /api/admin/check-in-settings                (check-in times, administrators)
+PUT    /api/admin/check-in-settings
 ```
 
 The full, versioned contract (request/response shapes, status codes) lives in [`specs/001-room-management/contracts/openapi.yaml`](specs/001-room-management/contracts/openapi.yaml); the search endpoints are specified in [`specs/008-room-search-filter/contracts/room-search-api.yaml`](specs/008-room-search-filter/contracts/room-search-api.yaml).

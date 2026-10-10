@@ -7,7 +7,7 @@ export function entityStatusLabel(status: string): string {
 
 export const reservationStatusLabels: Record<ReservationStatus, string> = {
   RESERVED: 'Reserviert',
-  ACTIVE: 'Aktiv',
+  ACTIVE: 'In Nutzung',
   COMPLETED: 'Abgeschlossen',
   EXPIRED: 'Abgelaufen',
   CANCELLED: 'Storniert',

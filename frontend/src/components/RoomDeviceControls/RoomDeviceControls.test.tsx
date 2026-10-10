@@ -46,4 +46,18 @@ describe('RoomDeviceControls', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/nur während ihrer aktiven reservierung/i)
     expect(deviceApi.setRoomDeviceState).not.toHaveBeenCalled()
   })
+
+  it('labels the door with its lock state', async () => {
+    const door = { kind: 'DOOR' as const, enabled: true, state: false, updatedAt: '2026-10-01T10:00:00Z' }
+    deviceApi.getRoomDeviceControls.mockResolvedValue({ roomId: 'r1', reservationId: 'b1', devices: [door] })
+    deviceApi.setRoomDeviceState.mockResolvedValue({ ...door, state: true })
+    const user = userEvent.setup()
+    render(<RoomDeviceControls roomId="r1" />)
+
+    expect(await screen.findByRole('heading', { name: 'Tür' })).toBeInTheDocument()
+    expect(screen.getByText('Verriegelt')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tür entriegeln' }))
+    expect(await screen.findByText('Entriegelt')).toBeInTheDocument()
+    expect(deviceApi.setRoomDeviceState).toHaveBeenCalledWith('r1', 'DOOR', { state: true })
+  })
 })

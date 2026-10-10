@@ -1,4 +1,4 @@
-import { BarChart3, Building2, DoorOpen, Home, Map, MapPinned, ShieldCheck, Users } from 'lucide-react'
+import { BarChart3, Building2, DoorOpen, Home, Map, MapPinned, Settings, ShieldCheck, Users } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useContext, useState } from 'react'
 import { formatApiError } from '../../API/client'
@@ -27,6 +27,7 @@ const adminItems: (NavItem & { rights?: PermissionCode[]; adminOnly?: boolean })
   { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3, rights: ['STATISTICS_READ'] },
   { label: 'Benutzerrollen', path: '/admin/users', icon: Users, adminOnly: true },
   { label: 'Rollenrechte', path: '/admin/roles', icon: ShieldCheck, adminOnly: true },
+  { label: 'Einstellungen', path: '/admin/settings', icon: Settings, adminOnly: true },
 ]
 
 function Item({ label, path, icon: Icon }: NavItem) {

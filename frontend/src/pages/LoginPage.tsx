@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { canonicalEmail, loginSchema } from '../auth/loginSchema'
 import { ApiError } from '../API/client'
 import { useAuth } from '../auth/useAuth'
+import { safeReturnPath } from '../auth/returnPath'
 import './LoginPage.css'
 
 export default function LoginPage() {
@@ -28,7 +29,9 @@ export default function LoginPage() {
     }
   }, [])
 
-  if (state === 'authenticated') return <Navigate to="/" replace />
+  const returnPath = safeReturnPath((location.state as { from?: unknown } | null)?.from)
+
+  if (state === 'authenticated') return <Navigate to={returnPath} replace />
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -47,7 +50,7 @@ export default function LoginPage() {
     try {
       await login({ email, password })
       setPassword('')
-      navigate('/', { replace: true, state: { from: location.state?.from } })
+      navigate(returnPath, { replace: true })
     } catch (failure) {
       setPassword('')
       if (failure instanceof ApiError && (failure.status === 429 || (failure.status === 401 && failure.retryAfterSeconds))) {
@@ -72,7 +75,7 @@ export default function LoginPage() {
     setError('')
     try {
       await retryAvailability()
-      navigate('/', { replace: true })
+      navigate(returnPath, { replace: true })
     } catch {
       setError('Die Anmeldung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.')
     } finally {

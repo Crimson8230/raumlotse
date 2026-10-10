@@ -12,11 +12,13 @@ import { RequireAdminMode } from './auth/RequireAdminMode'
 import UserRoleListPage from './pages/UserRoleListPage'
 import UserRolePage from './pages/UserRolePage'
 import RoomDeviceControlPage from './pages/RoomDeviceControlPage'
+import CheckInPage from './pages/CheckInPage'
 import MapPage from './pages/MapPage'
 import AdminStatisticsPage from './pages/AdminStatisticsPage'
 import RolePermissionPage from './pages/RolePermissionPage'
 import { RequireRoleManagement } from './auth/RequireRoleManagement'
 import { RequirePermission } from './auth/RequirePermission'
+import AdminSettingsPage from './pages/AdminSettingsPage'
 
 function RoomEditRedirect() {
   const { roomId } = useParams()
@@ -45,6 +47,7 @@ function App() {
           <Route element={<RequirePermission any={['OWN_ACTIVE_DEVICE_CONTROL']} />}>
             <Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} />
           </Route>
+          <Route path="/rooms/:roomId/check-in" element={<CheckInPage />} />
 
           <Route path="/admin" element={<RequireAdminMode />}>
             <Route element={<RequirePermission any={['BUILDING_MANAGE', 'FLOOR_MANAGE', 'EQUIPMENT_TYPE_MANAGE']} />}>
@@ -66,6 +69,7 @@ function App() {
               <Route path="users/:userId/roles" element={<UserRolePage />} />
               <Route path="roles" element={<RolePermissionPage />} />
             </Route>
+            <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
 
           {/* Addresses before feature 013 */}

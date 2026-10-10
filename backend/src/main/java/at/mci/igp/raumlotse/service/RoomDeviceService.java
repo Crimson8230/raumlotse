@@ -12,6 +12,7 @@ import at.mci.igp.raumlotse.dto.RoomDeviceControlsResponse;
 import at.mci.igp.raumlotse.dto.RoomDeviceResponse;
 import at.mci.igp.raumlotse.exception.ConflictException;
 import at.mci.igp.raumlotse.exception.DeviceAccessDeniedException;
+import at.mci.igp.raumlotse.exception.DeviceOperationException;
 import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.repository.ReservationRepository;
 import at.mci.igp.raumlotse.repository.RoomDeviceStateRepository;
@@ -71,6 +72,7 @@ public class RoomDeviceService {
         List<RoomDeviceResponse> devices = new ArrayList<>();
         devices.add(response(roomId, RoomDeviceKind.LIGHTING));
         devices.add(response(roomId, RoomDeviceKind.VENTILATION));
+        devices.add(response(roomId, RoomDeviceKind.DOOR));
         if (hasActiveProjector(reservation.getRoom())) devices.add(response(roomId, RoomDeviceKind.PROJECTOR));
         return new RoomDeviceControlsResponse(roomId, reservation.getId(), devices);
     }
@@ -80,17 +82,31 @@ public class RoomDeviceService {
         if (kind == RoomDeviceKind.PROJECTOR && !hasActiveProjector(reservation.getRoom())) {
             throw new ConflictException("In diesem Raum ist kein Beamer verfügbar.");
         }
+        return RoomDeviceResponse.from(apply(roomId, kind, command.state()));
+    }
+
+    /**
+     * Switches a device through the gateway without user authorization, for room automation (feature 014). The state
+     * is stored only after the gateway acknowledged it; an unchanged state sends no command. A device that does not
+     * acknowledge must not roll back the caller's transaction (the check-in or the sweep), so the exception is excluded
+     * from rollback: nothing has been written when it is thrown.
+     */
+    @Transactional(noRollbackFor = DeviceOperationException.class)
+    public RoomDeviceState apply(UUID roomId, RoomDeviceKind kind, boolean state) {
         RoomDeviceState current = stateRepository.findByRoomIdAndKind(roomId, kind)
                 .orElseGet(() -> new RoomDeviceState(roomId, kind));
+        if (current.isState() == state) {
+            return current;
+        }
         try {
-            gateway.setState(roomId, kind, command.state());
+            gateway.setState(roomId, kind, state);
         } catch (RuntimeException ex) {
             log.warn("device_command_failed kind={} status=503", kind);
-            throw new at.mci.igp.raumlotse.exception.DeviceOperationException("Das Gerät hat nicht bestätigt.");
+            throw new DeviceOperationException("Das Gerät hat nicht bestätigt.");
         }
-        current.setState(command.state());
+        current.setState(state);
         current.setEnabled(true);
-        return RoomDeviceResponse.from(stateRepository.save(current));
+        return stateRepository.save(current);
     }
 
     private RoomDeviceResponse response(UUID roomId, RoomDeviceKind kind) {

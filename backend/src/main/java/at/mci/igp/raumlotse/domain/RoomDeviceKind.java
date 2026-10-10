@@ -3,5 +3,7 @@ package at.mci.igp.raumlotse.domain;
 public enum RoomDeviceKind {
     LIGHTING,
     VENTILATION,
-    PROJECTOR
+    PROJECTOR,
+    /** State {@code true} means unlocked (feature 014). */
+    DOOR
 }

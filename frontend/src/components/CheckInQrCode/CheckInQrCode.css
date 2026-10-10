@@ -1,0 +1,11 @@
+.check-in-qr-code {
+  width: 10rem;
+  max-width: 100%;
+  background: #fff;
+  line-height: 0;
+}
+
+.check-in-qr-code svg {
+  width: 100%;
+  height: auto;
+}

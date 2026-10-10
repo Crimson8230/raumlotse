@@ -63,7 +63,7 @@ class RoomDeviceServiceTest {
         var service = new RoomDeviceService(rooms, reservations, states, gateway, Clock.fixed(now, ZoneOffset.UTC));
         var controls = service.getControls(roomId);
         assertThat(controls.devices()).extracting(device -> device.kind())
-                .containsExactly(RoomDeviceKind.LIGHTING, RoomDeviceKind.VENTILATION);
+                .containsExactly(RoomDeviceKind.LIGHTING, RoomDeviceKind.VENTILATION, RoomDeviceKind.DOOR);
         service.setState(roomId, RoomDeviceKind.LIGHTING, new RoomDeviceCommandRequest(true));
         verify(gateway).setState(roomId, RoomDeviceKind.LIGHTING, true);
     }
@@ -98,5 +98,68 @@ class RoomDeviceServiceTest {
         assertThatThrownBy(() -> service.setState(roomId, RoomDeviceKind.LIGHTING,
                 new RoomDeviceCommandRequest(true))).isInstanceOf(UserRoleException.class);
         verifyNoInteractions(rooms, reservations, states, gateway);
+    }
+
+    @Test
+    void applySwitchesThroughTheGatewayAndStoresTheAcknowledgedState() {
+        UUID roomId = UUID.randomUUID();
+        when(states.findByRoomIdAndKind(roomId, RoomDeviceKind.DOOR)).thenReturn(Optional.empty());
+        when(states.save(any(RoomDeviceState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var service = new RoomDeviceService(rooms, reservations, states, gateway, Clock.systemUTC());
+
+        RoomDeviceState stored = service.apply(roomId, RoomDeviceKind.DOOR, true);
+
+        verify(gateway).setState(roomId, RoomDeviceKind.DOOR, true);
+        assertThat(stored.isState()).isTrue();
+        assertThat(stored.getKind()).isEqualTo(RoomDeviceKind.DOOR);
+    }
+
+    @Test
+    void applyLeavesTheStoredStateUnchangedWhenTheGatewayFails() {
+        UUID roomId = UUID.randomUUID();
+        RoomDeviceState current = new RoomDeviceState(roomId, RoomDeviceKind.LIGHTING);
+        when(states.findByRoomIdAndKind(roomId, RoomDeviceKind.LIGHTING)).thenReturn(Optional.of(current));
+        doThrow(new IllegalStateException("offline")).when(gateway).setState(roomId, RoomDeviceKind.LIGHTING, true);
+        var service = new RoomDeviceService(rooms, reservations, states, gateway, Clock.systemUTC());
+
+        assertThatThrownBy(() -> service.apply(roomId, RoomDeviceKind.LIGHTING, true))
+                .isInstanceOf(at.mci.igp.raumlotse.exception.DeviceOperationException.class);
+        assertThat(current.isState()).isFalse();
+        verify(states, never()).save(any());
+    }
+
+    @Test
+    void applyDoesNotResendACommandForAnUnchangedState() {
+        UUID roomId = UUID.randomUUID();
+        RoomDeviceState current = new RoomDeviceState(roomId, RoomDeviceKind.VENTILATION);
+        current.setState(true);
+        when(states.findByRoomIdAndKind(roomId, RoomDeviceKind.VENTILATION)).thenReturn(Optional.of(current));
+        var service = new RoomDeviceService(rooms, reservations, states, gateway, Clock.systemUTC());
+
+        assertThat(service.apply(roomId, RoomDeviceKind.VENTILATION, true)).isSameAs(current);
+        verifyNoInteractions(gateway);
+        verify(states, never()).save(any());
+    }
+
+    @Test
+    void bookingUserCanUnlockTheDoor() {
+        UUID roomId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Room room = new Room("Room", new Floor(new Building("Building"), "1"));
+        Reservation reservation = new Reservation();
+        reservation.setRoom(room); reservation.setStatus(ReservationStatus.ACTIVE);
+        Instant now = Instant.parse("2026-10-01T10:00:00Z");
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(reservations.findEligibleDeviceReservations(roomId, userId, now)).thenReturn(List.of(reservation));
+        when(states.findByRoomIdAndKind(roomId, RoomDeviceKind.DOOR)).thenReturn(Optional.empty());
+        when(states.save(any(RoomDeviceState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(new AuthenticatedUser(userId, "Owner"), null, List.of()));
+        var service = new RoomDeviceService(rooms, reservations, states, gateway, Clock.fixed(now, ZoneOffset.UTC));
+
+        var door = service.setState(roomId, RoomDeviceKind.DOOR, new RoomDeviceCommandRequest(true));
+
+        verify(gateway).setState(roomId, RoomDeviceKind.DOOR, true);
+        assertThat(door.state()).isTrue();
     }
 }

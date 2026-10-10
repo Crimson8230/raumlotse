@@ -1,6 +1,6 @@
 # Tasks: Rollenrechte verwalten
 
-**Input**: Design documents from `specs/014-role-permission-management/`
+**Input**: Design documents from `specs/015-role-permission-management/`
 
 **Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md)
 
@@ -20,7 +20,7 @@
 
 - [X] T001 [P] Ergänze wiederverwendbare Testdaten für die fünf Rollen und 14 Berechtigungscodes in `backend/src/test/java/at/mci/igp/raumlotse/PermissionTestData.java`; keine produktive Rechteentscheidung in der Testhilfe nachbauen.
 - [X] T002 [P] Ergänze typisierte Rollen-/Rechteantworten für Komponententests in `frontend/src/test/permissionFixtures.ts`, einschließlich Viewer-nur-Lesen, Admin und Mehrfachrollen.
-- [X] T003 Gleiche alle aktuellen Controller-Mappings mit `specs/014-role-permission-management/contracts/authorization-matrix.md` ab und ergänze dort vor Implementierungsbeginn fehlende Methoden oder Pfade.
+- [X] T003 Gleiche alle aktuellen Controller-Mappings mit `specs/015-role-permission-management/contracts/authorization-matrix.md` ab und ergänze dort vor Implementierungsbeginn fehlende Methoden oder Pfade.
 
 ---
 
@@ -32,7 +32,7 @@
 
 - [X] T004 [P] Schreibe zunächst fehlschlagende Migrations-/Bootstrap-Integrationstests in `backend/src/test/java/at/mci/igp/raumlotse/RolePermissionMigrationIntegrationTest.java`: genau fünf feste `role_code`-Zeilen, `permissions_version` nichtnegativ und initial `0`, eindeutiges `(role_code, permission_code)`, ausschließlich 14 bekannte Codes, FR-007-Startrechte, unveränderte Bestandsrollen sowie atomar `UserRoleState(0)` und ausschließlich Viewer für neue Konten; prüfe die lokale Erst-Admin-Ausnahme und Neustart ohne erneute Rollenzuteilung.
 - [X] T005 [P] Schreibe zunächst fehlschlagende Repository-/Sicherheitstests in `backend/src/test/java/at/mci/igp/raumlotse/RolePermissionSnapshotIntegrationTest.java`: Vereinigungsmenge für Mehrfachrollen, aktuell gespeicherter Snapshot bei der nächsten Anfrage, fehlende/ungültige Konfiguration ohne Freigabe und keine doppelte Rolle-Recht-Freigabe.
-- [X] T006 Setze die neue Flyway-Migration in `backend/src/main/resources/db/migration/V14__create_role_permissions.sql` um: `role_code` genau `ADMIN`, `UNIVERSITY_STAFF`, `STUDENT`, `LECTURER`, `VIEWER`; `permission_code` genau `READ`, `RESERVE`, `OWN_RESERVATION_MANAGE`, `OTHER_RESERVATION_MANAGE`, `OWN_ACTIVE_DEVICE_CONTROL`, `BUILDING_MANAGE`, `FLOOR_MANAGE`, `EQUIPMENT_TYPE_MANAGE`, `ROOM_MANAGE`, `MAP_MANAGE`, `ROOM_PLACEMENT_MANAGE`, `CONNECTION_MANAGE`, `STATISTICS_READ`, `RESERVATION_MAINTENANCE`; Primärschlüssel `(role_code, permission_code)`; `permissions_version` nichtnegativ und initial `0`; Viewer nur `READ`, drei Fachrollen mit vier Grundrechten, Admin mit allen 14; vorhandene Rollenzuordnungen unverändert; neue `user_account`-Datensätze erhalten `UserRoleState(0)` und ausschließlich `VIEWER` atomar.
+- [X] T006 Setze die neue Flyway-Migration in `backend/src/main/resources/db/migration/V16__create_role_permissions.sql` um: `role_code` genau `ADMIN`, `UNIVERSITY_STAFF`, `STUDENT`, `LECTURER`, `VIEWER`; `permission_code` genau `READ`, `RESERVE`, `OWN_RESERVATION_MANAGE`, `OTHER_RESERVATION_MANAGE`, `OWN_ACTIVE_DEVICE_CONTROL`, `BUILDING_MANAGE`, `FLOOR_MANAGE`, `EQUIPMENT_TYPE_MANAGE`, `ROOM_MANAGE`, `MAP_MANAGE`, `ROOM_PLACEMENT_MANAGE`, `CONNECTION_MANAGE`, `STATISTICS_READ`, `RESERVATION_MAINTENANCE`; Primärschlüssel `(role_code, permission_code)`; `permissions_version` nichtnegativ und initial `0`; Viewer nur `READ`, drei Fachrollen mit vier Grundrechten, Admin mit allen 14; vorhandene Rollenzuordnungen unverändert; neue `user_account`-Datensätze erhalten `UserRoleState(0)` und ausschließlich `VIEWER` atomar.
 - [X] T007 Passe die lokale Erst-Admin-Provisionierung in `backend/src/main/java/at/mci/igp/raumlotse/config/LocalAuthFixtureConfiguration.java` an: nur ein gerade neu angelegtes Fixture-Konto darf den Viewer-Standard gezielt durch `ADMIN` ersetzen; vorhandene Konten und später geänderte Rollen bleiben bei Neustart unverändert.
 - [X] T008 Implementiere den festen 14er-Katalog in `backend/src/main/java/at/mci/igp/raumlotse/domain/PermissionCode.java` und den versionierten Rollenrechte-Snapshot samt aktueller Vereinigungsmenge in `backend/src/main/java/at/mci/igp/raumlotse/repository/RolePermissionRepository.java`; `ROLE_MANAGEMENT` ist kein speicherbarer Code.
 - [X] T009 Implementiere die anfragebezogene, bei Speicherfehlern verweigernde Rechteentscheidung in `backend/src/main/java/at/mci/igp/raumlotse/service/EffectivePermissionService.java` und ergänze Readiness-/Fehlerbehandlung in `backend/src/main/java/at/mci/igp/raumlotse/service/UserRoleReadinessCheck.java` und `backend/src/main/java/at/mci/igp/raumlotse/exception/UserRoleExceptionHandler.java`; prüfe danach T004 und T005 grün.
@@ -164,9 +164,9 @@
 
 - [X] T047 Schreibe zuerst einen fehlschlagenden Client-Test in `frontend/src/API/client.test.ts`: `403 PERMISSION_REQUIRED` aktualisiert effektive Rechte, ohne `404` für fremde Reservierungen oder `401` für Anmeldung falsch umzudeuten.
 - [X] T048 Passe `frontend/src/API/client.ts` so an, dass ein verweigerter Funktionsaufruf eine aktuelle Rechteabfrage auslöst und keine zuvor sichtbare Aktion erneut optimistisch freigibt; prüfe T047 grün.
-- [X] T049 Aktualisiere die Beschreibung der lokalen Fixture und der Viewer-Startrechte in `README.md` sowie die Ende-zu-Ende-Prüfschritte in `specs/014-role-permission-management/quickstart.md` entsprechend dem tatsächlich umgesetzten Verhalten.
-- [X] T050 Führe `./mvnw.cmd test` im Verzeichnis `backend/` sowie `npm test`, `npm run lint` und `npm run build` in `frontend/` aus; dokumentiere Ergebnisse und verbleibende Grenzen in `specs/014-role-permission-management/quickstart.md`.
-- [X] T051 Gleiche alle 16 funktionalen Anforderungen, 14 Rechte und die neun Verwaltungsbereiche gegen `specs/014-role-permission-management/spec.md`, `specs/014-role-permission-management/contracts/authorization-matrix.md` und die ausgeführten Tests ab; ergänze fehlende Abnahmeschritte in `specs/014-role-permission-management/quickstart.md`.
+- [X] T049 Aktualisiere die Beschreibung der lokalen Fixture und der Viewer-Startrechte in `README.md` sowie die Ende-zu-Ende-Prüfschritte in `specs/015-role-permission-management/quickstart.md` entsprechend dem tatsächlich umgesetzten Verhalten.
+- [X] T050 Führe `./mvnw.cmd test` im Verzeichnis `backend/` sowie `npm test`, `npm run lint` und `npm run build` in `frontend/` aus; dokumentiere Ergebnisse und verbleibende Grenzen in `specs/015-role-permission-management/quickstart.md`.
+- [X] T051 Gleiche alle 16 funktionalen Anforderungen, 14 Rechte und die neun Verwaltungsbereiche gegen `specs/015-role-permission-management/spec.md`, `specs/015-role-permission-management/contracts/authorization-matrix.md` und die ausgeführten Tests ab; ergänze fehlende Abnahmeschritte in `specs/015-role-permission-management/quickstart.md`.
 
 ---
 
@@ -269,7 +269,7 @@ Gemeinsame Abnahme danach: T046
 - `[P]` bedeutet verschiedene Dateien ohne unerfüllte Vorbedingung; die Markierung ist keine Anweisung, parallel arbeitende Agents zu starten.
 - Aufgaben mit vorhandenen Testdateien dürfen diese erweitern; bei neuen Dateien ist der angegebene Pfad der Zielpfad.
 - Für Migrations-, API- und Frontend-Änderungen muss der rote Testlauf vor Produktionscode nachvollziehbar sein.
-- Die Verträge in `specs/014-role-permission-management/contracts/` sind maßgeblich; bei einer notwendigen Vertragsänderung wird der Vertrag vor dem betreffenden Produktionscode aktualisiert.
+- Die Verträge in `specs/015-role-permission-management/contracts/` sind maßgeblich; bei einer notwendigen Vertragsänderung wird der Vertrag vor dem betreffenden Produktionscode aktualisiert.
 
 ## Phase 9: Convergence
 

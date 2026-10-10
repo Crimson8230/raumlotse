@@ -4,7 +4,18 @@ import { getRoomDeviceControls, setRoomDeviceState } from '../../API/roomDevices
 import type { RoomDevice, RoomDeviceKind } from '../../types/roomDevice'
 import './RoomDeviceControls.css'
 
-const labels: Record<RoomDeviceKind, string> = { LIGHTING: 'Beleuchtung', VENTILATION: 'Lüftung', PROJECTOR: 'Projector' }
+const labels: Record<RoomDeviceKind, string> = { LIGHTING: 'Beleuchtung', VENTILATION: 'Lüftung', PROJECTOR: 'Projector', DOOR: 'Tür' }
+
+/** The door's state is locked/unlocked (`state` true = unlocked, feature 014); every other device is on/off. */
+function stateText(device: RoomDevice): string {
+  if (device.kind === 'DOOR') return device.state ? 'Entriegelt' : 'Verriegelt'
+  return device.state ? 'An' : 'Aus'
+}
+
+function actionText(device: RoomDevice): string {
+  if (device.kind === 'DOOR') return device.state ? 'Tür verriegeln' : 'Tür entriegeln'
+  return device.state ? `${labels[device.kind]} ausschalten` : `${labels[device.kind]} einschalten`
+}
 
 export function RoomDeviceControls({ roomId }: { roomId: string }) {
   const [devices, setDevices] = useState<RoomDevice[]>([])
@@ -29,5 +40,5 @@ export function RoomDeviceControls({ roomId }: { roomId: string }) {
   if (loading) return <section className="panel" aria-label="Gerätesteuerung"><p>Gerätesteuerung wird geladen…</p></section>
   if (forbidden) return <section className="panel" aria-label="Gerätesteuerung"><p role="alert">Die Steuerung steht nur während Ihrer aktiven Reservierung zur Verfügung.</p></section>
   if (error && devices.length === 0) return <section className="panel" aria-label="Gerätesteuerung"><p role="alert">{error}</p><button type="button" onClick={() => void load()}>Erneut versuchen</button></section>
-  return <section className="panel room-device-controls" aria-label="Gerätesteuerung"><h2>Gerätesteuerung</h2>{error && <p role="alert">{error}</p>}<div className="room-device-grid">{devices.map((device) => <article key={device.kind} className="room-device-card"><h3>{labels[device.kind]}</h3><p aria-live="polite">{device.state ? 'An' : 'Aus'}</p><button type="button" aria-pressed={device.state} disabled={!device.enabled || busy !== null} onClick={() => void toggle(device)}>{device.state ? `${labels[device.kind]} ausschalten` : `${labels[device.kind]} einschalten`}</button></article>)}</div>{devices.every((d) => d.kind !== 'PROJECTOR') && <p className="device-unavailable">Für diesen Raum ist kein Beamer eingerichtet.</p>}</section>
+  return <section className="panel room-device-controls" aria-label="Gerätesteuerung"><h2>Gerätesteuerung</h2>{error && <p role="alert">{error}</p>}<div className="room-device-grid">{devices.map((device) => <article key={device.kind} className="room-device-card"><h3>{labels[device.kind]}</h3><p aria-live="polite">{stateText(device)}</p><button type="button" aria-pressed={device.state} disabled={!device.enabled || busy !== null} onClick={() => void toggle(device)}>{actionText(device)}</button></article>)}</div>{devices.every((d) => d.kind !== 'PROJECTOR') && <p className="device-unavailable">Für diesen Raum ist kein Beamer eingerichtet.</p>}</section>
 }

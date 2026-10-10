@@ -243,4 +243,37 @@ describe('RoomDisplay smoke test', () => {
     expect(screen.getByText('Reserviert für: Nicht angegeben')).toBeInTheDocument()
   })
 
+
+  it('shows a scannable check-in QR code when a check-in link is given', async () => {
+    render(
+      <RoomDisplay
+        roomName="Room 101"
+        currentDateTime={new Date('2026-09-20T10:00:00')}
+        reservation={null}
+        state="no-reservation"
+        status="AVAILABLE"
+        nextReservation={null}
+        checkInLink="https://raumlotse.example/rooms/room-1/check-in?method=qr"
+      />,
+    )
+
+    expect(await screen.findByRole('img', { name: 'QR-Code für den Check-in in Room 101' })).toBeInTheDocument()
+    expect(screen.getByText('Zum Einchecken scannen')).toBeInTheDocument()
+  })
+
+  it('hides the check-in QR code while the room is unavailable', () => {
+    render(
+      <RoomDisplay
+        roomName="Raum nicht verfügbar"
+        currentDateTime={new Date('2026-09-20T10:00:00')}
+        reservation={null}
+        state="unavailable"
+        status="UNAVAILABLE"
+        nextReservation={null}
+        checkInLink="https://raumlotse.example/rooms/room-1/check-in?method=qr"
+      />,
+    )
+
+    expect(screen.queryByText('Zum Einchecken scannen')).not.toBeInTheDocument()
+  })
 })
