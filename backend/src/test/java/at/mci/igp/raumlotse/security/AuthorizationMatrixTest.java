@@ -64,12 +64,13 @@ class AuthorizationMatrixTest {
                 "GET /api/rooms/{roomId}/available-equipment", "GET /api/rooms/{roomId}/reservations",
                 "GET /api/reservations/{reservationId}", "GET /api/reservations/my-upcoming",
                 "GET /api/rooms/{roomId}/device-controls", "GET /api/maps", "GET /api/maps/{mapId}",
-                "GET /api/maps/{mapId}/image", "GET /api/maps/{mapId}/unplaced-rooms", "GET /api/connections");
+                "GET /api/maps/{mapId}/image", "GET /api/maps/{mapId}/unplaced-rooms", "GET /api/connections",
+                "GET /api/rooms/{roomId}/check-in", "GET /api/rooms/{roomId}/status");
         add(Access.USER_ACTION,
                 "POST /api/rooms/{roomId}/reservations", "PATCH /api/reservations/{reservationId}",
                 "POST /api/reservations/{reservationId}/activate", "POST /api/reservations/{reservationId}/complete",
                 "POST /api/reservations/{reservationId}/expire", "POST /api/reservations/{reservationId}/cancel",
-                "POST /api/rooms/{roomId}/device-controls/{kind}");
+                "POST /api/rooms/{roomId}/device-controls/{kind}", "POST /api/rooms/{roomId}/check-in");
         add(Access.ADMIN,
                 "POST /api/rooms", "PUT /api/rooms/{roomId}", "DELETE /api/rooms/{roomId}",
                 "POST /api/rooms/{roomId}/deactivate", "POST /api/rooms/{roomId}/reactivate",
@@ -88,7 +89,8 @@ class AuthorizationMatrixTest {
                 "DELETE /api/connections/{connectionId}", "PUT /api/connections/{connectionId}/points/{mapId}",
                 "DELETE /api/connections/{connectionId}/points/{mapId}",
                 "GET /api/admin/users", "GET /api/admin/users/{id}/roles", "PUT /api/admin/users/{id}/roles",
-                "GET /api/admin/statistics");
+                "GET /api/admin/statistics", "POST /api/admin/rooms/{roomId}/presence-events",
+                "GET /api/admin/check-in-settings", "PUT /api/admin/check-in-settings");
     }
 
     @AfterEach

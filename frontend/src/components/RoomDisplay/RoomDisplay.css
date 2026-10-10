@@ -162,3 +162,16 @@
 .room-display-current-time {
   font-family: var(--font-mono);
 }
+
+.room-display-check-in {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.room-display-check-in p {
+  margin: 0;
+  font-weight: 600;
+}

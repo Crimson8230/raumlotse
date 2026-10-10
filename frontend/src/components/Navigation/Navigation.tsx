@@ -1,4 +1,4 @@
-import { BarChart3, Building2, DoorOpen, Home, Map, MapPinned, ShieldCheck, Users } from 'lucide-react'
+import { BarChart3, Building2, DoorOpen, Home, Map, MapPinned, Settings, ShieldCheck, Users } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useContext, useState } from 'react'
 import { formatApiError } from '../../API/client'
@@ -23,6 +23,7 @@ const adminItems: NavItem[] = [
   { label: 'Karten bearbeiten', path: '/admin/maps', icon: MapPinned },
   { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3 },
   { label: 'Benutzerrollen', path: '/admin/users', icon: Users },
+  { label: 'Einstellungen', path: '/admin/settings', icon: Settings },
 ]
 
 function Item({ label, path, icon: Icon }: NavItem) {

@@ -46,7 +46,8 @@ public class RoleAccessFilter extends OncePerRequestFilter {
             UserAction.of("POST", "/api/rooms/[^/]+/reservations"),
             UserAction.of("PATCH", "/api/reservations/[^/]+"),
             UserAction.of("POST", "/api/reservations/[^/]+/(activate|complete|expire|cancel)"),
-            UserAction.of("POST", "/api/rooms/[^/]+/device-controls/[^/]+"));
+            UserAction.of("POST", "/api/rooms/[^/]+/device-controls/[^/]+"),
+            UserAction.of("POST", "/api/rooms/[^/]+/check-in"));
 
     private final ObjectProvider<UserRoleSafety> safety;
     private final ObjectMapper mapper;

@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import RoomDetailPage from './RoomDetailPage'
 import * as roomsApi from '../API/rooms'
 import * as reservationsApi from '../API/reservations'
+import * as roomStatusApi from '../API/roomStatus'
+import * as roomDevicesApi from '../API/roomDevices'
 import type { Room } from '../types/room'
 
 const mode = vi.hoisted(() => ({ adminMode: false }))
@@ -13,6 +15,8 @@ vi.mock('../auth/useAdminMode', () => ({
 }))
 vi.mock('../API/rooms')
 vi.mock('../API/reservations')
+vi.mock('../API/roomStatus')
+vi.mock('../API/roomDevices')
 
 vi.mock('../auth/useAuth', () => ({
   useAuth: () => ({
@@ -23,6 +27,8 @@ vi.mock('../auth/useAuth', () => ({
 
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
+const roomStatus = vi.mocked(roomStatusApi)
+const roomDevices = vi.mocked(roomDevicesApi)
 const SEATING_ID = '00000000-0000-4000-8000-000000000001'
 
 function sampleRoom(): Room {
@@ -55,6 +61,9 @@ beforeEach(() => {
   mode.adminMode = false
   reservations.getAvailableEquipment.mockResolvedValue([])
   reservations.listRoomReservations.mockResolvedValue([])
+  roomStatus.getRoomStatus.mockResolvedValue({
+    roomId: 'room-1', status: 'AVAILABLE', devices: { lighting: false, ventilation: false, door: 'LOCKED' }, lastPresenceAt: null,
+  })
 })
 
 describe('RoomDetailPage', () => {
@@ -65,7 +74,7 @@ describe('RoomDetailPage', () => {
 
     await screen.findByText('Room 101')
     expect(screen.getByRole('link', { name: 'Raumanzeige' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Geräte steuern' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Geräte steuern' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Raum bearbeiten' })).not.toBeInTheDocument()
   })
 
@@ -247,4 +256,84 @@ describe('RoomDetailPage', () => {
     expect(await screen.findByText('Room 101')).toBeInTheDocument()
     expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
   })
+
+  it('offers printable check-in codes only in administration mode', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    const { unmount } = renderComponent()
+    await screen.findByText('Room 101')
+    expect(screen.queryByRole('heading', { name: 'Check-in-Codes' })).not.toBeInTheDocument()
+    unmount()
+
+    mode.adminMode = true
+    const user = userEvent.setup()
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+    renderComponent()
+
+    const section = await screen.findByRole('region', { name: 'Check-in-Codes' })
+    expect(await within(section).findByRole('img', { name: 'QR-Code für den Check-in in Room 101' })).toBeInTheDocument()
+    await user.click(within(section).getByRole('button', { name: 'Drucken' }))
+    expect(print).toHaveBeenCalled()
+  })
+
+  it('offers the NFC link for writing onto a tag in administration mode', async () => {
+    mode.adminMode = true
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    const user = userEvent.setup()
+    // After setup(): user-event installs its own clipboard, which this replaces.
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderComponent()
+
+    const section = await screen.findByRole('region', { name: 'Check-in-Codes' })
+    const nfcLink = `${window.location.origin}/rooms/room-1/check-in?method=nfc`
+    expect(within(section).getByText(nfcLink)).toBeInTheDocument()
+    await user.click(within(section).getByRole('button', { name: 'NFC-Link kopieren' }))
+    expect(writeText).toHaveBeenCalledWith(nfcLink)
+    expect(await within(section).findByText('Kopiert')).toBeInTheDocument()
+  })
+
+  it('shows the stored latest presence to administrators without a click', async () => {
+    mode.adminMode = true
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    roomStatus.getRoomStatus.mockResolvedValue({
+      roomId: 'room-1', status: 'OCCUPIED', devices: { lighting: true, ventilation: true, door: 'UNLOCKED' },
+      lastPresenceAt: '2026-10-09T07:59:00Z',
+    })
+    renderComponent()
+
+    const time = new Date('2026-10-09T07:59:00Z').toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    expect(await screen.findByText(`Zuletzt Bewegung erkannt: ${time}`)).toBeInTheDocument()
+    expect(roomStatus.getRoomStatus).toHaveBeenCalledWith('room-1')
+  })
+
+  it('does not load the room status for regular users', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    renderComponent()
+    await screen.findByText('Room 101')
+    expect(roomStatus.getRoomStatus).not.toHaveBeenCalled()
+  })
+
+  it('opens device control as a popup and closes it again', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    roomDevices.getRoomDeviceControls.mockResolvedValue({
+      roomId: 'room-1', reservationId: 'b1',
+      devices: [{ kind: 'LIGHTING', enabled: true, state: true, updatedAt: '2026-10-10T08:00:00Z' }],
+    })
+    const user = userEvent.setup()
+    renderComponent()
+
+    await user.click(await screen.findByRole('button', { name: 'Geräte steuern' }))
+    const dialog = screen.getByRole('dialog', { name: 'Gerätesteuerung – Room 101' })
+    expect(await within(dialog).findByRole('heading', { name: 'Beleuchtung' })).toBeInTheDocument()
+    expect(roomDevices.getRoomDeviceControls).toHaveBeenCalledWith('room-1')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Schließen' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Geräte steuern' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
 })
+

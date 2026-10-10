@@ -71,7 +71,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [LIGHTING, VENTILATION, PROJECTOR]
+        enum: [LIGHTING, VENTILATION, PROJECTOR, DOOR]
   schemas:
     RoomDeviceControlsResponse:
       type: object
@@ -88,7 +88,7 @@ components:
       properties:
         kind:
           type: string
-          enum: [LIGHTING, VENTILATION, PROJECTOR]
+          enum: [LIGHTING, VENTILATION, PROJECTOR, DOOR]
         enabled: { type: boolean }
         state: { type: boolean }
         updatedAt: { type: string, format: date-time }
@@ -97,7 +97,9 @@ components:
       required: [state]
       additionalProperties: false
       properties:
-        state: { type: boolean }
+        state:
+          type: boolean
+          description: true = on (LIGHTING, VENTILATION, PROJECTOR) or unlocked (DOOR); DOOR added by feature 014
     Problem:
       type: object
       required: [title, status, detail]

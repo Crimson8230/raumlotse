@@ -12,8 +12,10 @@ import { RequireAdminMode } from './auth/RequireAdminMode'
 import UserRoleListPage from './pages/UserRoleListPage'
 import UserRolePage from './pages/UserRolePage'
 import RoomDeviceControlPage from './pages/RoomDeviceControlPage'
+import CheckInPage from './pages/CheckInPage'
 import MapPage from './pages/MapPage'
 import AdminStatisticsPage from './pages/AdminStatisticsPage'
+import AdminSettingsPage from './pages/AdminSettingsPage'
 
 function RoomEditRedirect() {
   const { roomId } = useParams()
@@ -38,6 +40,7 @@ function App() {
           <Route path="/rooms/:roomId" element={<RoomDetailPage />} />
           <Route path="/rooms/:roomId/display" element={<RoomDisplayPage />} />
           <Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} />
+          <Route path="/rooms/:roomId/check-in" element={<CheckInPage />} />
 
           <Route path="/admin" element={<RequireAdminMode />}>
             <Route path="locations" element={<LocationCatalogPage />} />
@@ -46,6 +49,7 @@ function App() {
             <Route path="rooms/new" element={<RoomFormPage />} />
             <Route path="rooms/:roomId/edit" element={<RoomFormPage />} />
             <Route path="statistics" element={<AdminStatisticsPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="users" element={<UserRoleListPage />} />
             <Route path="users/:userId/roles" element={<UserRolePage />} />
           </Route>

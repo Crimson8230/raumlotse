@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ApiError } from '../API/client'
 import LoginPage from './LoginPage'
@@ -21,6 +21,24 @@ vi.mock('../API/client', () => ({
 
 function renderLogin() {
   return render(<MemoryRouter><AuthProvider><LoginPage /></AuthProvider></MemoryRouter>)
+}
+
+function LocationProbe() {
+  const location = useLocation()
+  return <p>Ziel: {location.pathname + location.search}</p>
+}
+
+function renderLoginFrom(from: unknown) {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: '/login', state: { from } }]}>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
+      </AuthProvider>
+    </MemoryRouter>,
+  )
 }
 
 describe('LoginPage', () => {
@@ -123,5 +141,25 @@ describe('LoginPage', () => {
       await Promise.resolve()
     })
     expect(auth.login).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns to the page the user came from after signing in', async () => {
+    auth.login.mockResolvedValue({ userId: 'u1', displayName: 'Erika' })
+    const user = userEvent.setup()
+    renderLoginFrom('/rooms/r1/check-in?method=nfc')
+    await user.type(await screen.findByLabelText('E-Mail-Adresse'), 'user@example.test')
+    await user.type(screen.getByLabelText('Passwort'), 'secret')
+    await user.click(screen.getByRole('button', { name: 'Anmelden' }))
+    expect(await screen.findByText('Ziel: /rooms/r1/check-in?method=nfc')).toBeInTheDocument()
+  })
+
+  it.each(['//evil.example', 'https://evil.example', undefined])('goes to the start page for the unsafe target %s', async (from) => {
+    auth.login.mockResolvedValue({ userId: 'u1', displayName: 'Erika' })
+    const user = userEvent.setup()
+    renderLoginFrom(from)
+    await user.type(await screen.findByLabelText('E-Mail-Adresse'), 'user@example.test')
+    await user.type(screen.getByLabelText('Passwort'), 'secret')
+    await user.click(screen.getByRole('button', { name: 'Anmelden' }))
+    expect(await screen.findByText('Ziel: /')).toBeInTheDocument()
   })
 })

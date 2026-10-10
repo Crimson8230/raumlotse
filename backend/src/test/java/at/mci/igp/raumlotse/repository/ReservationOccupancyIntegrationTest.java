@@ -80,9 +80,16 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
         assertThat(occupied(at(9, 0), at(10, 0))).isFalse();
     }
 
+    /** Check-in is only possible shortly before the start (feature 014); these tests only need the status. */
+    private void markActive() {
+        var entity = reservationRepository.findById(reservation.id()).orElseThrow();
+        entity.setStatus(at.mci.igp.raumlotse.domain.ReservationStatus.ACTIVE);
+        reservationRepository.saveAndFlush(entity);
+    }
+
     @Test
     void activeReservationStillOccupiesTheRoom() {
-        reservationService.activateReservation(reservation.id(), TestActors.ADMIN);
+        markActive();
 
         assertThat(occupied(at(11, 0), at(13, 0))).isTrue();
     }
@@ -103,7 +110,7 @@ class ReservationOccupancyIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void completedReservationDoesNotOccupy() {
-        reservationService.activateReservation(reservation.id(), TestActors.ADMIN);
+        markActive();
         reservationService.completeReservation(reservation.id(), TestActors.ADMIN);
 
         assertThat(occupied(at(11, 0), at(13, 0))).isFalse();

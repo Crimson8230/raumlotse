@@ -1,0 +1,25 @@
+.room-device-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-device-icons li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.room-device-icons svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.room-device-icons .is-off {
+  color: var(--color-muted);
+  font-weight: 400;
+}
