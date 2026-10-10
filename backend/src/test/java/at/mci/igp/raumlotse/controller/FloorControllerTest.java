@@ -31,7 +31,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(FloorController.class)
 @WithMockAdmin
 @Import(SecurityConfig.class)
-class FloorControllerTest {
+class FloorControllerTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
     @org.springframework.test.context.bean.override.mockito.MockitoBean UserRoleSafety roleSafety;
 

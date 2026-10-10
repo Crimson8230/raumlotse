@@ -1,6 +1,7 @@
 import { apiRequest } from './client'
 import { isValidRoleSelection } from '../types/userRole'
 import type { RoleCode, UserList, UserRoles } from '../types/userRole'
+import type { PermissionCode } from '../types/permission'
 export const listUsers = (q = '', page = 0) =>
   apiRequest<UserList>('/api/admin/users?' + new URLSearchParams({ q, page: String(page), size: '25' }))
 export const getUserRoles = (id: string) =>
@@ -14,8 +15,9 @@ export function saveUserRoles(id: string, roles: RoleCode[], expectedVersion: st
 export interface CurrentRoles {
   roles: RoleCode[]
   ready: boolean
-  /** Effective administration mode: only ever true while the user is an administrator. */
   adminMode: boolean
+  permissions: PermissionCode[]
+  canUseAdminMode: boolean
 }
 export const getCurrentRoles = () => apiRequest<CurrentRoles>('/api/auth/roles')
 export const setAdminMode = (enabled: boolean) =>

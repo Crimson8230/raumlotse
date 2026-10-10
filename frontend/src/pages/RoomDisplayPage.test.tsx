@@ -259,4 +259,3 @@ describe('RoomDisplayPage', () => {
     expect(back.parentElement).toHaveClass('page-back')
   })
 })
-

@@ -40,7 +40,9 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 @WithMockUser
 @Import(SecurityConfig.class)
 class RoomPlacementControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mvc;
     @MockitoBean RoomPlacementService service;
     @MockitoBean UserRoleSafety roleSafety;

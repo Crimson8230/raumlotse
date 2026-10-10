@@ -32,7 +32,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest({HealthController.class, CsrfController.class, RoomController.class, BuildingController.class,
         FloorController.class, EquipmentTypeController.class})
 @Import(SecurityConfig.class)
-class ProtectedBusinessRouteTest {
+class ProtectedBusinessRouteTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mvc;
     @MockitoBean RoomService roomService;
     @MockitoBean BuildingService buildingService;

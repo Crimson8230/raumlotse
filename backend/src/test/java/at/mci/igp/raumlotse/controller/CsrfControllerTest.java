@@ -19,7 +19,9 @@ import org.springframework.test.web.servlet.MvcResult;
 @WebMvcTest({HealthController.class, CsrfController.class})
 @Import(SecurityConfig.class)
 class CsrfControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired
     private MockMvc mockMvc;
 

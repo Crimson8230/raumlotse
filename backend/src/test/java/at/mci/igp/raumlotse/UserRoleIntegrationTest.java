@@ -37,7 +37,7 @@ class UserRoleIntegrationTest extends AbstractIntegrationTest {
         UUID id = UUID.randomUUID();
         db.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)",
             id,email,name,"{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
-        db.update("insert into user_role_state(user_id) values (?)",id);
+        db.update("delete from role_assignment where user_id=?",id);
         for (String role : roles) db.update("insert into role_assignment(user_id,role_code) values (?,?)",id,role);
         return id;
     }
@@ -76,7 +76,7 @@ class UserRoleIntegrationTest extends AbstractIntegrationTest {
         assertThat(db.queryForObject("select roles_version from user_role_state where user_id=?",Long.class,target)).isEqualTo(2);
     }
     @Test void authorizationUsesCurrentRolesAndProtectsUnknownTargets() throws Exception {
-        mvc.perform(get(path(target))).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+        mvc.perform(get(path(target))).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("AUTH_REQUIRED"));
         for(int mask=1;mask<16;mask++) {
             db.update("delete from role_assignment where user_id=?",target);
             for(int i=0;i<4;i++) if((mask&(1<<i))!=0) db.update("insert into role_assignment values (?,?)",target,ROLES.get(i+1));

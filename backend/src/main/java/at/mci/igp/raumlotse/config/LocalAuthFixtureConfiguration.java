@@ -12,7 +12,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.util.UUID;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 @Profile("local-auth-fixture")
@@ -20,6 +21,7 @@ public class LocalAuthFixtureConfiguration {
     @Bean
     ApplicationRunner provisionLocalAuthFixture(UserAccountRepository accounts, PasswordEncoder encoder,
             EmailCanonicalizer canonicalizer, Environment environment, JdbcTemplate jdbc,
+            PlatformTransactionManager transactions,
             @Value("${AUTH_FIXTURE_EMAIL}") String email,
             @Value("${AUTH_FIXTURE_DISPLAY_NAME}") String displayName,
             @Value("${AUTH_FIXTURE_PASSWORD}") String password) {
@@ -34,22 +36,16 @@ public class LocalAuthFixtureConfiguration {
         if (canonicalName.isEmpty() || canonicalName.length() > 120) {
             throw new IllegalStateException("Local auth fixture display name is invalid.");
         }
-        return args -> {
-            UserAccount account = accounts.findByEmail(canonicalEmail).orElseGet(
-                    () -> accounts.saveAndFlush(new UserAccount(canonicalEmail, canonicalName, encoder.encode(password))));
-            grantAdminIfUnassigned(jdbc, account.getId());
-        };
-    }
-
-    /**
-     * Initial Admin provisioning is external to the application, so a local fixture account would otherwise have no
-     * role at all. It becomes ADMIN only while it has no role assignment; roles changed later are never overwritten.
-     */
-    private static void grantAdminIfUnassigned(JdbcTemplate jdbc, UUID userId) {
-        jdbc.update("INSERT INTO user_role_state(user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING", userId);
-        jdbc.update("""
-                INSERT INTO role_assignment(user_id, role_code)
-                SELECT ?, 'ADMIN' WHERE NOT EXISTS (SELECT 1 FROM role_assignment WHERE user_id = ?)
-                """, userId, userId);
+        return args -> new TransactionTemplate(transactions).executeWithoutResult(status -> {
+            if (accounts.findByEmail(canonicalEmail).isPresent()) {
+                return;
+            }
+            UserAccount account = accounts.saveAndFlush(
+                    new UserAccount(canonicalEmail, canonicalName, encoder.encode(password)));
+            // The account trigger gives ordinary new users VIEWER. Only this fresh local
+            // bootstrap account is changed to ADMIN, within the same transaction.
+            jdbc.update("delete from role_assignment where user_id=? and role_code='VIEWER'", account.getId());
+            jdbc.update("insert into role_assignment(user_id,role_code) values (?, 'ADMIN')", account.getId());
+        });
     }
 }

@@ -9,9 +9,11 @@ import * as roomStatusApi from '../API/roomStatus'
 import * as roomDevicesApi from '../API/roomDevices'
 import type { Room } from '../types/room'
 
-const mode = vi.hoisted(() => ({ adminMode: false }))
+const mode = vi.hoisted(() => ({ adminMode: false, permissions: ['READ', 'RESERVE', 'OWN_ACTIVE_DEVICE_CONTROL'] as string[] }))
 vi.mock('../auth/useAdminMode', () => ({
-  useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode, setMode: vi.fn() }),
+  useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode,
+    permissions: mode.permissions,
+    setMode: vi.fn() }),
 }))
 vi.mock('../API/rooms')
 vi.mock('../API/reservations')
@@ -59,6 +61,7 @@ function renderComponent(url = '/rooms/room-1') {
 beforeEach(() => {
   vi.resetAllMocks()
   mode.adminMode = false
+  mode.permissions = ['READ', 'RESERVE', 'OWN_ACTIVE_DEVICE_CONTROL']
   reservations.getAvailableEquipment.mockResolvedValue([])
   reservations.listRoomReservations.mockResolvedValue([])
   roomStatus.getRoomStatus.mockResolvedValue({
@@ -69,17 +72,35 @@ beforeEach(() => {
 describe('RoomDetailPage', () => {
   it('offers booking, display and device control but no administration link in the user view', async () => {
     rooms.getRoom.mockResolvedValue(sampleRoom())
+    reservations.listRoomReservations.mockResolvedValue([{
+      id: 'active-own', roomId: 'room-1', roomName: 'Room 101', startTime: '2026-10-01T10:00:00Z',
+      endTime: '2026-10-01T11:00:00Z', status: 'ACTIVE', seatingArrangement: null, expectedAttendees: null,
+      additionalEquipment: [], createdBy: null, reservedFor: null, createdAt: null, ownedByMe: true,
+    }])
 
     renderComponent()
 
     await screen.findByText('Room 101')
     expect(screen.getByRole('link', { name: 'Raumanzeige' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Geräte steuern' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Geräte steuern' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Raum bearbeiten' })).not.toBeInTheDocument()
+  })
+
+  it('hides device control when there is no owned active reservation', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    reservations.listRoomReservations.mockResolvedValue([{
+      id: 'other-active', roomId: 'room-1', roomName: 'Room 101', startTime: '2026-10-01T10:00:00Z',
+      endTime: '2026-10-01T11:00:00Z', status: 'ACTIVE', seatingArrangement: null, expectedAttendees: null,
+      additionalEquipment: [], createdBy: null, reservedFor: null, createdAt: null, ownedByMe: false,
+    }])
+    renderComponent()
+    await screen.findByText('Room 101')
+    expect(screen.queryByRole('link', { name: 'Geräte steuern' })).not.toBeInTheDocument()
   })
 
   it('links the edit form under the administration address while administration mode is on', async () => {
     mode.adminMode = true
+    mode.permissions = ['READ', 'RESERVE', 'OWN_ACTIVE_DEVICE_CONTROL', 'ROOM_MANAGE']
     rooms.getRoom.mockResolvedValue(sampleRoom())
 
     renderComponent()
@@ -88,6 +109,16 @@ describe('RoomDetailPage', () => {
       'href',
       '/admin/rooms/room-1/edit',
     )
+  })
+
+  it('does not offer booking or device control to a READ-only viewer', async () => {
+    mode.permissions = ['READ']
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    renderComponent('/rooms/room-1?book=true')
+    await screen.findByText('Room 101')
+    expect(screen.queryByRole('button', { name: 'Raum buchen' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Geräte steuern' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reservierung bestätigen' })).not.toBeInTheDocument()
   })
 
 
@@ -315,6 +346,11 @@ describe('RoomDetailPage', () => {
 
   it('opens device control as a popup and closes it again', async () => {
     rooms.getRoom.mockResolvedValue(sampleRoom())
+    reservations.listRoomReservations.mockResolvedValue([{
+      id: 'b1', roomId: 'room-1', roomName: 'Room 101', startTime: '2026-10-01T10:00:00Z',
+      endTime: '2026-10-01T11:00:00Z', status: 'ACTIVE', seatingArrangement: null, expectedAttendees: null,
+      additionalEquipment: [], createdBy: null, reservedFor: null, createdAt: null, ownedByMe: true,
+    }])
     roomDevices.getRoomDeviceControls.mockResolvedValue({
       roomId: 'room-1', reservationId: 'b1',
       devices: [{ kind: 'LIGHTING', enabled: true, state: true, updatedAt: '2026-10-10T08:00:00Z' }],
@@ -336,4 +372,3 @@ describe('RoomDetailPage', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
-

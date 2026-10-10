@@ -27,6 +27,13 @@ public final class TestActors {
         jdbc.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?) on conflict (id) do nothing",
                 user.userId(), user.userId() + "@example.test", user.displayName(),
                 "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
+        jdbc.update("delete from role_assignment where user_id=? and role_code='VIEWER'", user.userId());
+        jdbc.update("insert into role_assignment(user_id,role_code) values (?, 'STUDENT') on conflict do nothing", user.userId());
+        jdbc.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?) on conflict (id) do nothing",
+                ADMIN.userId(), ADMIN.userId() + "@example.test", "Admin fixture",
+                "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
+        jdbc.update("delete from role_assignment where user_id=? and role_code='VIEWER'", ADMIN.userId());
+        jdbc.update("insert into role_assignment(user_id,role_code) values (?, 'ADMIN') on conflict do nothing", ADMIN.userId());
         return user;
     }
 

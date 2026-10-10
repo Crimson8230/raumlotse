@@ -2,19 +2,25 @@ package at.mci.igp.raumlotse.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import at.mci.igp.raumlotse.domain.Building;
 import at.mci.igp.raumlotse.domain.Floor;
 import at.mci.igp.raumlotse.domain.Reservation;
 import at.mci.igp.raumlotse.domain.ReservationStatus;
+import at.mci.igp.raumlotse.domain.PermissionCode;
+import at.mci.igp.raumlotse.domain.Role;
 import at.mci.igp.raumlotse.domain.Room;
 import at.mci.igp.raumlotse.domain.SeatingArrangement;
 import at.mci.igp.raumlotse.dto.Actor;
 import at.mci.igp.raumlotse.exception.NotFoundException;
+import at.mci.igp.raumlotse.exception.UserRoleException;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +62,8 @@ class ReservationAccessPolicyTest {
     void requireManageHidesExistenceFromOthers() {
         assertThatThrownBy(() -> policy.requireManage(owned, other, "cancel"))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessage("Reservierung " + owned.getId() + " nicht gefunden.");
+                .hasMessage("Reservierung nicht gefunden.")
+                .hasFieldOrPropertyWithValue("code", "RESERVATION_NOT_FOUND");
         policy.requireManage(owned, owner, "cancel");
         policy.requireManage(owned, admin, "cancel");
     }
@@ -86,6 +93,25 @@ class ReservationAccessPolicyTest {
         var forAdmin = policy.view(owned, admin);
         assertThat(forAdmin.ownedByMe()).isFalse();
         assertThat(forAdmin.note()).isEqualTo("private note");
+    }
+
+    @Test
+    void configuredRightsDoNotGiveAdminAnOwnershipOverride() {
+        var effective = mock(EffectivePermissionService.class);
+        when(effective.snapshot(owner.userId())).thenReturn(new EffectivePermissionService.Snapshot(
+                List.of(Role.STUDENT), Set.of(PermissionCode.READ), false, false));
+        when(effective.snapshot(admin.userId())).thenReturn(new EffectivePermissionService.Snapshot(
+                List.of(Role.ADMIN), Set.of(PermissionCode.READ), true, true));
+        var configured = new ReservationAccessPolicy(effective);
+        assertThat(configured.canManage(owned, owner)).isFalse();
+        assertThat(configured.canManage(owned, admin)).isFalse();
+        assertThatThrownBy(() -> configured.requireManage(owned, owner, "update"))
+                .isInstanceOf(UserRoleException.class)
+                .hasFieldOrPropertyWithValue("status", 403)
+                .hasFieldOrPropertyWithValue("code", "PERMISSION_REQUIRED");
+        assertThatThrownBy(() -> configured.requireManage(owned, admin, "cancel"))
+                .isInstanceOf(NotFoundException.class);
+        assertThat(configured.viewForSchedule(owned, admin).note()).isNull();
     }
 
     private static Reservation reservation(UUID ownerId, String createdBy) throws Exception {

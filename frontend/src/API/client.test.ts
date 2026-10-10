@@ -86,4 +86,32 @@ describe('apiRequest administrator refusals', () => {
     expect(listener).not.toHaveBeenCalled()
     window.removeEventListener('raumlotse:roles-changed', listener)
   })
+
+  it('refreshes permissions for a functional 403 without treating private 404 as permission loss', async () => {
+    const listener = vi.fn()
+    window.addEventListener('raumlotse:roles-changed', listener)
+    stubStatus(403, 'PERMISSION_REQUIRED')
+    await expect(apiRequest('/api/rooms')).rejects.toMatchObject({ status: 403 })
+    expect(listener).toHaveBeenCalledTimes(1)
+
+    stubStatus(404, 'RESERVATION_NOT_FOUND')
+    await expect(apiRequest('/api/reservations/hidden')).rejects.toMatchObject({ status: 404 })
+    expect(listener).toHaveBeenCalledTimes(1)
+    window.removeEventListener('raumlotse:roles-changed', listener)
+  })
+
+  it('signals expired authentication separately from permission changes', async () => {
+    const rolesListener = vi.fn()
+    const authListener = vi.fn()
+    window.addEventListener('raumlotse:roles-changed', rolesListener)
+    window.addEventListener('raumlotse:auth-expired', authListener)
+    stubStatus(401, 'AUTHENTICATION_REQUIRED')
+
+    await expect(apiRequest('/api/rooms')).rejects.toMatchObject({ status: 401 })
+
+    expect(authListener).toHaveBeenCalledTimes(1)
+    expect(rolesListener).not.toHaveBeenCalled()
+    window.removeEventListener('raumlotse:roles-changed', rolesListener)
+    window.removeEventListener('raumlotse:auth-expired', authListener)
+  })
 })

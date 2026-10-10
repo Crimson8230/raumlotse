@@ -17,6 +17,7 @@ import at.mci.igp.raumlotse.dto.RoomStatusResponse;
 import at.mci.igp.raumlotse.exception.NotFoundException;
 import at.mci.igp.raumlotse.service.RoomStatusService;
 import at.mci.igp.raumlotse.service.UserRoleSafety;
+import at.mci.igp.raumlotse.service.EffectivePermissionService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class RoomStatusControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean RoomStatusService service;
     @MockitoBean UserRoleSafety roles;
+    @MockitoBean EffectivePermissionService permissions;
 
     private static RequestPostProcessor user() {
         var principal = new AuthenticatedUser(UUID.randomUUID(), "Erika");

@@ -61,4 +61,3 @@ describe('RoomDeviceControls', () => {
     expect(deviceApi.setRoomDeviceState).toHaveBeenCalledWith('r1', 'DOOR', { state: true })
   })
 })
-

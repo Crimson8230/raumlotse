@@ -21,6 +21,7 @@ import at.mci.igp.raumlotse.dto.CheckInResultResponse;
 import at.mci.igp.raumlotse.exception.CheckInRejectedException;
 import at.mci.igp.raumlotse.service.CheckInService;
 import at.mci.igp.raumlotse.service.UserRoleSafety;
+import at.mci.igp.raumlotse.service.EffectivePermissionService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +44,7 @@ class CheckInControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean CheckInService service;
     @MockitoBean UserRoleSafety roles;
+    @MockitoBean EffectivePermissionService permissions;
 
     private static RequestPostProcessor user() {
         var principal = new AuthenticatedUser(USER_ID, "Erika");

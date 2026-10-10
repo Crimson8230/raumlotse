@@ -145,4 +145,3 @@ describe('CheckInPage', () => {
     expect(await screen.findByText('Folgende Geräte konnten nicht geschaltet werden: Tür')).toBeInTheDocument()
   })
 })
-

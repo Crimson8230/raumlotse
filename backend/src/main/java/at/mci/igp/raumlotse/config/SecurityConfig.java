@@ -39,7 +39,7 @@ public class SecurityConfig {
         @Bean
         SecurityFilterChain applicationSecurity(HttpSecurity http, ObjectMapper objectMapper,
                         org.springframework.beans.factory.ObjectProvider<UserAccountRepository> accounts,
-                        org.springframework.beans.factory.ObjectProvider<at.mci.igp.raumlotse.service.UserRoleSafety> roleSafety)
+                        at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions)
                         throws Exception {
                 var accountFilter = new CurrentAccountFilter(accounts.getIfAvailable(), objectMapper);
                 return http
@@ -51,7 +51,7 @@ public class SecurityConfig {
                                 .logout(logout -> logout.disable())
                                 .requestCache(cache -> cache.disable())
                                 .addFilterAfter(accountFilter, SecurityContextHolderFilter.class)
-                                .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(roleSafety,
+                                .addFilterAfter(new at.mci.igp.raumlotse.service.RoleAccessFilter(effectivePermissions,
                                                 objectMapper),
                                                 CsrfFilter.class)
                                 .authorizeHttpRequests(authorize -> authorize

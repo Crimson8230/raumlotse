@@ -17,15 +17,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import at.mci.igp.raumlotse.WithTestActor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RoomPlacementController.class)
-@WithMockUser
+@WithTestActor
 @Import(SecurityConfig.class)
 class UnplacedRoomsControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mvc;
     @MockitoBean RoomPlacementService service;
     @MockitoBean UserRoleSafety roleSafety;

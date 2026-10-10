@@ -13,7 +13,16 @@ public final class AccessDeniedLog {
     }
 
     public static void admin(String method, String route, UUID userId) {
-        log.warn("access_denied category=admin method={} route={} userId={}", method, route, userId);
+        refusal(method, route, "admin", 403, userId);
+    }
+
+    public static void permission(String method, String route, UUID userId) {
+        refusal(method, route, "permission", 403, userId);
+    }
+
+    public static void refusal(String method, String route, String category, int status, UUID userId) {
+        log.warn("access_denied category={} method={} route={} status={} userId={}",
+                category, method, route, status, userId);
     }
 
     public static void ownership(String action, UUID userId) {

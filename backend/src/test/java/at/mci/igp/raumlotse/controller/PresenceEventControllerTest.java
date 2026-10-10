@@ -16,6 +16,7 @@ import at.mci.igp.raumlotse.dto.PresenceEventResponse;
 import at.mci.igp.raumlotse.exception.UserRoleException;
 import at.mci.igp.raumlotse.service.PresenceService;
 import at.mci.igp.raumlotse.service.UserRoleSafety;
+import at.mci.igp.raumlotse.service.EffectivePermissionService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +35,7 @@ class PresenceEventControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean PresenceService service;
     @MockitoBean UserRoleSafety roles;
+    @MockitoBean EffectivePermissionService permissions;
 
     private static RequestPostProcessor signedIn() {
         var principal = new AuthenticatedUser(UUID.randomUUID(), "Erika");
@@ -54,7 +56,7 @@ class PresenceEventControllerTest {
     @Test
     void regularUsersCannotSubmitMotionEvents() throws Exception {
         doThrow(new UserRoleException(403, "ADMIN_REQUIRED", "Administratorrechte erforderlich."))
-                .when(roles).requireAdmin(any());
+                .when(permissions).requireAdmin(any());
 
         mockMvc.perform(post("/api/admin/rooms/{roomId}/presence-events", UUID.randomUUID()).with(signedIn()).with(csrf()))
                 .andExpect(status().isForbidden());

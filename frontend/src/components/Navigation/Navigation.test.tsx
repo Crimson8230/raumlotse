@@ -6,9 +6,14 @@ import { Navigation } from './Navigation'
 
 const mode = vi.hoisted(() => ({
   state: { loading: false, failed: false, admin: false, adminMode: false },
+  eligible: undefined as boolean | undefined,
+  permissions: ['READ', 'BUILDING_MANAGE', 'MAP_MANAGE', 'STATISTICS_READ'] as string[],
   setMode: vi.fn(),
 }))
-vi.mock('../../auth/useAdminMode', () => ({ useAdminMode: () => ({ ...mode.state, setMode: mode.setMode }) }))
+vi.mock('../../auth/useAdminMode', () => ({ useAdminMode: () => ({ ...mode.state,
+  canUseAdminMode: mode.eligible ?? mode.state.admin,
+  permissions: mode.permissions,
+  setMode: mode.setMode }) }))
 
 function renderNav(initialPath: string) {
   return render(
@@ -20,10 +25,27 @@ function renderNav(initialPath: string) {
 
 beforeEach(() => {
   mode.state = { loading: false, failed: false, admin: false, adminMode: false }
+  mode.eligible = undefined
+  mode.permissions = ['READ', 'BUILDING_MANAGE', 'MAP_MANAGE', 'STATISTICS_READ']
   mode.setMode.mockReset().mockResolvedValue(undefined)
 })
 
 describe('Navigation', () => {
+  it('offers a staff member with one management right only the matching admin area', async () => {
+    mode.eligible = true
+    mode.permissions = ['READ', 'BUILDING_MANAGE']
+    const view = renderNav('/')
+    await userEvent.click(screen.getByRole('button', { name: 'Administrationsmodus' }))
+    expect(mode.setMode).toHaveBeenCalledWith(true)
+    view.unmount()
+    mode.state.adminMode = true
+    renderNav('/')
+    expect(screen.getByRole('link', { name: 'Standorte' })).toBeVisible()
+    expect(screen.queryByRole('link', { name: 'Karten bearbeiten' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Statistiken' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Benutzerrollen' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Rollenrechte' })).not.toBeInTheDocument()
+  })
   it('shows the user view links only, without any mode switch, to regular users', () => {
     renderNav('/')
 

@@ -213,13 +213,14 @@ public class ReservationService {
             reservations = reservationRepository.findByRoomIdAndEndTimeGreaterThanEqualAndStartTimeLessThanEqualOrderByStartTimeAsc(roomId, from, to);
         }
         return reservations.stream()
-                .map(reservation -> accessPolicy.view(reservation, actor))
+                .map(reservation -> accessPolicy.viewForSchedule(reservation, actor))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ReservationResponse getReservation(UUID reservationId, Actor actor) {
-        Reservation reservation = findManageableOrThrow(reservationId, actor, "read");
+        Reservation reservation = findReservationOrThrow(reservationId);
+        accessPolicy.requireRead(reservation, actor);
         return accessPolicy.view(reservation, actor);
     }
 
@@ -405,7 +406,7 @@ public class ReservationService {
 
     private Reservation findReservationOrThrow(UUID reservationId) {
         return reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new NotFoundException("Reservierung " + reservationId + " nicht gefunden."));
+                .orElseThrow(() -> new NotFoundException("Reservierung nicht gefunden.", "RESERVATION_NOT_FOUND"));
     }
 
     private Duration calculateTurnoverBuffer(Room room, SeatingArrangement arrangement) {

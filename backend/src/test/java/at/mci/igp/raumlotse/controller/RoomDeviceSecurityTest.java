@@ -15,7 +15,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RoomDeviceController.class)
 @Import(SecurityConfig.class)
-class RoomDeviceSecurityTest {
+class RoomDeviceSecurityTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired MockMvc mockMvc;
     @MockitoBean RoomDeviceService service;
 

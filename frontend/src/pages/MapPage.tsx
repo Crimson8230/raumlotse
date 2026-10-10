@@ -18,6 +18,7 @@ import { MapSelector } from '../components/FloorMap/MapSelector'
 import { UnplacedRoomList } from '../components/FloorMap/UnplacedRoomList'
 import { MapUploadControl } from '../components/FloorMap/MapUploadControl'
 import type { Connection, MapDetail, MapSummary, Position, RoomRef } from '../types/map'
+import { useCurrentRoles } from '../auth/useCurrentRoles'
 import './MapPage.css'
 
 /**
@@ -28,7 +29,10 @@ export default function MapPage({ editable = false }: { editable?: boolean }) {
   const base = editable ? '/admin/maps' : '/maps'
   const { mapId } = useParams()
   const navigate = useNavigate()
-  const admin = editable
+  const { permissions } = useCurrentRoles()
+  const canPlace = editable && permissions.includes('ROOM_PLACEMENT_MANAGE')
+  const canManageMaps = editable && permissions.includes('MAP_MANAGE')
+  const canManageConnections = editable && permissions.includes('CONNECTION_MANAGE')
   const [maps, setMaps] = useState<MapSummary[]>()
   const [loaded, setLoaded] = useState<MapDetail>()
   const [loadedUnplaced, setLoadedUnplaced] = useState<{ mapId: string; rooms: RoomRef[] }>()
@@ -72,7 +76,7 @@ export default function MapPage({ editable = false }: { editable?: boolean }) {
   }, [selectedId, reloadKey])
 
   useEffect(() => {
-    if (!selectedId) return
+    if (!selectedId || !canPlace) return
     let active = true
     listUnplacedRooms(selectedId)
       .then((rooms) => active && setLoadedUnplaced({ mapId: selectedId, rooms }))
@@ -80,7 +84,7 @@ export default function MapPage({ editable = false }: { editable?: boolean }) {
     return () => {
       active = false
     }
-  }, [selectedId, reloadKey])
+  }, [selectedId, reloadKey, canPlace])
 
   useEffect(() => {
     let active = true
@@ -177,12 +181,12 @@ export default function MapPage({ editable = false }: { editable?: boolean }) {
         <MapCanvas
           map={detail}
           placements={detail.placements}
-          editable={admin}
+          editable={canPlace}
           activeRoomId={activeRoomId}
           placementActive={activeConnectionId !== undefined}
           onPlace={(position) => void handlePlace(position)}
-          onMove={(roomId, position) => void applyPlacement(roomId, position)}
-          onRemove={(roomId) => void handleRemovePlacement(roomId)}
+          onMove={canPlace ? (roomId, position) => void applyPlacement(roomId, position) : undefined}
+          onRemove={canPlace ? (roomId) => void handleRemovePlacement(roomId) : undefined}
         >
           {maps && (
             <ConnectionLayer
@@ -197,23 +201,23 @@ export default function MapPage({ editable = false }: { editable?: boolean }) {
           )}
         </MapCanvas>
       )}
-      {detail && unplaced && (
+      {detail && canPlace && unplaced && (
         <section aria-label="Platzierung">
           <h2>Nicht platzierte Räume</h2>
-          <UnplacedRoomList rooms={unplaced} activeRoomId={activeRoomId} canSelect={admin} onSelect={selectRoom} />
+          <UnplacedRoomList rooms={unplaced} activeRoomId={activeRoomId} canSelect={canPlace} onSelect={selectRoom} />
         </section>
       )}
       {detail && connections && (
         <ConnectionCatalog
           connections={connections}
           currentMapId={detail.id}
-          admin={admin}
+          admin={canManageConnections}
           activeConnectionId={activeConnectionId}
           onSelectForPlacement={selectConnection}
           onChanged={() => setReloadKey((key) => key + 1)}
         />
       )}
-      {admin && maps && (
+      {canManageMaps && maps && (
         <section className="map-admin" aria-label="Kartenverwaltung">
           {current && (
             <>

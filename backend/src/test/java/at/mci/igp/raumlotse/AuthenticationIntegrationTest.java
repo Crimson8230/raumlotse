@@ -55,6 +55,6 @@ class AuthenticationIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(post("/api/rooms").session(authenticatedSession).header("X-CSRF-TOKEN", freshToken)
                         .contentType("application/json").content("{}"))
                 // Valid token: the request is no longer a CSRF failure; a user without ADMIN role may not write master data.
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ADMIN_REQUIRED"));
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PERMISSION_REQUIRED"));
     }
 }

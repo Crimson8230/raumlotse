@@ -277,4 +277,3 @@ describe('RoomDisplay smoke test', () => {
     expect(screen.queryByText('Zum Einchecken scannen')).not.toBeInTheDocument()
   })
 })
-

@@ -1,9 +1,9 @@
 package at.mci.igp.raumlotse.controller;
 
-import at.mci.igp.raumlotse.dto.Actor;
 import at.mci.igp.raumlotse.exception.UserRoleException;
 import at.mci.igp.raumlotse.service.AdminModeService;
-import at.mci.igp.raumlotse.service.UserRoleSafety;
+import at.mci.igp.raumlotse.service.EffectivePermissionService;
+import at.mci.igp.raumlotse.service.RoleIdentityAdapter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -22,21 +22,22 @@ public class AdminModeController {
     }
 
     private final AdminModeService adminMode;
-    private final UserRoleSafety roles;
+    private final EffectivePermissionService permissions;
 
-    public AdminModeController(AdminModeService adminMode, UserRoleSafety roles) {
+    public AdminModeController(AdminModeService adminMode, EffectivePermissionService permissions) {
         this.adminMode = adminMode;
-        this.roles = roles;
+        this.permissions = permissions;
     }
 
     @PutMapping("/api/auth/admin-mode")
     public ResponseEntity<AdminModeResponse> set(@RequestBody AdminModeRequest request, Authentication authentication,
             HttpServletRequest http) {
-        Actor actor = Actor.from(authentication, roles);
+        var userId = RoleIdentityAdapter.actor(authentication);
         if (request == null || request.enabled() == null) {
             throw new UserRoleException(400, "INVALID_REQUEST", "Ein gültiger Wert für „enabled“ ist erforderlich.");
         }
-        boolean result = adminMode.set(http.getSession(), actor, request.enabled());
+        boolean result = adminMode.set(http.getSession(), userId,
+                permissions.snapshot(userId).canUseAdminMode(), request.enabled());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new AdminModeResponse(result));
     }
 }

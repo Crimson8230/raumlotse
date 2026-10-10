@@ -1,0 +1,7 @@
+.role-permission-page { max-width: 56rem; margin: 0 auto; padding: 1.5rem; }
+.role-permission-page select { display: block; margin: .5rem 0 1.5rem; padding: .5rem; }
+.permission-option { display: flex; gap: .75rem; align-items: flex-start; padding: .5rem 0; }
+.permission-option span { display: flex; flex-direction: column; }
+.permission-option small { color: var(--text-muted, #555); }
+.protected-role-right { padding: .75rem; border: 1px solid currentColor; border-radius: .25rem; }
+.permission-actions { display: flex; gap: .75rem; margin-top: 1rem; }

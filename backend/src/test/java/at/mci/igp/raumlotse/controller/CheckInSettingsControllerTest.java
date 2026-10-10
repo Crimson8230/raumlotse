@@ -19,6 +19,7 @@ import at.mci.igp.raumlotse.dto.CheckInSettingsUpdateRequest;
 import at.mci.igp.raumlotse.exception.UserRoleException;
 import at.mci.igp.raumlotse.service.CheckInSettingsService;
 import at.mci.igp.raumlotse.service.UserRoleSafety;
+import at.mci.igp.raumlotse.service.EffectivePermissionService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -40,6 +41,7 @@ class CheckInSettingsControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean CheckInSettingsService service;
     @MockitoBean UserRoleSafety roles;
+    @MockitoBean EffectivePermissionService permissions;
 
     private static RequestPostProcessor signedIn() {
         return authentication(new UsernamePasswordAuthenticationToken(new AuthenticatedUser(ADMIN_ID, "Admin"), null, List.of()));
@@ -86,7 +88,7 @@ class CheckInSettingsControllerTest {
     void regularUsersAndAnonymousCallersAreRejected() throws Exception {
         mockMvc.perform(get("/api/admin/check-in-settings")).andExpect(status().isUnauthorized());
         doThrow(new UserRoleException(403, "ADMIN_REQUIRED", "Administratorrechte erforderlich."))
-                .when(roles).requireAdmin(any());
+                .when(permissions).requireAdmin(any());
         mockMvc.perform(put("/api/admin/check-in-settings").with(signedIn()).with(csrf())
                         .contentType("application/json").content("{\"earlyCheckInMinutes\":0,\"gracePeriodMinutes\":15}"))
                 .andExpect(status().isForbidden());

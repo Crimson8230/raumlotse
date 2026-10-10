@@ -3,9 +3,9 @@ import { Outlet } from 'react-router-dom'
 import { formatApiError } from '../API/client'
 import { useAdminMode } from './useAdminMode'
 
-/** Guards `/admin/*`: only administrators with administration mode on get the page (feature 013, FR-009). */
+/** Guards the administration address space; individual pages enforce their own function right. */
 export function RequireAdminMode() {
-  const { loading, failed, admin, adminMode, setMode } = useAdminMode()
+  const { loading, failed, canUseAdminMode, adminMode, setMode } = useAdminMode()
   const [error, setError] = useState<string>()
 
   if (loading) return <main role="status" className="role-page">Berechtigung wird geprüft…</main>
@@ -19,7 +19,7 @@ export function RequireAdminMode() {
       </main>
     )
   }
-  if (!admin) {
+  if (!canUseAdminMode) {
     return <main className="role-page" role="alert">Diese Seite ist für Sie nicht verfügbar.</main>
   }
   if (!adminMode) {

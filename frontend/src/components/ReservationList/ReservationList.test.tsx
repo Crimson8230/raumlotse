@@ -7,9 +7,11 @@ import * as reservationsApi from '../../API/reservations'
 import type { Room } from '../../types/room'
 import type { Reservation } from '../../types/reservation'
 
-const mode = vi.hoisted(() => ({ adminMode: false }))
+const mode = vi.hoisted(() => ({ adminMode: false, permissions: ['READ', 'OWN_RESERVATION_MANAGE'] as string[] }))
 vi.mock('../../auth/useAdminMode', () => ({
-  useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode, setMode: vi.fn() }),
+  useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode,
+    permissions: mode.permissions,
+    setMode: vi.fn() }),
 }))
 vi.mock('../../API/reservations')
 
@@ -53,6 +55,7 @@ function sampleReservation(overrides: Partial<Reservation> = {}): Reservation {
 beforeEach(() => {
   vi.resetAllMocks()
   mode.adminMode = false
+  mode.permissions = ['READ', 'OWN_RESERVATION_MANAGE']
 })
 
 describe('ReservationList', () => {
@@ -231,6 +234,21 @@ describe('ReservationList', () => {
     expect(reservations.updateReservationMetadata).not.toHaveBeenCalled()
   })
 
+  it('rejects fractional attendee counts in the edit form', async () => {
+    const user = userEvent.setup()
+    reservations.listRoomReservations.mockResolvedValue([sampleReservation()])
+    render(<ReservationList room={sampleRoom()} />)
+
+    await user.click(await screen.findByRole('button', { name: /bearbeiten/i }))
+    const attendeesInput = screen.getByLabelText(/teilnehmende bearbeiten/i)
+    await user.clear(attendeesInput)
+    await user.type(attendeesInput, '1.5')
+    await user.click(screen.getByRole('button', { name: /speichern/i }))
+
+    expect(await screen.findByText(/ganze zahl/i)).toBeInTheDocument()
+    expect(reservations.updateReservationMetadata).not.toHaveBeenCalled()
+  })
+
   describe('ownership (feature 013)', () => {
     function redacted(): Reservation {
       return sampleReservation({
@@ -276,11 +294,32 @@ describe('ReservationList', () => {
 
     it('lets administrators in administration mode manage other users\' bookings', async () => {
       mode.adminMode = true
+      mode.permissions = ['READ', 'OWN_RESERVATION_MANAGE', 'OTHER_RESERVATION_MANAGE']
       reservations.listRoomReservations.mockResolvedValue([sampleReservation({ ownedByMe: false })])
 
       render(<ReservationList room={sampleRoom()} />)
 
       expect(await screen.findByRole('button', { name: 'Stornieren' })).toBeInTheDocument()
+    })
+
+    it('shows an earlier own booking to a READ-only viewer without management actions', async () => {
+      mode.permissions = ['READ']
+      reservations.listRoomReservations.mockResolvedValue([sampleReservation({ ownedByMe: true })])
+      render(<ReservationList room={sampleRoom()} />)
+      expect(await screen.findByText(/Team Alpha/)).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Stornieren' })).not.toBeInTheDocument()
+    })
+
+    it('fetches foreign details only when OTHER_RESERVATION_MANAGE is granted', async () => {
+      mode.permissions = ['READ', 'OTHER_RESERVATION_MANAGE']
+      reservations.listRoomReservations.mockResolvedValue([redacted()])
+      reservations.getReservation.mockResolvedValue(sampleReservation({ id: 'res-other', ownedByMe: false }))
+      render(<ReservationList room={sampleRoom()} />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Details anzeigen' }))
+      expect(await screen.findByText(/Team Alpha/)).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Stornieren' })).toBeVisible()
+      expect(reservations.getReservation).toHaveBeenCalledWith('res-other')
     })
   })
 })

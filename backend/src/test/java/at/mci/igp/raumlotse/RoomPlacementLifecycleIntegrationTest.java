@@ -48,7 +48,7 @@ class RoomPlacementLifecycleIntegrationTest extends MapIntegrationSupport {
         UUID map = mapWithPlacedRoom();
         room("R-EG-NEU", floorEg);
 
-        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(user)))
+        mvc.perform(get("/api/maps/" + map + "/unplaced-rooms").with(actor(admin)))
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("R-EG-NEU"));
     }
@@ -60,7 +60,7 @@ class RoomPlacementLifecycleIntegrationTest extends MapIntegrationSupport {
         assertThat(db.queryForObject("select count(*) from room_placement", Long.class)).isZero();
 
         UUID recreated = uploadMap(floorEg);
-        mvc.perform(get("/api/maps/" + recreated + "/unplaced-rooms").with(actor(user)))
+        mvc.perform(get("/api/maps/" + recreated + "/unplaced-rooms").with(actor(admin)))
                 .andExpect(jsonPath("$[0].name").value("R-EG"));
     }
 

@@ -13,5 +13,7 @@ export function useAdminMode(enabled = true) {
     await setAdminMode(value)
     window.dispatchEvent(new Event('raumlotse:roles-changed'))
   }, [])
-  return { loading: roles.loading, failed: roles.failed, admin: roles.admin, adminMode: roles.adminMode, setMode }
+  return { loading: roles.loading, failed: roles.failed, admin: roles.admin,
+    adminMode: roles.adminMode, canUseAdminMode: roles.canUseAdminMode,
+    permissions: roles.permissions, setMode }
 }

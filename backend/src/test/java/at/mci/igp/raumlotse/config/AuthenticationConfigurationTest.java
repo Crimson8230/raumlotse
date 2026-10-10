@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 class AuthenticationConfigurationTest {
     @Test
@@ -37,8 +39,12 @@ class AuthenticationConfigurationTest {
         var environment = mock(org.springframework.core.env.Environment.class);
         var existing = new UserAccount("user@example.test", "Existing", "{hash}persisted");
         when(accounts.findByEmail("user@example.test")).thenReturn(Optional.of(existing));
+        var transactions = mock(PlatformTransactionManager.class);
+        when(transactions.getTransaction(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new SimpleTransactionStatus());
         var runner = new LocalAuthFixtureConfiguration().provisionLocalAuthFixture(accounts, encoder,
                 new EmailCanonicalizer(), environment, mock(org.springframework.jdbc.core.JdbcTemplate.class),
+                transactions,
                 "USER@example.test", "Fixture", "new-password");
         runner.run(new DefaultApplicationArguments(new String[0]));
         verify(accounts, never()).saveAndFlush(org.mockito.ArgumentMatchers.any(UserAccount.class));
@@ -52,7 +58,8 @@ class AuthenticationConfigurationTest {
                 .thenReturn(true);
         assertThatThrownBy(() -> new LocalAuthFixtureConfiguration().provisionLocalAuthFixture(
                 mock(UserAccountRepository.class), mock(PasswordEncoder.class), new EmailCanonicalizer(), environment,
-                mock(org.springframework.jdbc.core.JdbcTemplate.class), "user@example.test", "User", "password"))
+                mock(org.springframework.jdbc.core.JdbcTemplate.class), mock(PlatformTransactionManager.class),
+                "user@example.test", "User", "password"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Local auth fixtures cannot be enabled with a production profile.");
     }

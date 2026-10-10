@@ -26,10 +26,11 @@ import { entityStatusLabel } from '../utils/labels'
 
 export default function RoomListPage() {
   const [rooms, setRooms] = useState<Room[]>([])
-  const { adminMode } = useAdminMode()
+  const { adminMode, permissions } = useAdminMode()
+  const roomManage = adminMode && permissions.includes('ROOM_MANAGE')
   const [statusFilter, setStatus] = useState<StatusFilter>('active')
   // Without administration mode the list is the booking overview: active rooms only (feature 013, FR-002).
-  const status: StatusFilter = adminMode ? statusFilter : 'active'
+  const status: StatusFilter = roomManage ? statusFilter : 'active'
   const [error, setError] = useState<string | null>(null)
   const [buildings, setBuildings] = useState<Building[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -123,7 +124,7 @@ export default function RoomListPage() {
         </p>
       )}
 
-      {adminMode && (
+      {roomManage && (
         <div className="room-list-toolbar">
           <div>
             <label htmlFor="room-status-filter">Status</label>
@@ -187,7 +188,7 @@ export default function RoomListPage() {
               </div>
 
               <div className="actions">
-                {room.status === 'ACTIVE' && (
+                {room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
                   <Link
                     to={bookingLink(room.id, searchState)}
                     className="room-list-book"
@@ -196,7 +197,7 @@ export default function RoomListPage() {
                     Buchen
                   </Link>
                 )}
-                {adminMode && (
+                {roomManage && (
                   <>
                     {room.status === 'ACTIVE' ? (
                       <button type="button" onClick={() => guarded(() => deactivateRoom(room.id))} aria-label={`${room.name} deaktivieren`}>Deaktivieren</button>

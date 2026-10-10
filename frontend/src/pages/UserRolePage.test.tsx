@@ -67,5 +67,21 @@ describe('role management page', () => {
     await screen.findByText('Kein Zugriff auf die Rollenverwaltung.')
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
+
+  it('explains why the final administrator cannot remove their Admin role', async () => {
+    vi.mocked(api.getUserRoles).mockResolvedValue({
+      ...initial, user: { id: 'target', displayName: 'Target User', accountLabel: 'target@example.test' },
+      roles: ['ADMIN'], version: '0', availableRoles: [],
+    })
+    vi.mocked(api.saveUserRoles).mockRejectedValueOnce(new ApiError(409, {
+      title: 'Conflict', status: 409, detail: 'Last admin', code: 'LAST_ADMIN_REQUIRED',
+    }))
+    renderPage()
+    await screen.findByText('Target User')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Administration' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Lesezugriff' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mindestens ein Admin muss erhalten bleiben')
+  })
 })
 

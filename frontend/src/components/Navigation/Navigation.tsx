@@ -4,6 +4,7 @@ import { useContext, useState } from 'react'
 import { formatApiError } from '../../API/client'
 import { AuthContext } from '../../auth/authContext'
 import { useAdminMode } from '../../auth/useAdminMode'
+import type { PermissionCode } from '../../types/permission'
 import './Navigation.css'
 
 interface NavItem {
@@ -18,12 +19,15 @@ const userItems: NavItem[] = [
   { label: 'Karten', path: '/maps', icon: Map },
 ]
 
-const adminItems: NavItem[] = [
-  { label: 'Standorte', path: '/admin/locations', icon: Building2 },
-  { label: 'Karten bearbeiten', path: '/admin/maps', icon: MapPinned },
-  { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3 },
-  { label: 'Benutzerrollen', path: '/admin/users', icon: Users },
-  { label: 'Einstellungen', path: '/admin/settings', icon: Settings },
+const adminItems: (NavItem & { rights?: PermissionCode[]; adminOnly?: boolean })[] = [
+  { label: 'Standorte', path: '/admin/locations', icon: Building2,
+    rights: ['BUILDING_MANAGE', 'FLOOR_MANAGE', 'EQUIPMENT_TYPE_MANAGE'] },
+  { label: 'Karten bearbeiten', path: '/admin/maps', icon: MapPinned,
+    rights: ['MAP_MANAGE', 'ROOM_PLACEMENT_MANAGE', 'CONNECTION_MANAGE'] },
+  { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3, rights: ['STATISTICS_READ'] },
+  { label: 'Benutzerrollen', path: '/admin/users', icon: Users, adminOnly: true },
+  { label: 'Rollenrechte', path: '/admin/roles', icon: ShieldCheck, adminOnly: true },
+  { label: 'Einstellungen', path: '/admin/settings', icon: Settings, adminOnly: true },
 ]
 
 function Item({ label, path, icon: Icon }: NavItem) {
@@ -39,7 +43,7 @@ function Item({ label, path, icon: Icon }: NavItem) {
 
 export function Navigation() {
   const auth = useContext(AuthContext)
-  const { admin, adminMode, setMode } = useAdminMode(auth?.state === 'authenticated')
+  const { admin, adminMode, canUseAdminMode, permissions, setMode } = useAdminMode(auth?.state === 'authenticated')
   const [error, setError] = useState<string>()
 
   function toggle(enabled: boolean) {
@@ -51,10 +55,11 @@ export function Navigation() {
     <nav className={adminMode ? 'nav nav-admin' : 'nav'} aria-label="Hauptnavigation">
       <div className="nav-inner">
       <ul className="nav-list">
-        {userItems.map((item) => <Item key={item.path} {...item} />)}
-        {adminMode && adminItems.map((item) => <Item key={item.path} {...item} />)}
+        {permissions.includes('READ') && userItems.map((item) => <Item key={item.path} {...item} />)}
+        {adminMode && adminItems.filter(item => item.adminOnly ? admin
+          : item.rights?.some(right => permissions.includes(right))).map((item) => <Item key={item.path} {...item} />)}
       </ul>
-      {admin && (
+      {canUseAdminMode && (
         <div className="nav-admin-mode">
           {adminMode && (
             <span className="nav-admin-indicator" role="status">

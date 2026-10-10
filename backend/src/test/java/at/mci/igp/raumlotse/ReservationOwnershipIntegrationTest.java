@@ -26,7 +26,7 @@ class ReservationOwnershipIntegrationTest extends MapIntegrationSupport {
     @BeforeEach
     void people() {
         // Both share the display name "Fixture" (see MapIntegrationSupport#actor): identity decides, not the name.
-        owner = account("owner@example.test", "VIEWER");
+        owner = account("owner@example.test", "STUDENT");
         stranger = account("stranger@example.test", "STUDENT");
         arrangement = UUID.randomUUID();
         db.update("insert into seating_arrangement(id,room_id,name,max_capacity) values (?,?,?,?)",

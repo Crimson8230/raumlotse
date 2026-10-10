@@ -48,7 +48,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @at.mci.igp.raumlotse.security.WithMockAdmin
 @Import(SecurityConfig.class)
 class ReservationControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired
     private MockMvc mockMvc;
 
@@ -510,13 +512,14 @@ class ReservationControllerTest {
     @Test
     void expireUnattendedReservations_refusesNonAdministrators() throws Exception {
         org.mockito.Mockito.doThrow(new at.mci.igp.raumlotse.exception.UserRoleException(
-                403, "ADMIN_REQUIRED", "Administratorrechte erforderlich.")).when(roleSafety).requireAdmin(any());
+                403, "PERMISSION_REQUIRED", "Reservierungswartung nicht erlaubt.")).when(effectivePermissions)
+                .require(any(), org.mockito.ArgumentMatchers.eq(at.mci.igp.raumlotse.domain.PermissionCode.RESERVATION_MAINTENANCE));
 
         mockMvc.perform(post("/api/reservations/expire-unattended").with(csrf())
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
                                 new AuthenticatedUser(UUID.randomUUID(), "Regular"), null, List.of()))))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("ADMIN_REQUIRED"));
+                .andExpect(jsonPath("$.code").value("PERMISSION_REQUIRED"));
         org.mockito.Mockito.verifyNoInteractions(reservationService);
     }
 

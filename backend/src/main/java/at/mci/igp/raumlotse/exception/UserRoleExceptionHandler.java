@@ -9,7 +9,7 @@ import org.springframework.web.bind.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-@RestControllerAdvice(assignableTypes={UserRoleController.class,CurrentRolesController.class,AdminModeController.class})
+@RestControllerAdvice(assignableTypes={UserRoleController.class,CurrentRolesController.class,AdminModeController.class,RolePermissionController.class})
 @Order(-10)
 public class UserRoleExceptionHandler {
     private static final Logger log=LoggerFactory.getLogger(UserRoleExceptionHandler.class);
@@ -18,7 +18,9 @@ public class UserRoleExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Problem> validation(MethodArgumentNotValidException ex) {
         boolean roles=ex.getBindingResult().getFieldErrors().stream().anyMatch(e->e.getField().startsWith("roles"));
-        return response(400,roles?"INVALID_ROLE_SELECTION":"INVALID_REQUEST",roles?"Wählen Sie ein bis fünf verschiedene unterstützte Rollen.":"Eine gültige erwartete Version ist erforderlich.");
+        boolean permissions=ex.getBindingResult().getFieldErrors().stream().anyMatch(e->e.getField().startsWith("permissions"));
+        return response(400,roles?"INVALID_ROLE_SELECTION":permissions?"INVALID_PERMISSION_SELECTION":"INVALID_REQUEST",
+                roles?"Wählen Sie ein bis fünf verschiedene unterstützte Rollen.":permissions?"Die Rechteauswahl ist ungültig.":"Eine gültige erwartete Version ist erforderlich.");
     }
     @ExceptionHandler({HttpMessageNotReadableException.class,MethodArgumentTypeMismatchException.class,MissingServletRequestParameterException.class})
     public ResponseEntity<Problem> invalid(Exception ex) { return response(400,"INVALID_REQUEST","Die Anfrage ist ungültig."); }

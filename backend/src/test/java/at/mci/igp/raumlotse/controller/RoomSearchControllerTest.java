@@ -22,7 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import at.mci.igp.raumlotse.WithTestActor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,7 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest({RoomSearchController.class, RoomController.class})
 @Import(SecurityConfig.class)
 class RoomSearchControllerTest {
-
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired
     private MockMvc mockMvc;
 
@@ -48,7 +50,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void searchBindsPersonRangeAndBuilding() throws Exception {
         UUID buildingId = UUID.randomUUID();
         when(roomSearchService.search(any())).thenReturn(List.of());
@@ -68,7 +70,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void searchIsNotRoutedToRoomDetail() throws Exception {
         when(roomSearchService.search(any())).thenReturn(List.of());
 
@@ -78,7 +80,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void nonPositivePersonCountReturns400() throws Exception {
         mockMvc.perform(get("/api/rooms/search").param("minPersons", "0"))
                 .andExpect(status().isBadRequest())
@@ -88,7 +90,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void nonNumericPersonCountReturns400WithNeutralMessage() throws Exception {
         mockMvc.perform(get("/api/rooms/search").param("minPersons", "abc"))
                 .andExpect(status().isBadRequest())
@@ -99,7 +101,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void malformedBuildingIdReturns400() throws Exception {
         mockMvc.perform(get("/api/rooms/search").param("buildingId", "xyz"))
                 .andExpect(status().isBadRequest())
@@ -107,7 +109,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void serviceValidationErrorReturns400() throws Exception {
         when(roomSearchService.search(any()))
                 .thenThrow(new IllegalArgumentException("Min. Personen darf nicht größer als Max. Personen sein."));
@@ -118,7 +120,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void seatingArrangementLongerThan100CharactersReturns400() throws Exception {
         mockMvc.perform(get("/api/rooms/search").param("seatingArrangement", "x".repeat(101)))
                 .andExpect(status().isBadRequest())
@@ -127,7 +129,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void bindsSeatingArrangementAndRepeatedEquipmentTypeIds() throws Exception {
         UUID projector = UUID.randomUUID();
         UUID whiteboard = UUID.randomUUID();
@@ -146,7 +148,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void listsSeatingArrangementNames() throws Exception {
         when(roomSearchService.listSeatingArrangementNames()).thenReturn(List.of("Theater", "U-Shape"));
 
@@ -163,7 +165,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void bindsTheTimeWindowAsInstants() throws Exception {
         when(roomSearchService.search(any())).thenReturn(List.of());
 
@@ -179,7 +181,7 @@ class RoomSearchControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithTestActor
     void malformedInstantReturns400() throws Exception {
         mockMvc.perform(get("/api/rooms/search").param("from", "not-a-date").param("to", "2026-10-05T10:00:00Z"))
                 .andExpect(status().isBadRequest())
