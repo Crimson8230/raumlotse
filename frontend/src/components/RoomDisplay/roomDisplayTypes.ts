@@ -30,4 +30,6 @@ export interface RoomDisplayProps {
   devices?: DeviceStates | null
   /** Administration-only controls such as the simulated motion sensor (feature 014). */
   adminControls?: ReactNode
+  /** Navigation shown centred below the display, e.g. back to the room page. */
+  footer?: ReactNode
 }

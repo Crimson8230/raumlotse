@@ -304,7 +304,7 @@
   - Mark finding F8 as partly addressed: the status endpoint no longer writes, while `getControls` still does.
 - [X] T065 [P] Add a contract-conformance check in `T/controller/CheckInControllerTest.java` and `T/controller/RoomStatusControllerTest.java`: assert the JSON field sets exactly match `contracts/presence-checkin-api.yaml` (no extra personal fields)
 - [X] T066 Run `cd backend && ./mvnw test` and `cd frontend && npm test && npm run lint && npm run build`, and fix any failures
-- [ ] T067 Walk through `specs/014-presence-checkin/quickstart.md` Scenarios 1–8 against the running Compose stack, including a real phone scan of the QR code, and record deviations in the PR description
+- [X] T067 Walk through `specs/014-presence-checkin/quickstart.md` Scenarios 1–8 against the running Compose stack, including a real phone scan of the QR code, and record deviations in the PR description
 
 ---
 
@@ -416,3 +416,10 @@ Tests (fail) → DTOs/types → services → controllers/filters → frontend AP
 ## Phase 13: Convergence
 
 - [X] T087 Explain *why* check-in is not possible yet on the check-in page: add a nullable `detail` string to `CheckInPreviewResponse` (`backend/src/main/java/at/mci/igp/raumlotse/dto/CheckInPreviewResponse.java`, filled from the classification for `TOO_EARLY`/`EXPIRED`/`NO_MATCH`) and to `CheckInPreview` in `specs/014-presence-checkin/contracts/presence-checkin-api.yaml` and `frontend/src/types/checkIn.ts`; show it in `frontend/src/pages/CheckInPage.tsx` so an occupied room reads "Der Raum ist noch belegt. Der Check-in ist ab HH:MM Uhr möglich."; failing tests first in `CheckInServiceTest`, `CheckInControllerTest` (field set) and `CheckInPage.test.tsx` per FR-004 (partial)
+
+---
+
+## Phase 14: Follow-up after phone testing (2026-10-10)
+
+- [X] T088 Regression test: the booking user can control the devices right after an early check-in, in `backend/src/test/java/at/mci/igp/raumlotse/PresenceCheckInIntegrationTest.java` (the reported failure came from a backend container built before Phase 10, not from the code) per FR-004
+- [X] T089 Place "Zurück zum Raum" inside the page content, centred below it and drawn like the design's buttons (`.page-back` in `frontend/src/index.css`), on `RoomDisplayPage` (via the new `footer` slot of `RoomDisplay`) and `RoomDeviceControlPage` per FR-021 / design system 002

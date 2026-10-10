@@ -31,7 +31,9 @@ describe('RoomDeviceControlPage', () => {
   it('links back to the room page', () => {
     api.getRoomDeviceControls.mockResolvedValue({ roomId: 'r1', reservationId: 'b1', devices: [] })
     render(<MemoryRouter initialEntries={['/rooms/r1/control']}><Routes><Route path="/rooms/:roomId/control" element={<RoomDeviceControlPage />} /></Routes></MemoryRouter>)
-    expect(screen.getByRole('link', { name: 'Zurück zum Raum' })).toHaveAttribute('href', '/rooms/r1')
+    const back = screen.getByRole('link', { name: 'Zurück zum Raum' })
+    expect(back).toHaveAttribute('href', '/rooms/r1')
+    expect(back.parentElement).toHaveClass('page-back')
   })
 })
 

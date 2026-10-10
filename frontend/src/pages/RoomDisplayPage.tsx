@@ -104,45 +104,43 @@ export default function RoomDisplayPage() {
   if (!roomId) {
     return (
       <RoomDisplay
-        roomName="Raum nicht verfügbar"
-        currentDateTime={currentDateTime}
-        reservation={null}
-        status="UNAVAILABLE"
-        nextReservation={null}
-        state="unavailable"
-        errorMessage="Rauminformationen sind nicht verfügbar."
-      />
-    )
-  }
+      roomName="Raum nicht verfügbar"
+      currentDateTime={currentDateTime}
+      reservation={null}
+      status="UNAVAILABLE"
+      nextReservation={null}
+      state="unavailable"
+      errorMessage="Rauminformationen sind nicht verfügbar."
+    />
+  )
+}
 
-  if (loading) {
-    return (
-      <main>
-        <p className="status-loading">Raumanzeige wird geladen…</p>
-      </main>
-    )
-  }
+if (loading) {
+  return (
+    <main>
+      <p className="status-loading">Raumanzeige wird geladen…</p>
+    </main>
+  )
+}
 
   return (
-    <>
-      <p className="room-display-back"><Link to={`/rooms/${roomId}`}>Zurück zum Raum</Link></p>
-      <RoomDisplay
-        roomName={room?.name ?? 'Raum nicht verfügbar'}
-        currentDateTime={currentDateTime}
-        reservation={currentReservation}
-        status={displayStatus}
-        nextReservation={nextReservation}
-        state={errorMessage ? 'unavailable' : currentReservation ? 'reservation' : 'no-reservation'}
-        errorMessage={errorMessage ?? undefined}
-        checkInLink={checkInLink(roomId, 'qr')}
-        devices={requestMatchesRoom ? requestState.roomStatus?.devices : null}
-        adminControls={
-          <PresenceSimulateButton
-            roomId={roomId}
-            lastPresenceAt={requestMatchesRoom ? requestState.roomStatus?.lastPresenceAt ?? null : null}
-          />
-        }
-      />
-    </>
+    <RoomDisplay
+      roomName={room?.name ?? 'Raum nicht verfügbar'}
+      currentDateTime={currentDateTime}
+      reservation={currentReservation}
+      status={displayStatus}
+      nextReservation={nextReservation}
+      state={errorMessage ? 'unavailable' : currentReservation ? 'reservation' : 'no-reservation'}
+      errorMessage={errorMessage ?? undefined}
+      checkInLink={checkInLink(roomId, 'qr')}
+      devices={requestMatchesRoom ? requestState.roomStatus?.devices : null}
+      adminControls={
+        <PresenceSimulateButton
+          roomId={roomId}
+          lastPresenceAt={requestMatchesRoom ? requestState.roomStatus?.lastPresenceAt ?? null : null}
+        />
+      }
+      footer={<p className="page-back"><Link to={`/rooms/${roomId}`}>Zurück zum Raum</Link></p>}
+    />
   )
 }

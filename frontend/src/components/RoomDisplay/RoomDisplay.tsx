@@ -23,6 +23,7 @@ export function RoomDisplay({
   checkInLink,
   devices,
   adminControls,
+  footer,
 }: RoomDisplayProps) {
   return (
     <main
@@ -111,6 +112,7 @@ export function RoomDisplay({
           <p>Zum Einchecken scannen</p>
         </section>
       )}
+      {footer}
     </main>
   )
 }

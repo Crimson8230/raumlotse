@@ -59,6 +59,7 @@ class PresenceCheckInIntegrationTest extends AbstractIntegrationTest {
     @Autowired CheckInService checkIns;
     @Autowired RoomStatusService roomStatus;
     @Autowired CheckInController checkInController;
+    @Autowired at.mci.igp.raumlotse.service.RoomDeviceService roomDevices;
     /** Behaves like the stub gateway (acknowledges everything) unless a test makes a device fail. */
     @MockitoBean RoomDeviceGateway gateway;
 
@@ -202,6 +203,28 @@ class PresenceCheckInIntegrationTest extends AbstractIntegrationTest {
         assertThat(stored.getStatus()).isEqualTo(ReservationStatus.ACTIVE);
         assertThat(stored.getCheckInMethod()).isEqualTo(CheckInMethod.NFC);
         assertThat(roomStatus.status(room.getId(), VIEWER).devices()).isEqualTo(PREPARED);
+    }
+
+    @Test
+    void theBookingUserCanControlTheDevicesRightAfterAnEarlyCheckIn() {
+        Room room = createRoom("Early control");
+        ReservationCreateRequest request = bookingRequest(room, "Early Control Group");
+        UUID reservationId = TestActors.create(jdbc, reservationService, room.getId(), request).id();
+        moveTo(reservationId, Instant.now().plus(6, ChronoUnit.MINUTES), Instant.now().plus(1, ChronoUnit.HOURS));
+        var owner = TestActors.creatorOf(request);
+        reservationService.activateReservation(reservationId, TestActors.ownerOf(request));
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(new AuthenticatedUser(owner.userId(), owner.displayName()), null, List.of()));
+        try {
+            var controls = roomDevices.getControls(room.getId());
+            assertThat(controls.reservationId()).isEqualTo(reservationId);
+            var light = roomDevices.setState(room.getId(), RoomDeviceKind.LIGHTING,
+                    new at.mci.igp.raumlotse.dto.RoomDeviceCommandRequest(false));
+            assertThat(light.state()).isFalse();
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
     }
 
     private Room createRoom(String name) {

@@ -253,7 +253,10 @@ describe('RoomDisplayPage', () => {
 
     renderPage()
 
-    expect(await screen.findByRole('link', { name: 'Zurück zum Raum' })).toHaveAttribute('href', '/rooms/room-1')
+    const back = await screen.findByRole('link', { name: 'Zurück zum Raum' })
+    expect(back.closest('main')).toHaveClass('room-display')
+    expect(back).toHaveAttribute('href', '/rooms/room-1')
+    expect(back.parentElement).toHaveClass('page-back')
   })
 })
 
