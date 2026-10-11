@@ -1,0 +1,21 @@
+.admin-occupancy-page h2 { margin-bottom: 0; }
+.occupancy-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.occupancy-cards h3 { margin: 0; font-size: 1rem; }
+.occupancy-stale { border-left: 4px solid #b7791f; }
+@media (max-width: 760px) { .occupancy-cards { grid-template-columns: 1fr; } }
+.occupancy-peak { display: inline-block; margin-left: .4rem; padding: 0 .35rem; border-radius: .25rem; background: #fde68a; color: #1f2933; font-size: .75rem; font-weight: 600; }
+.occupancy-peak-row th, .occupancy-peak-row td { font-weight: 600; }
+.occupancy-past { color: #52606d; font-style: italic; }
+.occupancy-hour { min-height: 2rem; padding: .2rem .5rem; cursor: pointer; }
+.occupancy-dialog-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgb(0 0 0 / 45%); }
+.occupancy-dialog { display: grid; gap: .5rem; width: min(40rem, 100%); max-height: calc(100vh - 2rem); overflow-y: auto; padding: 1.5rem; background: var(--color-background); color: var(--color-text); border: 2px solid var(--color-border); border-radius: .5rem; }
+.occupancy-dialog-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .5rem; }
+.occupancy-dialog h2, .occupancy-dialog h3 { margin: 0; }
+.occupancy-dialog h2 { font-size: 1.15rem; }
+.occupancy-dialog h3 { font-size: 1rem; }
+.occupancy-dialog ul { margin: .25rem 0 .5rem; padding-left: 1.25rem; }
+.occupancy-dialog button { justify-self: start; min-height: 2.4rem; padding: .4rem .75rem; cursor: pointer; }
+.occupancy-running { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.occupancy-running li { padding: .6rem .75rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: .5rem; }
+.statistics-period select { min-height: 2.4rem; padding: .3rem .5rem; }
+.occupancy-filter-note { align-self: center; font-weight: 600; }

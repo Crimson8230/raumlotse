@@ -12,6 +12,8 @@ class AuthorizationMatrixTest {
         assertThat(RoleAccessFilter.classify("PUT", "/api/floors/x/map").permission()).isEqualTo(MAP_MANAGE);
         assertThat(RoleAccessFilter.classify("GET", "/api/maps/x/unplaced-rooms").permission()).isEqualTo(ROOM_PLACEMENT_MANAGE);
         assertThat(RoleAccessFilter.classify("GET", "/api/admin/statistics").permission()).isEqualTo(STATISTICS_READ);
+        assertThat(RoleAccessFilter.classify("GET", "/api/admin/occupancy").permission()).isEqualTo(STATISTICS_READ);
+        assertThat(RoleAccessFilter.classify("GET", "/api/admin/occupancy/forecast").permission()).isEqualTo(STATISTICS_READ);
         assertThat(RoleAccessFilter.classify("POST", "/api/reservations/expire-unattended").permission())
                 .isEqualTo(RESERVATION_MAINTENANCE);
         assertThat(RoleAccessFilter.classify("PUT", "/api/admin/roles/ADMIN/permissions").admin()).isTrue();

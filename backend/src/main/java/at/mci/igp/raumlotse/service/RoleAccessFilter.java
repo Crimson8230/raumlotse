@@ -45,6 +45,7 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "GET", "/api/admin/roles(?:/[^/]+/permissions)?", ADMIN);
         add(result, "PUT", "/api/admin/roles/[^/]+/permissions", ADMIN);
         add(result, "GET", "/api/admin/statistics", PermissionCode.STATISTICS_READ);
+        add(result, "GET", "/api/admin/occupancy(?:/forecast)?", PermissionCode.STATISTICS_READ);
         add(result, "GET", "/api/rooms(?:/search(?:/seating-arrangements)?|/[^/]+)?", PermissionCode.READ);
         add(result, "GET", "/api/buildings(?:/[^/]+/floors)?", PermissionCode.READ);
         add(result, "GET", "/api/equipment-types", PermissionCode.READ);

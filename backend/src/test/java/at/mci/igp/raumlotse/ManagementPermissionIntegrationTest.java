@@ -28,6 +28,8 @@ class ManagementPermissionIntegrationTest extends MapIntegrationSupport {
                 Arguments.of("ROOM_PLACEMENT_MANAGE", "room_placement"),
                 Arguments.of("CONNECTION_MANAGE", "connection"),
                 Arguments.of("STATISTICS_READ", "statistics"),
+                Arguments.of("STATISTICS_READ", "occupancy"),
+                Arguments.of("STATISTICS_READ", "occupancy_forecast"),
                 Arguments.of("RESERVATION_MAINTENANCE", "maintenance"));
     }
 
@@ -63,7 +65,7 @@ class ManagementPermissionIntegrationTest extends MapIntegrationSupport {
             case "map" -> "floor_map";
             case "room_placement" -> "room_placement";
             case "connection" -> "connection";
-            case "statistics", "maintenance" -> null;
+            case "statistics", "occupancy", "occupancy_forecast", "maintenance" -> null;
             default -> throw new IllegalArgumentException(action);
         };
         Long before = table == null ? null : db.queryForObject("select count(*) from " + table, Long.class);
@@ -79,6 +81,9 @@ class ManagementPermissionIntegrationTest extends MapIntegrationSupport {
             case "room_placement" -> { method = HttpMethod.PUT; path = "/api/maps/" + mapId + "/placements/" + roomEg; body = "{\"x\":0.4,\"y\":0.6}"; }
             case "connection" -> { method = HttpMethod.POST; path = "/api/connections"; body = "{\"name\":\"Granted connection " + UUID.randomUUID() + "\",\"type\":\"STAIRS\"}"; }
             case "statistics" -> { method = HttpMethod.GET; path = "/api/admin/statistics?from=2026-01-01&to=2026-12-31"; }
+            case "occupancy" -> { method = HttpMethod.GET; path = "/api/admin/occupancy"; }
+            case "occupancy_forecast" -> { method = HttpMethod.GET; path = "/api/admin/occupancy/forecast?date="
+                    + java.time.LocalDate.now(java.time.ZoneId.of("Europe/Berlin")).plusDays(1); }
             case "maintenance" -> { method = HttpMethod.POST; path = "/api/reservations/expire-unattended"; }
             default -> throw new IllegalArgumentException(action);
         }
