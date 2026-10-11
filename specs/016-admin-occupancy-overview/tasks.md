@@ -220,3 +220,10 @@ Task: "T012 [US1] route/nav cases in F/App.protected-routes.test.tsx and Navigat
 
 - [X] T038 In `frontend/src/pages/AdminOccupancyPage.tsx`, hide the "Gebäude" filter while access is denied and reset `accessDenied` to false after a successful snapshot load, so the forecast section reappears when the right is granted again; add a case to `frontend/src/pages/AdminOccupancyPage.test.tsx` (403 on reload → no filter, no forecast; later 200 → both visible again) per FR-012 (partial)
 - [X] T039 Add a timing step to `specs/016-admin-occupancy-overview/quickstart.md` (scenario 1: with the T033 data volume of 100 rooms / 500 running bookings, the page shows figures, bookings list and forecast within 3 s of opening, measured in the browser's network/performance panel) and record the result in the T037 walkthrough per SC-006 (partial) — *step added as scenario 9; the measurement itself happens during T037*
+
+---
+
+## Phase 9: Review follow-ups (T037 walkthrough)
+
+- [X] T040 Show the hour detail (FR-016) as a modal popup instead of extending the page: `role="dialog"` with `aria-modal`, focus on "Schließen", closes with the button, Escape or the backdrop and returns focus to the hour button; "Zur aktuellen Situation" stays inside the popup (FR-017). Tests in `frontend/src/pages/AdminOccupancyPage.test.tsx`
+- [X] T041 Fix: returning to the browser tab jumped to the top of the page and lost the chosen day and forecast, because the focus re-check of the rights in `frontend/src/auth/useCurrentRoles.ts` briefly unmounted every guarded page. The hook now reports `refreshing` for a re-check of an already granted snapshot, and `RequirePermission`, `RequireAdminMode` and `RequireRoleManagement` keep the page mounted meanwhile; permissions stay empty while the check runs, and a revocation still removes the page. Tests in `frontend/src/auth/`

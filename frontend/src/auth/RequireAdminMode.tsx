@@ -5,9 +5,11 @@ import { useAdminMode } from './useAdminMode'
 
 /** Guards the administration address space; individual pages enforce their own function right. */
 export function RequireAdminMode() {
-  const { loading, failed, canUseAdminMode, adminMode, setMode } = useAdminMode()
+  const { loading, refreshing, failed, canUseAdminMode, adminMode, setMode } = useAdminMode()
   const [error, setError] = useState<string>()
 
+  // Keep an already granted page mounted while the mode is re-checked; a revocation still removes it.
+  if (refreshing) return <Outlet />
   if (loading) return <main role="status" className="role-page">Berechtigung wird geprüft…</main>
   if (failed) {
     return (

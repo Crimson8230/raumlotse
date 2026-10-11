@@ -43,6 +43,26 @@ describe('useCurrentRoles', () => {
     expect(result.current.canUseAdminMode).toBe(false)
   })
 
+  it('marks a re-check of an already granted snapshot as refreshing, but not the first check', async () => {
+    let finishRefresh: (value: Awaited<ReturnType<typeof getCurrentRoles>>) => void = () => {}
+    vi.mocked(getCurrentRoles)
+      .mockResolvedValueOnce({ roles: ['ADMIN'], ready: true, adminMode: true,
+        permissions: ['STATISTICS_READ'], canUseAdminMode: true })
+      .mockImplementationOnce(() => new Promise(resolve => { finishRefresh = resolve }))
+    const { result } = renderHook(() => useCurrentRoles(), { wrapper })
+    expect(result.current.refreshing).toBe(false)
+    await waitFor(() => expect(result.current.permissions).toEqual(['STATISTICS_READ']))
+
+    act(() => window.dispatchEvent(new Event('focus')))
+    expect(result.current.refreshing).toBe(true)
+    expect(result.current.permissions).toEqual([])
+
+    await act(async () => finishRefresh({ roles: ['ADMIN'], ready: true, adminMode: true,
+      permissions: ['STATISTICS_READ'], canUseAdminMode: true }))
+    await waitFor(() => expect(result.current.refreshing).toBe(false))
+    expect(result.current.permissions).toEqual(['STATISTICS_READ'])
+  })
+
   it('reads a new snapshot after navigation', async () => {
     vi.mocked(getCurrentRoles).mockResolvedValueOnce({ roles: ['VIEWER'], ready: true,
       adminMode: false, permissions: ['READ'], canUseAdminMode: false })

@@ -253,14 +253,37 @@ describe('AdminOccupancyPage – day forecast', () => {
     render(<AdminOccupancyPage />)
     await user.click(await screen.findByRole('button', { name: '10:00' }))
 
-    const detail = screen.getByRole('region', { name: /10:00/ })
-    const groups = within(detail).getAllByRole('heading', { level: 4 }).map(h => h.textContent)
+    const detail = screen.getByRole('dialog', { name: /10:00/ })
+    expect(detail).toHaveAttribute('aria-modal', 'true')
+    const groups = within(detail).getAllByRole('heading', { level: 3 }).map(h => h.textContent)
     expect(groups).toEqual(['MCI III · 1. OG – 12 Personen', 'MCI IV · EG – 7 Personen', 'MCI III · EG – 5 Personen'])
     expect(within(detail).getByText(/R2 · 10:00–12:00 · 12 Personen · eingecheckt/)).toBeInTheDocument()
     expect(within(detail).getByText(/R3 · 10:00–11:00 · 7 Personen · reserviert/)).toBeInTheDocument()
 
     await user.click(within(detail).getByRole('button', { name: 'Zur aktuellen Situation' }))
-    expect(screen.queryByRole('region', { name: /10:00/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens the hour detail as a popup that closes with the button, Escape or the backdrop', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getOccupancyForecast).mockResolvedValue(busyForecast())
+    render(<AdminOccupancyPage />)
+    const hourButton = await screen.findByRole('button', { name: '10:00' })
+
+    await user.click(hourButton)
+    const close = within(screen.getByRole('dialog', { name: /10:00/ })).getByRole('button', { name: 'Schließen' })
+    expect(close).toHaveFocus()
+    await user.click(close)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(hourButton).toHaveFocus()
+
+    await user.click(hourButton)
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(hourButton)
+    await user.click(screen.getByTestId('occupancy-dialog-backdrop'))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('offers no detail for past hours', async () => {

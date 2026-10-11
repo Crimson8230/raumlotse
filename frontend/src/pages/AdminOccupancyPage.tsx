@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getOccupancyForecast, getOccupancySnapshot } from '../API/adminOccupancy'
 import { listBuildings } from '../API/buildings'
 import { ApiError, formatApiError } from '../API/client'
@@ -45,6 +45,42 @@ function PlannedValue({ value, peak }: { value: number | null; peak: boolean }) 
   return <>{value}{peak && <span className="occupancy-peak">Spitze</span>}</>
 }
 
+/** Where people are expected in one hour, as a popup over the forecast; closes with the button, Escape or the backdrop. */
+function HourDetailDialog({ hour, onClose, onBackToCurrent }: {
+  hour: HourForecast; onClose: () => void; onBackToCurrent: () => void
+}) {
+  const closeButton = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    closeButton.current?.focus()
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="occupancy-dialog-backdrop" data-testid="occupancy-dialog-backdrop" onClick={onClose}>
+      <div className="occupancy-dialog" role="dialog" aria-modal="true" aria-labelledby="occupancy-dialog-title"
+        onClick={event => event.stopPropagation()}>
+        <div className="occupancy-dialog-header">
+          <h2 id="occupancy-dialog-title">Wo werden um {hour.localLabel} Personen erwartet?</h2>
+          <button type="button" ref={closeButton} onClick={onClose}>Schließen</button>
+        </div>
+        {hour.floors.length === 0 && <p className="statistics-status">In dieser Stunde sind keine Räume gebucht.</p>}
+        {hour.floors.map(group => (
+          <div key={group.floorId} className="occupancy-floor-group">
+            <h3>{group.buildingName} · {group.floorName} – {persons(group.expectedPersons)}</h3>
+            <ul>
+              {group.bookings.map(booking => <li key={booking.reservationId}>{bookingLine(booking)}</li>)}
+            </ul>
+          </div>
+        ))}
+        <button type="button" onClick={onBackToCurrent}>Zur aktuellen Situation</button>
+      </div>
+    </div>
+  )
+}
+
 function isAccessDenied(reason: unknown): boolean {
   return reason instanceof ApiError && (reason.status === 401 || reason.status === 403)
 }
@@ -59,6 +95,7 @@ export default function AdminOccupancyPage() {
   const [forecast, setForecast] = useState<OccupancyForecast | null>(null)
   const [forecastError, setForecastError] = useState<string | null>(null)
   const [selectedHour, setSelectedHour] = useState<HourForecast | null>(null)
+  const hourTrigger = useRef<HTMLButtonElement | null>(null)
   const [buildingOptions, setBuildingOptions] = useState<Building[]>([])
   const [buildingId, setBuildingId] = useState('')
 
@@ -122,6 +159,16 @@ export default function AdminOccupancyPage() {
     })
     return () => { active = false }
   }, [day, buildingId, accessDenied])
+
+  const closeHourDetail = useCallback(() => {
+    setSelectedHour(null)
+    hourTrigger.current?.focus()
+  }, [])
+
+  const backToCurrent = useCallback(() => {
+    setSelectedHour(null)
+    document.getElementById('occupancy-current-heading')?.scrollIntoView?.()
+  }, [])
 
   const filteredName = buildingOptions.find(building => building.id === buildingId)?.name
 
@@ -224,7 +271,10 @@ export default function AdminOccupancyPage() {
                         <th scope="row">
                           {hour.past
                             ? hour.localLabel
-                            : <button type="button" className="occupancy-hour" onClick={() => setSelectedHour(hour)}>{hour.localLabel}</button>}
+                            : <button type="button" className="occupancy-hour" onClick={event => {
+                                hourTrigger.current = event.currentTarget
+                                setSelectedHour(hour)
+                              }}>{hour.localLabel}</button>}
                         </th>
                         {hour.past
                           ? <td colSpan={forecast.buildings.length + 2} className="occupancy-past">vergangen</td>
@@ -245,22 +295,7 @@ export default function AdminOccupancyPage() {
             </>
           )}
           {selectedHour && (
-            <section className="occupancy-hour-detail" aria-label={`Erwartete Personen um ${selectedHour.localLabel}`}>
-              <h3>Wo werden um {selectedHour.localLabel} Personen erwartet?</h3>
-              {selectedHour.floors.length === 0 && <p className="statistics-status">In dieser Stunde sind keine Räume gebucht.</p>}
-              {selectedHour.floors.map(group => (
-                <div key={group.floorId} className="occupancy-floor-group">
-                  <h4>{group.buildingName} · {group.floorName} – {persons(group.expectedPersons)}</h4>
-                  <ul>
-                    {group.bookings.map(booking => <li key={booking.reservationId}>{bookingLine(booking)}</li>)}
-                  </ul>
-                </div>
-              ))}
-              <button type="button" onClick={() => {
-                setSelectedHour(null)
-                document.getElementById('occupancy-current-heading')?.scrollIntoView?.()
-              }}>Zur aktuellen Situation</button>
-            </section>
+            <HourDetailDialog hour={selectedHour} onClose={closeHourDetail} onBackToCurrent={backToCurrent} />
           )}
         </section>
       )}

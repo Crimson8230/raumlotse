@@ -5,10 +5,11 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { RequireAdminMode } from './RequireAdminMode'
 
 const mode = vi.hoisted(() => ({
-  eligible: false, active: false, setMode: vi.fn(),
+  eligible: false, active: false, refreshing: false, setMode: vi.fn(),
 }))
 vi.mock('./useAdminMode', () => ({ useAdminMode: () => ({
-  loading: false, failed: false, canUseAdminMode: mode.eligible,
+  loading: mode.refreshing, refreshing: mode.refreshing, failed: false,
+  canUseAdminMode: mode.refreshing ? false : mode.eligible,
   adminMode: mode.active, setMode: mode.setMode,
 }) }))
 
@@ -23,6 +24,7 @@ function renderRoute() {
 beforeEach(() => {
   mode.eligible = false
   mode.active = false
+  mode.refreshing = false
   mode.setMode.mockReset().mockResolvedValue(undefined)
 })
 
@@ -46,4 +48,11 @@ it('shows the allowed page only while mode is active and eligibility remains', (
   </Routes></MemoryRouter>)
   expect(screen.getByRole('alert')).toHaveTextContent('nicht verfügbar')
   expect(screen.queryByRole('heading', { name: 'Standorte verwalten' })).not.toBeInTheDocument()
+})
+
+it('keeps the page while an already granted mode is re-checked', () => {
+  mode.refreshing = true
+  renderRoute()
+  expect(screen.getByRole('heading', { name: 'Standorte verwalten' })).toBeVisible()
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
