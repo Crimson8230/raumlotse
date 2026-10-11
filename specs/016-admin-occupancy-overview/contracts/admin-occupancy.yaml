@@ -1,0 +1,214 @@
+openapi: 3.1.0
+info:
+  title: Raumlotse Admin Occupancy API
+  version: 1.0.0
+  description: |
+    Read-only current occupancy and day forecast for users with STATISTICS_READ.
+    Responses contain no personal data of the people who booked (FR-008) and are
+    sent with `Cache-Control: no-store`.
+paths:
+  /api/admin/occupancy:
+    get:
+      summary: Get the current occupancy snapshot
+      description: |
+        Evaluates all bookings covering the server time `generatedAt`.
+        Checked-in persons and occupied rooms count ACTIVE bookings only;
+        `runningBookings` also lists RESERVED bookings whose start has passed.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: Current occupancy snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccupancySnapshot'
+        '400':
+          description: Malformed buildingId.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Permission STATISTICS_READ required.
+        '404':
+          description: Unknown building.
+  /api/admin/occupancy/forecast:
+    get:
+      summary: Get the hourly forecast for one day
+      description: |
+        Hours are local Europe/Berlin hours. Always returns 07:00–22:00 plus any
+        other hour of the day that has bookings. For today, hours that have
+        already ended are marked `past` and carry no values. RESERVED (not yet
+        checked in) and ACTIVE bookings count in full. Each hour carries a value
+        per building plus the total over all buildings.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: date
+          in: query
+          required: true
+          description: Local day, YYYY-MM-DD. Must be today or later (Europe/Berlin).
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: Day forecast.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccupancyForecast'
+        '400':
+          description: Missing or malformed date, date in the past, or malformed buildingId. Body is a Problem whose detail points to the statistics area for past days.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Permission STATISTICS_READ required.
+        '404':
+          description: Unknown building.
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: SESSION
+  parameters:
+    BuildingId:
+      name: buildingId
+      in: query
+      required: false
+      description: Restrict all values to one building. Omit for all buildings.
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    OccupancySnapshot:
+      type: object
+      required: [generatedAt, buildingId, totals, buildings, runningBookings]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        buildingId: { type: [string, 'null'], format: uuid }
+        totals:
+          type: object
+          required: [checkedInPersons, occupiedRooms]
+          properties:
+            checkedInPersons: { type: integer, minimum: 0 }
+            occupiedRooms: { type: integer, minimum: 0 }
+        buildings:
+          type: array
+          description: Sum over all entries equals totals.
+          items:
+            $ref: '#/components/schemas/BuildingOccupancy'
+        runningBookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingEntry'
+    BuildingOccupancy:
+      type: object
+      required: [buildingId, buildingName, buildingActive, checkedInPersons, occupiedRooms]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingName: { type: string }
+        buildingActive: { type: boolean }
+        checkedInPersons: { type: integer, minimum: 0 }
+        occupiedRooms: { type: integer, minimum: 0 }
+    BookingEntry:
+      type: object
+      description: Contains no names, e-mail addresses, notes or user ids.
+      required: [reservationId, roomId, roomName, buildingId, buildingName, floorId, floorName, startTime, endTime, expectedAttendees, checkInStatus, checkedInAt]
+      properties:
+        reservationId: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        roomName: { type: string }
+        buildingId: { type: string, format: uuid }
+        buildingName: { type: string }
+        floorId: { type: string, format: uuid }
+        floorName: { type: string }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        expectedAttendees: { type: integer, minimum: 0 }
+        checkInStatus: { type: string, enum: [CHECKED_IN, NOT_CHECKED_IN] }
+        checkedInAt: { type: [string, 'null'], format: date-time }
+    OccupancyForecast:
+      type: object
+      required: [date, zone, generatedAt, buildingId, peakExpectedPersons, buildings, hours]
+      properties:
+        date: { type: string, format: date }
+        zone: { type: string, example: Europe/Berlin }
+        generatedAt: { type: string, format: date-time }
+        buildingId: { type: [string, 'null'], format: uuid }
+        peakExpectedPersons:
+          type: [integer, 'null']
+          minimum: 0
+          description: Maximum expectedPersons over non-past hours; null if all hours are past.
+        buildings:
+          type: array
+          description: Column order for HourForecast.buildings. Active buildings plus inactive buildings with bookings that day; only the filtered building when buildingId is set.
+          items:
+            $ref: '#/components/schemas/ForecastBuilding'
+        hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourForecast'
+    ForecastBuilding:
+      type: object
+      required: [buildingId, buildingName, buildingActive, peakExpectedPersons]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingName: { type: string }
+        buildingActive: { type: boolean }
+        peakExpectedPersons: { type: [integer, 'null'], minimum: 0 }
+    HourBuildingValue:
+      type: object
+      required: [buildingId, expectedPersons, bookedRooms, peak]
+      properties:
+        buildingId: { type: string, format: uuid }
+        expectedPersons: { type: [integer, 'null'], minimum: 0, description: null when the hour is past. }
+        bookedRooms: { type: [integer, 'null'], minimum: 0 }
+        peak: { type: boolean, description: True for this building's maximum hour(s) when > 0. }
+    HourForecast:
+      type: object
+      required: [start, end, localLabel, past, expectedPersons, bookedRooms, peak, buildings, floors]
+      properties:
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        localLabel: { type: string, example: '10:00' }
+        past: { type: boolean }
+        expectedPersons:
+          type: [integer, 'null']
+          minimum: 0
+          description: Highest simultaneous sum of expected attendees within the hour; null when past.
+        bookedRooms: { type: [integer, 'null'], minimum: 0 }
+        peak: { type: boolean, description: True for every non-past hour whose expectedPersons equals a peak > 0. }
+        buildings:
+          type: array
+          description: One value per entry of OccupancyForecast.buildings, same order.
+          items:
+            $ref: '#/components/schemas/HourBuildingValue'
+        floors:
+          type: array
+          description: |
+            RESERVED and ACTIVE bookings overlapping the hour, grouped by building
+            and floor; sorted by expectedPersons desc, then buildingName, floorName.
+            Empty when past.
+          items:
+            $ref: '#/components/schemas/FloorGroup'
+    FloorGroup:
+      type: object
+      required: [buildingId, buildingName, floorId, floorName, expectedPersons, bookings]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingName: { type: string }
+        floorId: { type: string, format: uuid }
+        floorName: { type: string }
+        expectedPersons:
+          type: integer
+          minimum: 0
+          description: Highest simultaneous sum of expected attendees on this floor within the hour.
+        bookings:
+          type: array
+          description: Sorted by expectedAttendees desc, then roomName.
+          items:
+            $ref: '#/components/schemas/BookingEntry'

@@ -24,6 +24,7 @@ const adminItems: (NavItem & { rights?: PermissionCode[]; adminOnly?: boolean })
     rights: ['BUILDING_MANAGE', 'FLOOR_MANAGE', 'EQUIPMENT_TYPE_MANAGE'] },
   { label: 'Karten bearbeiten', path: '/admin/maps', icon: MapPinned,
     rights: ['MAP_MANAGE', 'ROOM_PLACEMENT_MANAGE', 'CONNECTION_MANAGE'] },
+  { label: 'Belegung', path: '/admin/occupancy', icon: Users, rights: ['STATISTICS_READ'] },
   { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3, rights: ['STATISTICS_READ'] },
   { label: 'Benutzerrollen', path: '/admin/users', icon: Users, adminOnly: true },
   { label: 'Rollenrechte', path: '/admin/roles', icon: ShieldCheck, adminOnly: true },

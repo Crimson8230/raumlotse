@@ -15,6 +15,7 @@ import RoomDeviceControlPage from './pages/RoomDeviceControlPage'
 import CheckInPage from './pages/CheckInPage'
 import MapPage from './pages/MapPage'
 import AdminStatisticsPage from './pages/AdminStatisticsPage'
+import AdminOccupancyPage from './pages/AdminOccupancyPage'
 import RolePermissionPage from './pages/RolePermissionPage'
 import { RequireRoleManagement } from './auth/RequireRoleManagement'
 import { RequirePermission } from './auth/RequirePermission'
@@ -62,6 +63,7 @@ function App() {
               <Route path="rooms/:roomId/edit" element={<RoomFormPage />} />
             </Route>
             <Route element={<RequirePermission any={['STATISTICS_READ']} />}>
+              <Route path="occupancy" element={<AdminOccupancyPage />} />
               <Route path="statistics" element={<AdminStatisticsPage />} />
             </Route>
             <Route element={<RequireRoleManagement />}>
