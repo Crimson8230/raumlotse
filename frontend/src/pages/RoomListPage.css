@@ -21,6 +21,13 @@
   gap: var(--space-3);
 }
 
+/* Search results come in ranked order (feature 017); this note says so. */
+.room-list-sort-note {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+}
+
 /* Secondary result details (seating arrangements, equipment) in smaller, muted text. */
 .room-list-detail {
   font-size: var(--font-size-small);
@@ -46,4 +53,10 @@
   font-family: var(--font-serif);
   font-size: 1.35rem;
   font-weight: 600;
+}
+
+/* Favorites whose room, floor or building is deactivated (feature 017, FR-014). */
+.room-list-unavailable {
+  margin-top: var(--space-5);
+  color: var(--color-muted);
 }

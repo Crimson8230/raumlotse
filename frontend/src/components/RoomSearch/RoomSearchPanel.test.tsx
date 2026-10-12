@@ -150,6 +150,16 @@ describe('RoomSearchPanel', () => {
     expect(props.onSearch).toHaveBeenCalledWith({ ...emptySearchFormState, barrierFree: true })
   })
 
+  it('searches only favorites when "Nur Favoriten" is checked', async () => {
+    const user = userEvent.setup()
+    const props = renderPanel()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Nur Favoriten' }))
+    await user.click(screen.getByRole('button', { name: 'Suchen' }))
+
+    expect(props.onSearch).toHaveBeenCalledWith({ ...emptySearchFormState, favoritesOnly: true })
+  })
+
   it('offers date and time inputs and searches with the window', async () => {
     const user = userEvent.setup()
     const props = renderPanel()

@@ -20,10 +20,12 @@ public record RoomSearchRequest(
         List<UUID> equipmentTypeId,
         Boolean barrierFree,
         Instant from,
-        Instant to) {
+        Instant to,
+        Boolean favoritesOnly) {
 
     public RoomSearchCriteria toCriteria() {
         return new RoomSearchCriteria(minPersons, maxPersons, buildingId, seatingArrangement,
-                equipmentTypeId == null ? Set.of() : Set.copyOf(equipmentTypeId), Boolean.TRUE.equals(barrierFree), from, to);
+                equipmentTypeId == null ? Set.of() : Set.copyOf(equipmentTypeId), Boolean.TRUE.equals(barrierFree), from, to,
+                Boolean.TRUE.equals(favoritesOnly));
     }
 }

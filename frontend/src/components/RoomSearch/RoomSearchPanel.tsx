@@ -189,6 +189,15 @@ export function RoomSearchPanel({
           Barrierefrei erreichbar
         </label>
 
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={draft.favoritesOnly}
+            onChange={(e) => update('favoritesOnly', e.target.checked)}
+          />
+          Nur Favoriten
+        </label>
+
         <div className="actions room-search-actions">
           <button type="submit">Suchen</button>
           <button type="button" onClick={onReset}>

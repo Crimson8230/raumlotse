@@ -2,6 +2,7 @@ package at.mci.igp.raumlotse.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import at.mci.igp.raumlotse.domain.PermissionCode;
 import at.mci.igp.raumlotse.service.RoleAccessFilter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -35,6 +36,14 @@ class AuthorizationMatrixTest {
             }
         }
         assertThat(missing).isEmpty();
+    }
+
+    @Test void favoriteRoomsOfTheCurrentUserNeedReadPermission() {
+        var read = new RoleAccessFilter.Rule(PermissionCode.READ, false);
+        assertThat(RoleAccessFilter.classify("GET", "/api/me/favorite-rooms")).isEqualTo(read);
+        assertThat(RoleAccessFilter.classify("PUT", "/api/me/favorite-rooms/example-id")).isEqualTo(read);
+        assertThat(RoleAccessFilter.classify("DELETE", "/api/me/favorite-rooms/example-id")).isEqualTo(read);
+        assertThat(RoleAccessFilter.classify("POST", "/api/me/favorite-rooms/example-id")).isNull();
     }
 
     @Test void unknownAndAlternateMethodsNeverGrantAnAction() {

@@ -23,8 +23,10 @@ paths:
       summary: Search active rooms by filters
       description: |
         Returns fully active rooms (room, floor, and building ACTIVE) that satisfy every given filter
-        (AND). All parameters are optional; with none, all fully active rooms are returned. Sorted by
-        building name, then room name (case-insensitive). See data-model.md for the matching rule.
+        (AND). All parameters are optional; with none, all fully active rooms are returned. Ordered by
+        suitability since feature 017 (see specs/017-room-search-ranking/contracts/room-search-ranking-api.yaml);
+        building name, then room name (case-insensitive) remain the final tie-breaker. See data-model.md for the
+        matching rule.
       parameters:
         - name: minPersons
           in: query

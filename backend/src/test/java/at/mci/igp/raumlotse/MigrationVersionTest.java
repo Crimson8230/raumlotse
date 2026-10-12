@@ -40,6 +40,20 @@ class MigrationVersionTest {
     }
 
     @Test
+    void roomSearchRankingMigrationFollowsRolePermissionMigration() throws Exception {
+        var resources = new PathMatchingResourcePatternResolver()
+                .getResources("classpath*:db/migration/V*__*.sql");
+        List<String> orderedNames = java.util.Arrays.stream(resources)
+                .map(resource -> resource.getFilename())
+                .sorted((left, right) -> versionOf(left).compareTo(versionOf(right)))
+                .toList();
+
+        assertThat(orderedNames).containsSubsequence(
+                "V16__create_role_permissions.sql",
+                "V17__room_search_ranking.sql");
+    }
+
+    @Test
     void packagedMigrationsHaveUniqueFlywayVersions() throws Exception {
         var resources = new PathMatchingResourcePatternResolver()
                 .getResources("classpath*:db/migration/V*__*.sql");

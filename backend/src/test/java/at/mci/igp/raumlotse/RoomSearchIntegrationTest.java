@@ -14,6 +14,7 @@ import at.mci.igp.raumlotse.service.BuildingService;
 import at.mci.igp.raumlotse.service.EquipmentTypeService;
 import at.mci.igp.raumlotse.service.FloorService;
 import at.mci.igp.raumlotse.service.ReservationService;
+import at.mci.igp.raumlotse.service.RoomFavoriteService;
 import at.mci.igp.raumlotse.service.RoomSearchService;
 import at.mci.igp.raumlotse.service.RoomService;
 import java.util.List;
@@ -51,6 +52,20 @@ class RoomSearchIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ReservationService reservationService;
+
+    @Autowired
+    private RoomFavoriteService roomFavoriteService;
+
+    private UUID account(String label) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)",
+                id, id + "@example.test", label, "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
+        return id;
+    }
+
+    private static RoomSearchCriteria favoritesOnly(Integer minPersons, UUID buildingId, Set<UUID> equipment) {
+        return new RoomSearchCriteria(minPersons, null, buildingId, null, equipment, false, null, null, true);
+    }
 
     private Building haus1;
     private Building haus2;
@@ -104,6 +119,93 @@ class RoomSearchIntegrationTest extends AbstractIntegrationTest {
     void unfilteredSearchReturnsOnlyFullyActiveRoomsInSortedOrder() {
         assertThat(ownResultIds(new RoomSearchCriteria(null, null, null)))
                 .containsExactly(a40.getId(), c120.getId(), b15.getId());
+    }
+
+    @Test
+    void smallestFittingRoomComesFirstForAGroupSize() {
+        Building ranking = buildingService.create("Ranking " + UUID.randomUUID());
+        Floor eg = floorService.create(ranking.getId(), "EG");
+        Room large = createRoom(eg, "A Groß", 100);
+        Room small = createRoom(eg, "C Klein", 6);
+        Room medium = createRoom(eg, "B Mittel", 30);
+
+        List<UUID> result = roomSearchService.search(new RoomSearchCriteria(4, null, ranking.getId())).stream()
+                .map(RoomResponse::id)
+                .toList();
+
+        assertThat(result).containsExactly(small.getId(), medium.getId(), large.getId());
+    }
+
+    @Test
+    void favoritesArePinnedOnlyForTheirOwner() {
+        UUID x = account("X");
+        UUID y = account("Y");
+        roomFavoriteService.mark(x, c120.getId());
+        RoomSearchCriteria group4 = new RoomSearchCriteria(4, null, haus1.getId());
+
+        assertThat(roomSearchService.search(group4, x)).extracting(RoomResponse::id)
+                .containsExactly(c120.getId(), a40.getId());
+        assertThat(roomSearchService.search(group4, y)).extracting(RoomResponse::id)
+                .containsExactly(a40.getId(), c120.getId());
+    }
+
+    @Test
+    void favoritesThatDoNotMatchTheFiltersAreNotShown() {
+        UUID x = account("X");
+        roomFavoriteService.mark(x, c120.getId());
+
+        assertThat(roomSearchService.search(new RoomSearchCriteria(4, 50, haus1.getId()), x))
+                .extracting(RoomResponse::id).containsExactly(a40.getId());
+    }
+
+    @Test
+    void favoritesOnlyRestrictsToTheUsersFavoritesCombinedWithOtherFilters() {
+        UUID x = account("X");
+        roomFavoriteService.mark(x, c120.getId());
+        roomFavoriteService.mark(x, b15.getId());
+
+        assertThat(roomSearchService.search(favoritesOnly(null, null, Set.of()), x).stream()
+                .map(RoomResponse::id).filter(ownRoomIds::contains).toList())
+                .containsExactly(c120.getId(), b15.getId());
+        assertThat(roomSearchService.search(favoritesOnly(null, haus2.getId(), Set.of()), x))
+                .extracting(RoomResponse::id).containsExactly(b15.getId());
+        assertThat(roomSearchService.search(favoritesOnly(null, null, Set.of()), account("ohne Favoriten"))).isEmpty();
+    }
+
+    @Test
+    void deactivatedFavoritesNeverAppearInSearchResults() {
+        UUID x = account("X");
+        roomFavoriteService.mark(x, a40.getId());
+        roomService.deactivate(a40.getId());
+
+        assertThat(roomSearchService.search(favoritesOnly(null, null, Set.of()), x)).isEmpty();
+    }
+
+    private void bookings(Room room, int count, String status, java.time.Instant start) {
+        UUID layout = jdbc.queryForObject("select id from seating_arrangement where room_id = ?", UUID.class, room.getId());
+        for (int i = 0; i < count; i++) {
+            java.time.Instant from = start.plus(java.time.Duration.ofHours(i));
+            jdbc.update("insert into reservation(id,room_id,seating_arrangement_id,start_time,end_time,status,"
+                            + "expected_attendees,created_by,reserved_for) values (?,?,?,?,?,?,1,'owner','Owner')",
+                    UUID.randomUUID(), room.getId(), layout, java.sql.Timestamp.from(from),
+                    java.sql.Timestamp.from(from.plusSeconds(1800)), status);
+        }
+    }
+
+    @Test
+    void morePopularRoomsComeFirstAmongEquallyFittingRooms() {
+        Building popularity = buildingService.create("Beliebtheit " + UUID.randomUUID());
+        Floor eg = floorService.create(popularity.getId(), "EG");
+        Room g = createRoom(eg, "G", 24);
+        Room m = createRoom(eg, "M", 24);
+        java.time.Instant lastMonth = java.time.Instant.now().minus(java.time.Duration.ofDays(30));
+        bookings(m, 12, "COMPLETED", lastMonth);
+        bookings(g, 3, "COMPLETED", lastMonth);
+        bookings(g, 10, "CANCELLED", lastMonth.plus(java.time.Duration.ofDays(1)));
+        bookings(g, 10, "RESERVED", java.time.Instant.now().plus(java.time.Duration.ofDays(7)));
+
+        assertThat(roomSearchService.search(new RoomSearchCriteria(20, null, popularity.getId())))
+                .extracting(RoomResponse::id).containsExactly(m.getId(), g.getId());
     }
 
     @Test

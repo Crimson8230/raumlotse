@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Raumlotse Room Search Ranking API
+  version: 1.1.0
+  description: |
+    Feature 017. Additive, backward-compatible changes on top of the room search contract
+    (specs/008-room-search-filter/contracts/room-search-api.yaml) and the equipment catalog.
+    All endpoints require an authenticated session (401 `AUTH_REQUIRED` otherwise); unsafe methods
+    additionally require the CSRF header, as for every other endpoint.
+
+    Changes:
+      - GET /rooms/search: new optional parameter `favoritesOnly`; same response schema; the ORDER of the
+        result changes (see data-model.md "ranking keys"). Previously: building name, then room name.
+      - EquipmentType / EquipmentTypeRequest: new `specialised` field.
+      - New: /me/favorite-rooms endpoints (personal favorites of the authenticated user).
+
+    Authorization (RoleAccessFilter):
+      - GET /me/favorite-rooms, PUT and DELETE /me/favorite-rooms/{roomId}: permission READ
+      - POST/PUT /equipment-types (incl. `specialised`): permission EQUIPMENT_TYPE_MANAGE (unchanged)
+servers:
+  - url: /api
+paths:
+  /rooms/search:
+    get:
+      summary: Search active rooms by filters, ranked by suitability
+      description: |
+        Filtering as in feature 008 (same 400 validation errors) plus `favoritesOnly`.
+        The result is ordered lexicographically by:
+          1. favorite of the authenticated user (favorites first)
+          2. size band relative to `minPersons` (band 1 ≤ 25 % surplus, 2 ≤ 50 %, 3 ≤ 100 %, 4 > 100 %);
+             within band 4 by exact seat surplus ascending; without `minPersons` all rooms are equal here
+          3. number of assigned `specialised` equipment types not in `equipmentTypeId` (ascending)
+          4. popularity: reservations of all users with status RESERVED/ACTIVE/COMPLETED and
+             start time within the last 90 days up to now (descending)
+          5. building name, then room name (case-insensitive), then room id
+        The response does not contain ranking keys, favorite marks or popularity values.
+      parameters:
+        - name: favoritesOnly
+          in: query
+          schema: { type: boolean, default: false }
+          description: Only rooms the authenticated user marked as favorite (FR-013). Other filters still apply.
+      responses:
+        "200":
+          description: Ranked list of matching rooms (schema unchanged, see feature 008 `Room`).
+        "400":
+          description: Invalid filter combination (unchanged from feature 008).
+        "401":
+          description: Not authenticated
+
+  /me/favorite-rooms:
+    get:
+      summary: List the authenticated user's favorites (max. 10)
+      description: |
+        Returns all rooms the user marked, including rooms that are currently not available
+        (room, floor or building deactivated; `available = false`). Those never appear in search
+        results; the frontend shows them in the "Nicht verfügbar" section (FR-014).
+        Sorted by building name, then room name.
+      responses:
+        "200":
+          description: Favorite room ids
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 10
+                items: { $ref: "#/components/schemas/FavoriteRoom" }
+        "401":
+          description: Not authenticated
+        "403":
+          description: Missing permission READ
+
+  /me/favorite-rooms/{roomId}:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      summary: Mark a room as favorite (idempotent)
+      description: |
+        Marking an already marked room is a no-op (also at the limit). Only fully active rooms
+        (room, floor, building ACTIVE) can be marked. At most 10 favorites per user (FR-006a).
+      responses:
+        "204":
+          description: Room is a favorite of the authenticated user
+        "401":
+          description: Not authenticated
+        "403":
+          description: Missing permission READ or CSRF token
+        "404":
+          description: Room does not exist or is not fully active
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example: { status: 404, code: ROOM_NOT_FOUND, title: "Raum nicht gefunden" }
+        "409":
+          description: User already has 10 favorites and this room is not one of them
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example:
+                status: 409
+                code: FAVORITE_LIMIT_REACHED
+                title: Conflict
+                detail: "Höchstens 10 Favoriten – entferne zuerst einen anderen."
+    delete:
+      summary: Remove the favorite mark (idempotent)
+      description: Removing a mark that does not exist (or for an unknown or deactivated room) is a no-op.
+      responses:
+        "204":
+          description: Room is not a favorite of the authenticated user
+        "401":
+          description: Not authenticated
+        "403":
+          description: Missing permission READ or CSRF token
+
+  /equipment-types:
+    post:
+      summary: Create an equipment type (existing endpoint; new optional field)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EquipmentTypeRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EquipmentType" }
+
+  /equipment-types/{id}:
+    put:
+      summary: Update an equipment type (existing endpoint; new optional field)
+      description: Omitted (null) `specialised` keeps the current value.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EquipmentTypeRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EquipmentType" }
+
+components:
+  schemas:
+    FavoriteRoom:
+      type: object
+      required: [roomId, roomName, buildingName, floorName, available]
+      properties:
+        roomId: { type: string, format: uuid }
+        roomName: { type: string }
+        buildingName: { type: string }
+        floorName: { type: string }
+        available:
+          type: boolean
+          description: true if room, floor and building are ACTIVE
+    EquipmentTypeRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        code: { type: string, nullable: true }
+        specialised:
+          type: boolean
+          nullable: true
+          description: On create, omitted means false (general). On update, omitted keeps the current value.
+    EquipmentType:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        code: { type: string }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        specialised: { type: boolean }
+    Problem:
+      type: object
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string }

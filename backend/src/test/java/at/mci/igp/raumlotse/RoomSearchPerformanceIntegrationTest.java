@@ -38,8 +38,9 @@ import org.springframework.test.context.TestPropertySource;
  * SC-003: with 500 rooms, searches finish within 2 s (p95), and a search does not load rooms one by one (N+1).
  * The search is measured at service level (query, filtering, sorting, mapping); HTTP and JSON are excluded.
  * The database is shared with other integration tests, so the statement bound is derived from the actual number
- * of candidate rooms: 1 candidate query + 1 occupancy query + ceil(N / 100) batch loads for each of the two
- * collections, plus a reserve of 3. For exactly 500 rooms that is 15.
+ * of candidate rooms: 1 candidate query + 1 occupancy query + 1 popularity query (feature 017) + ceil(N / 100)
+ * batch loads for each of the two collections, plus a reserve of 3. For exactly 500 rooms that is 16.
+ * Feature 017 adds 5 000 bookings in the last 90 days and a user with 10 favorites to the measured searches.
  */
 @Tag("performance")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -54,6 +55,7 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
     private static final int BUILDINGS = 10;
     private static final int RESERVATIONS = 200;
     private static final int BATCH_SIZE = 100;
+    private static final int RECENT_BOOKINGS = 5_000;
 
     @Autowired
     private RoomSearchService roomSearchService;
@@ -79,6 +81,7 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
     private final List<Building> buildings = new ArrayList<>();
     private EquipmentType projector;
     private Instant windowStart;
+    private UUID favoriteUser;
 
     @BeforeAll
     void seed() {
@@ -107,6 +110,32 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
                     windowStart.plus(i % 8, ChronoUnit.HOURS), windowStart.plus(i % 8 + 1, ChronoUnit.HOURS),
                     room.getSeatingArrangements().get(0).getId(), 10, List.of(), null, "Perf"));
         }
+        seedRecentBookings(rooms);
+        seedFavorites(rooms);
+    }
+
+    /** Popularity data (feature 017): past bookings spread over all rooms, inserted in one batch. */
+    private void seedRecentBookings(List<Room> rooms) {
+        Instant now = Instant.now();
+        List<Object[]> rows = new ArrayList<>();
+        for (int i = 0; i < RECENT_BOOKINGS; i++) {
+            Room room = rooms.get(i % rooms.size());
+            Instant start = now.minus(1 + i % 89, ChronoUnit.DAYS).minus(i % 10, ChronoUnit.HOURS);
+            rows.add(new Object[] {UUID.randomUUID(), room.getId(), room.getSeatingArrangements().get(0).getId(),
+                    java.sql.Timestamp.from(start), java.sql.Timestamp.from(start.plus(1, ChronoUnit.HOURS))});
+        }
+        jdbc.batchUpdate("insert into reservation(id,room_id,seating_arrangement_id,start_time,end_time,status,"
+                + "expected_attendees,created_by,reserved_for) values (?,?,?,?,?,'COMPLETED',1,'perf','Perf')", rows);
+    }
+
+    private void seedFavorites(List<Room> rooms) {
+        favoriteUser = UUID.randomUUID();
+        jdbc.update("insert into user_account(id,email,display_name,password_hash) values (?,?,?,?)", favoriteUser,
+                favoriteUser + "@example.test", "Perf", "{pbkdf2-sha256-600000-v1}test-fixture-not-a-real-password");
+        for (int i = 0; i < 10; i++) {
+            jdbc.update("insert into room_favorite(user_id,room_id) values (?,?)", favoriteUser,
+                    rooms.get(i * 37).getId());
+        }
     }
 
     private Statistics statistics() {
@@ -125,7 +154,8 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
                 new RoomSearchCriteria(30, 60, null),
                 new RoomSearchCriteria(null, null, buildings.get(3).getId()),
                 new RoomSearchCriteria(null, null, null, "u-shape", Set.of(projector.getId()), false, null, null),
-                new RoomSearchCriteria(20, null, null, null, Set.of(), true, from, from.plus(2, ChronoUnit.HOURS)));
+                new RoomSearchCriteria(20, null, null, null, Set.of(), true, from, from.plus(2, ChronoUnit.HOURS)),
+                new RoomSearchCriteria(10, null, null));
     }
 
     @Test
@@ -140,7 +170,7 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
 
         long candidates = roomSearchService.search(new RoomSearchCriteria(null, null, null)).size();
         long batchesPerCollection = (candidates + BATCH_SIZE - 1) / BATCH_SIZE;
-        long allowed = 2 + 2 * batchesPerCollection + 3;
+        long allowed = 3 + 2 * batchesPerCollection + 3;
         assertThat(candidates).isGreaterThanOrEqualTo(ROOMS);
         assertThat(result).isNotEmpty();
         assertThat(statements)
@@ -156,7 +186,8 @@ class RoomSearchPerformanceIntegrationTest extends AbstractIntegrationTest {
         List<Long> durations = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
             long started = System.nanoTime();
-            roomSearchService.search(searches.get(i % searches.size()));
+            // Every other search is ranked for a user with 10 favorites (feature 017).
+            roomSearchService.search(searches.get(i % searches.size()), i % 2 == 0 ? favoriteUser : null);
             durations.add((System.nanoTime() - started) / 1_000_000);
         }
         durations.sort(null);

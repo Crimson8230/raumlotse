@@ -40,14 +40,22 @@ public class EquipmentTypeController {
         var created = request.code() == null || request.code().isBlank()
                 ? equipmentTypeService.create(request.name())
                 : equipmentTypeService.create(request.name(), request.code());
+        if (Boolean.TRUE.equals(request.specialised())) {
+            created = equipmentTypeService.classify(created.getId(), true);
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(EquipmentTypeResponse.from(created));
     }
 
     @PutMapping("/{equipmentTypeId}")
     public EquipmentTypeResponse rename(@PathVariable UUID equipmentTypeId, @Valid @RequestBody EquipmentTypeRequest request) {
-        var renamed = equipmentTypeService.rename(equipmentTypeId, request.name());
-        return EquipmentTypeResponse.from(request.code() == null || request.code().isBlank()
-                ? renamed : equipmentTypeService.updateCode(equipmentTypeId, request.code()));
+        var updated = equipmentTypeService.rename(equipmentTypeId, request.name());
+        if (request.code() != null && !request.code().isBlank()) {
+            updated = equipmentTypeService.updateCode(equipmentTypeId, request.code());
+        }
+        if (request.specialised() != null) {
+            updated = equipmentTypeService.classify(equipmentTypeId, request.specialised());
+        }
+        return EquipmentTypeResponse.from(updated);
     }
 
     @PostMapping("/{equipmentTypeId}/deactivate")

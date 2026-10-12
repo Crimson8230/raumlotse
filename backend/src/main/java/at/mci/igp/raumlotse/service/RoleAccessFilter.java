@@ -55,6 +55,9 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "GET", "/api/reservations/(my-upcoming|[^/]+)", PermissionCode.READ);
         add(result, "GET", "/api/rooms/[^/]+/check-in", IDENTITY);
         add(result, "GET", "/api/rooms/[^/]+/status", PermissionCode.READ);
+        add(result, "GET", "/api/me/favorite-rooms", PermissionCode.READ);
+        add(result, "PUT", "/api/me/favorite-rooms/[^/]+", PermissionCode.READ);
+        add(result, "DELETE", "/api/me/favorite-rooms/[^/]+", PermissionCode.READ);
         add(result, "POST", "/api/rooms/[^/]+/reservations", PermissionCode.RESERVE);
         add(result, "PATCH", "/api/reservations/[^/]+", IDENTITY);
         add(result, "POST", "/api/reservations/[^/]+/(activate|complete|expire|cancel)", IDENTITY);

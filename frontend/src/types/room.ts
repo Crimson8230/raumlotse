@@ -21,6 +21,8 @@ export interface EquipmentType {
   name: string
   code?: string
   status: EntityStatus
+  /** Ranks a room lower when present but not requested (feature 017); absent means general. */
+  specialised?: boolean
 }
 
 export interface SeatingArrangement {
@@ -45,6 +47,15 @@ export interface Room extends RoomSummary {
   notBarrierFree: boolean
   /** Derived by the backend: (ground floor OR elevator) AND NOT notBarrierFree. */
   barrierFreeReachable: boolean
+}
+
+/** A favorite of the signed-in user; `available` is false once room, floor or building is deactivated (feature 017). */
+export interface FavoriteRoom {
+  roomId: string
+  roomName: string
+  buildingName: string
+  floorName: string
+  available: boolean
 }
 
 export interface RoomCreateRequest {
@@ -87,6 +98,8 @@ export interface RoomSearchFormState {
   seatingArrangement: string
   equipmentTypeIds: string[]
   barrierFree: boolean
+  /** Only the signed-in user's favorites (feature 017). */
+  favoritesOnly: boolean
   date: string
   startTime: string
   endTime: string
@@ -99,6 +112,7 @@ export const emptySearchFormState: RoomSearchFormState = {
   seatingArrangement: '',
   equipmentTypeIds: [],
   barrierFree: false,
+  favoritesOnly: false,
   date: '',
   startTime: '',
   endTime: '',
