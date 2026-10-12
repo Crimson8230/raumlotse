@@ -74,6 +74,16 @@ describe('roomSearchParams', () => {
     expect(toApiQuery(emptySearchFormState).has('barrierFree')).toBe(false)
   })
 
+  it('writes favoritesOnly=true only when checked and restores it (feature 017)', () => {
+    const state = { ...emptySearchFormState, favoritesOnly: true }
+
+    expect(toSearchParams(state).toString()).toBe('favoritesOnly=true')
+    expect(parseSearchParams(toSearchParams(state))).toEqual(state)
+    expect(toApiQuery(state).get('favoritesOnly')).toBe('true')
+    expect(toSearchParams(emptySearchFormState).has('favoritesOnly')).toBe(false)
+    expect(toApiQuery(emptySearchFormState).has('favoritesOnly')).toBe(false)
+  })
+
   const window = { ...emptySearchFormState, date: '2026-10-05', startTime: '11:00', endTime: '12:00' }
   // Expected instants are derived from local dates, so the test holds in every time zone.
   const from = new Date(2026, 9, 5, 11, 0).toISOString()

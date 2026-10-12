@@ -7,6 +7,7 @@ import * as roomsApi from '../API/rooms'
 import * as reservationsApi from '../API/reservations'
 import * as roomStatusApi from '../API/roomStatus'
 import * as roomDevicesApi from '../API/roomDevices'
+import * as favoriteRoomsApi from '../API/favoriteRooms'
 import type { Room } from '../types/room'
 
 const mode = vi.hoisted(() => ({ adminMode: false, permissions: ['READ', 'RESERVE', 'OWN_ACTIVE_DEVICE_CONTROL'] as string[] }))
@@ -19,6 +20,7 @@ vi.mock('../API/rooms')
 vi.mock('../API/reservations')
 vi.mock('../API/roomStatus')
 vi.mock('../API/roomDevices')
+vi.mock('../API/favoriteRooms')
 
 vi.mock('../auth/useAuth', () => ({
   useAuth: () => ({
@@ -31,6 +33,7 @@ const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
 const roomStatus = vi.mocked(roomStatusApi)
 const roomDevices = vi.mocked(roomDevicesApi)
+const favoriteRooms = vi.mocked(favoriteRoomsApi)
 const SEATING_ID = '00000000-0000-4000-8000-000000000001'
 
 function sampleRoom(): Room {
@@ -63,6 +66,7 @@ beforeEach(() => {
   mode.adminMode = false
   mode.permissions = ['READ', 'RESERVE', 'OWN_ACTIVE_DEVICE_CONTROL']
   reservations.getAvailableEquipment.mockResolvedValue([])
+  favoriteRooms.listFavoriteRooms.mockResolvedValue([])
   reservations.listRoomReservations.mockResolvedValue([])
   roomStatus.getRoomStatus.mockResolvedValue({
     roomId: 'room-1', status: 'AVAILABLE', devices: { lighting: false, ventilation: false, door: 'LOCKED' }, lastPresenceAt: null,
@@ -70,6 +74,33 @@ beforeEach(() => {
 })
 
 describe('RoomDetailPage', () => {
+  it('shows the favorite star next to the room name and toggles it (feature 017)', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    favoriteRooms.listFavoriteRooms.mockResolvedValue([
+      { roomId: 'room-1', roomName: 'Room 101', buildingName: 'Main Building', floorName: '1st Floor', available: true },
+    ])
+    favoriteRooms.unmarkFavoriteRoom.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+
+    renderComponent()
+
+    const star = await screen.findByRole('button', { name: 'Room 101: Favorit entfernen' })
+    expect(star).toHaveAttribute('aria-pressed', 'true')
+    await user.click(star)
+
+    expect(favoriteRooms.unmarkFavoriteRoom).toHaveBeenCalledWith('room-1')
+    expect(await screen.findByRole('button', { name: 'Room 101 als Favorit markieren' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('offers no favorite star for a deactivated room', async () => {
+    rooms.getRoom.mockResolvedValue({ ...sampleRoom(), status: 'DEACTIVATED' })
+
+    renderComponent()
+
+    await screen.findByRole('heading', { name: 'Room 101' })
+    expect(screen.queryByRole('button', { name: /favorit/i })).not.toBeInTheDocument()
+  })
+
   it('offers booking, display and device control but no administration link in the user view', async () => {
     rooms.getRoom.mockResolvedValue(sampleRoom())
     reservations.listRoomReservations.mockResolvedValue([{

@@ -30,11 +30,18 @@ class RoomSearchServiceTest {
     @Mock
     private at.mci.igp.raumlotse.repository.ReservationRepository reservationRepository;
 
+    private static final java.time.Clock CLOCK =
+            java.time.Clock.fixed(java.time.Instant.parse("2026-10-12T10:00:00Z"), java.time.ZoneOffset.UTC);
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private RoomFavoriteService roomFavoriteService;
+
     private RoomSearchService service;
 
     @BeforeEach
     void setUp() {
-        service = new RoomSearchService(roomRepository, reservationRepository);
+        when(roomFavoriteService.favoriteRoomIds(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Set.of());
+        service = new RoomSearchService(roomRepository, reservationRepository, roomFavoriteService, CLOCK);
     }
 
     private static Room room(String buildingName, String roomName, int capacity) {
@@ -66,6 +73,57 @@ class RoomSearchServiceTest {
 
         assertThat(service.search(new RoomSearchCriteria(null, null, buildingId))).hasSize(1);
         verify(roomRepository, never()).findSearchCandidates();
+    }
+
+    @Test
+    void searchWithUserRanksLikeSearchWithoutUser() {
+        when(roomRepository.findSearchCandidates()).thenReturn(List.of(
+                room("Haus 2", "A", 40), room("Haus 1", "B", 15), room("Haus 1", "A", 15)));
+        RoomSearchCriteria criteria = new RoomSearchCriteria(null, null, null);
+
+        List<String> anonymous = service.search(criteria).stream().map(r -> r.building().name() + "/" + r.name()).toList();
+        List<String> personal = service.search(criteria, UUID.randomUUID()).stream()
+                .map(r -> r.building().name() + "/" + r.name()).toList();
+
+        assertThat(anonymous).containsExactly("Haus 1/A", "Haus 1/B", "Haus 2/A");
+        assertThat(personal).isEqualTo(anonymous);
+    }
+
+    @Test
+    void favoritesOfTheSearchingUserArePinnedFirst() {
+        UUID userId = UUID.randomUUID();
+        Room favorite = room("Haus 1", "Z", 100);
+        UUID favoriteId = UUID.randomUUID();
+        org.springframework.test.util.ReflectionTestUtils.setField(favorite, "id", favoriteId);
+        when(roomRepository.findSearchCandidates()).thenReturn(List.of(room("Haus 1", "A", 10), favorite));
+        when(roomFavoriteService.favoriteRoomIds(userId)).thenReturn(java.util.Set.of(favoriteId));
+
+        assertThat(service.search(new RoomSearchCriteria(4, null, null), userId))
+                .extracting(RoomResponse::name).containsExactly("Z", "A");
+    }
+
+    @Test
+    void popularityIsCountedOverTheLast90DaysFromTheClock() {
+        Room quiet = room("Haus 1", "A", 20);
+        Room popular = room("Haus 1", "B", 20);
+        UUID popularId = UUID.randomUUID();
+        org.springframework.test.util.ReflectionTestUtils.setField(popular, "id", popularId);
+        java.time.Instant now = CLOCK.instant();
+        when(roomRepository.findSearchCandidates()).thenReturn(List.of(quiet, popular));
+        when(reservationRepository.countRecentByRoom(now.minus(java.time.Duration.ofDays(90)), now))
+                .thenReturn(List.of(new at.mci.igp.raumlotse.dto.RoomBookingCount(popularId, 7L)));
+
+        assertThat(service.search(new RoomSearchCriteria(18, null, null)))
+                .extracting(RoomResponse::name).containsExactly("B", "A");
+    }
+
+    @Test
+    void popularityIsNotQueriedWhenNothingMatches() {
+        when(roomRepository.findSearchCandidates()).thenReturn(List.of(room("Haus 1", "A", 10)));
+
+        assertThat(service.search(new RoomSearchCriteria(50, null, null))).isEmpty();
+        verify(reservationRepository, never()).countRecentByRoom(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
     }
 
     @Test

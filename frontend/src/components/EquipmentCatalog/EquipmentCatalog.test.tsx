@@ -34,6 +34,45 @@ describe('EquipmentCatalog', () => {
     await screen.findByText('Projector')
   })
 
+  it('creates a specialised equipment type when the checkbox is ticked (feature 017)', async () => {
+    const user = userEvent.setup()
+    equipment.createEquipmentType.mockResolvedValue(type({ name: 'PC-Arbeitsplätze', specialised: true }))
+
+    render(<EquipmentCatalog />)
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Spezialausstattung (wirkt sich auf die Sortierung aus)' })
+    expect(checkbox).not.toBeChecked()
+    await user.type(screen.getByLabelText(/name des neuen ausstattungstyps/i), 'PC-Arbeitsplätze')
+    await user.click(checkbox)
+    await user.click(screen.getByRole('button', { name: /ausstattungstyp hinzufügen/i }))
+
+    await waitFor(() =>
+      expect(equipment.createEquipmentType).toHaveBeenCalledWith('PC-Arbeitsplätze', undefined, true),
+    )
+    expect(screen.getByRole('checkbox', { name: 'Spezialausstattung (wirkt sich auf die Sortierung aus)' })).not.toBeChecked()
+  })
+
+  it('marks specialised types with a badge and reclassifies an existing type', async () => {
+    const user = userEvent.setup()
+    equipment.listEquipmentTypes.mockResolvedValue([
+      type({ specialised: true, name: 'PC-Arbeitsplätze', id: 'e2' }),
+      type(),
+    ])
+    equipment.renameEquipmentType.mockResolvedValue(type({ specialised: true }))
+
+    render(<EquipmentCatalog />)
+    await screen.findByText('Projector')
+
+    expect(screen.getAllByText('Spezial')).toHaveLength(1)
+    const projector = screen.getByRole('checkbox', { name: 'Projector ist Spezialausstattung' })
+    expect(projector).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'PC-Arbeitsplätze ist Spezialausstattung' })).toBeChecked()
+
+    await user.click(projector)
+
+    await waitFor(() => expect(equipment.renameEquipmentType).toHaveBeenCalledWith('e1', 'Projector', undefined, true))
+  })
+
   it('renames an equipment type', async () => {
     const user = userEvent.setup()
     equipment.listEquipmentTypes.mockResolvedValue([type()])

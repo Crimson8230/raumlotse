@@ -6,6 +6,7 @@ import RoomListPage from './RoomListPage'
 import * as roomsApi from '../API/rooms'
 import * as buildingsApi from '../API/buildings'
 import * as equipmentTypesApi from '../API/equipmentTypes'
+import * as favoriteRoomsApi from '../API/favoriteRooms'
 import type { Room } from '../types/room'
 
 const mode = vi.hoisted(() => ({ adminMode: true, permissions: ['READ', 'RESERVE', 'ROOM_MANAGE'] as string[] }))
@@ -16,10 +17,12 @@ vi.mock('../auth/useAdminMode', () => ({
 vi.mock('../API/rooms')
 vi.mock('../API/buildings')
 vi.mock('../API/equipmentTypes')
+vi.mock('../API/favoriteRooms')
 
 const rooms = vi.mocked(roomsApi)
 const buildings = vi.mocked(buildingsApi)
 const equipmentTypes = vi.mocked(equipmentTypesApi)
+const favoriteRooms = vi.mocked(favoriteRoomsApi)
 
 function room(overrides: Partial<Room> = {}): Room {
   return {
@@ -73,6 +76,7 @@ beforeEach(() => {
   rooms.searchRooms.mockResolvedValue([])
   rooms.listRooms.mockResolvedValue([])
   rooms.listSeatingArrangementNames.mockResolvedValue(['Theater'])
+  favoriteRooms.listFavoriteRooms.mockResolvedValue([])
   buildings.listBuildings.mockResolvedValue([{ id: 'b1', name: 'Main', status: 'ACTIVE', hasElevator: false }])
   equipmentTypes.listEquipmentTypes.mockResolvedValue([
     { id: 'e1', name: 'Projector', status: 'ACTIVE' },
@@ -90,6 +94,28 @@ describe('RoomListPage', () => {
     expect(screen.queryByRole('button', { name: /deaktivieren|löschen/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Buchen' })).not.toBeInTheDocument()
   })
+  it('notes that search results are sorted by suitability and keeps the server order', async () => {
+    rooms.searchRooms.mockResolvedValue([
+      room({ id: 'r3', name: 'Zeta' }),
+      room({ id: 'r1', name: 'Alpha' }),
+      room({ id: 'r2', name: 'Mu' }),
+    ])
+
+    renderPage()
+
+    await screen.findByText('Zeta')
+    expect(screen.getByText('Sortiert nach Eignung')).toBeInTheDocument()
+    const names = screen.getAllByRole('link', { name: /^(Zeta|Alpha|Mu)$/ }).map((link) => link.textContent)
+    expect(names).toEqual(['Zeta', 'Alpha', 'Mu'])
+  })
+
+  it('shows no suitability note when the search has no results', async () => {
+    renderPage()
+
+    await screen.findByText(/keine passenden räume/i)
+    expect(screen.queryByText('Sortiert nach Eignung')).not.toBeInTheDocument()
+  })
+
   it('renders rooms with name, building, floor, and status', async () => {
     rooms.searchRooms.mockResolvedValue([room()])
 
@@ -378,5 +404,82 @@ describe('RoomListPage', () => {
     renderPage()
 
     expect(await screen.findByRole('link', { name: 'Neuer Raum' })).toHaveAttribute('href', '/admin/rooms/new')
+  })
+
+  describe('favorites (feature 017)', () => {
+    const favorite = (roomId: string, roomName: string, available = true) => ({
+      roomId,
+      roomName,
+      buildingName: 'Main',
+      floorName: 'EG',
+      available,
+    })
+
+    it('marks favorites with a pressed star and re-runs the search after a change', async () => {
+      favoriteRooms.listFavoriteRooms.mockResolvedValue([favorite('r1', 'Room 101')])
+      favoriteRooms.unmarkFavoriteRoom.mockResolvedValue(undefined)
+      rooms.searchRooms.mockResolvedValue([room(), room({ id: 'r2', name: 'Room 102' })])
+      const user = userEvent.setup()
+
+      renderPage('/rooms?minPersons=4')
+
+      const star = await screen.findByRole('button', { name: 'Room 101: Favorit entfernen' })
+      expect(star).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'Room 102 als Favorit markieren' })).toHaveAttribute('aria-pressed', 'false')
+      await waitFor(() => expect(rooms.searchRooms).toHaveBeenCalledTimes(1))
+
+      favoriteRooms.listFavoriteRooms.mockResolvedValue([])
+      await user.click(star)
+
+      await waitFor(() => expect(rooms.searchRooms).toHaveBeenCalledTimes(2))
+      expect(lastSearchQuery()).toBe('minPersons=4')
+      expect(await screen.findByRole('button', { name: 'Room 101 als Favorit markieren' })).toBeInTheDocument()
+    })
+
+    it('lists unavailable favorites under "Nicht verfügbar" when only favorites are searched', async () => {
+      favoriteRooms.listFavoriteRooms.mockResolvedValue([
+        favorite('r1', 'Room 101'),
+        favorite('r9', 'Alter Hörsaal', false),
+      ])
+      rooms.searchRooms.mockResolvedValue([room()])
+
+      renderPage('/rooms?favoritesOnly=true')
+
+      const section = await screen.findByRole('region', { name: 'Nicht verfügbar' })
+      expect(section).toHaveTextContent('Main · EG · Alter Hörsaal')
+      expect(screen.getByRole('button', { name: 'Alter Hörsaal: Favorit entfernen' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Alter Hörsaal buchen' })).not.toBeInTheDocument()
+      expect(lastSearchQuery()).toBe('favoritesOnly=true')
+    })
+
+    it('hides the unavailable section without the favorites filter or without unavailable favorites', async () => {
+      favoriteRooms.listFavoriteRooms.mockResolvedValue([favorite('r9', 'Alter Hörsaal', false)])
+      rooms.searchRooms.mockResolvedValue([room()])
+
+      renderPage('/rooms')
+
+      await screen.findByText('Room 101')
+      expect(screen.queryByRole('region', { name: 'Nicht verfügbar' })).not.toBeInTheDocument()
+    })
+
+    it('explains how to mark favorites when the user has none', async () => {
+      renderPage('/rooms?favoritesOnly=true')
+
+      expect(
+        await screen.findByText('Du hast noch keine Favoriten. Markiere Räume mit dem Stern, um sie hier zu sehen.'),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/keine passenden räume/i)).not.toBeInTheDocument()
+    })
+
+    it('offers no star for deactivated rooms in the administration list', async () => {
+      rooms.listRooms.mockResolvedValue([room({ status: 'DEACTIVATED' })])
+      const user = userEvent.setup()
+
+      renderPage()
+      await user.selectOptions(screen.getByLabelText(/status/i), 'deactivated')
+
+      await screen.findByText('Room 101')
+      expect(screen.queryByRole('button', { name: /favorit/i })).not.toBeInTheDocument()
+    })
   })
 })

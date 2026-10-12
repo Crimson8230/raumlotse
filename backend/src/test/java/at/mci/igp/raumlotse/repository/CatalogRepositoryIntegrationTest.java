@@ -88,6 +88,17 @@ class CatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void equipmentTypesAreGeneralByDefaultAndCanBeClassified() {
+        var saved = equipmentTypeRepository.saveAndFlush(new at.mci.igp.raumlotse.domain.EquipmentType("Beamer 4K"));
+        assertThat(equipmentTypeRepository.findById(saved.getId()).orElseThrow().isSpecialised()).isFalse();
+
+        saved.setSpecialised(true);
+        equipmentTypeRepository.saveAndFlush(saved);
+
+        assertThat(equipmentTypeRepository.findById(saved.getId()).orElseThrow().isSpecialised()).isTrue();
+    }
+
+    @Test
     void deactivatingBuildingCascadesToItsFloors() {
         var building = buildingService.create("Building C");
         var floor = floorService.create(building.getId(), "1");

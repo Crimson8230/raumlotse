@@ -43,7 +43,8 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Problem> handleConflict(ConflictException ex) {
                 log.warn("conflict detail={}", ex.getMessage());
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                                .body(Problem.of(409, "Conflict", ex.getMessage()));
+                                .body(ex.getCode() == null ? Problem.of(409, "Conflict", ex.getMessage())
+                                                : Problem.of(409, "Conflict", ex.getMessage(), ex.getCode()));
         }
 
         @ExceptionHandler(CheckInRejectedException.class)

@@ -2,9 +2,11 @@ package at.mci.igp.raumlotse.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import at.mci.igp.raumlotse.config.SecurityConfig;
 import at.mci.igp.raumlotse.domain.RoomSearchCriteria;
+import at.mci.igp.raumlotse.dto.AuthenticatedUser;
 import at.mci.igp.raumlotse.service.RoomSearchService;
 import at.mci.igp.raumlotse.service.RoomService;
 import java.util.List;
@@ -22,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import at.mci.igp.raumlotse.WithTestActor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,7 +34,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest({RoomSearchController.class, RoomController.class})
 @Import(SecurityConfig.class)
 class RoomSearchControllerTest {
-
+
+
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     @Autowired
@@ -53,7 +58,7 @@ class RoomSearchControllerTest {
     @WithTestActor
     void searchBindsPersonRangeAndBuilding() throws Exception {
         UUID buildingId = UUID.randomUUID();
-        when(roomSearchService.search(any())).thenReturn(List.of());
+        when(roomSearchService.search(any(), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/rooms/search")
                         .param("minPersons", "20")
@@ -63,16 +68,28 @@ class RoomSearchControllerTest {
                 .andExpect(jsonPath("$", Matchers.hasSize(0)));
 
         ArgumentCaptor<RoomSearchCriteria> captor = ArgumentCaptor.forClass(RoomSearchCriteria.class);
-        verify(roomSearchService).search(captor.capture());
+        verify(roomSearchService).search(captor.capture(), any());
         assertThat(captor.getValue().minPersons()).isEqualTo(20);
         assertThat(captor.getValue().maxPersons()).isEqualTo(50);
         assertThat(captor.getValue().buildingId()).isEqualTo(buildingId);
     }
 
     @Test
+    void searchPassesTheAuthenticatedUserIdForPersonalRanking() throws Exception {
+        UUID userId = UUID.randomUUID();
+        when(roomSearchService.search(any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/rooms/search").with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                        new AuthenticatedUser(userId, "Max Mustermann"), null, List.of()))))
+                .andExpect(status().isOk());
+
+        verify(roomSearchService).search(any(), eq(userId));
+    }
+
+    @Test
     @WithTestActor
     void searchIsNotRoutedToRoomDetail() throws Exception {
-        when(roomSearchService.search(any())).thenReturn(List.of());
+        when(roomSearchService.search(any(), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/rooms/search")).andExpect(status().isOk());
 
@@ -86,7 +103,7 @@ class RoomSearchControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.errors[0].field").value("minPersons"));
-        verify(roomSearchService, never()).search(any());
+        verify(roomSearchService, never()).search(any(), any());
     }
 
     @Test
@@ -111,7 +128,7 @@ class RoomSearchControllerTest {
     @Test
     @WithTestActor
     void serviceValidationErrorReturns400() throws Exception {
-        when(roomSearchService.search(any()))
+        when(roomSearchService.search(any(), any()))
                 .thenThrow(new IllegalArgumentException("Min. Personen darf nicht größer als Max. Personen sein."));
 
         mockMvc.perform(get("/api/rooms/search").param("minPersons", "30").param("maxPersons", "10"))
@@ -125,7 +142,7 @@ class RoomSearchControllerTest {
         mockMvc.perform(get("/api/rooms/search").param("seatingArrangement", "x".repeat(101)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("seatingArrangement"));
-        verify(roomSearchService, never()).search(any());
+        verify(roomSearchService, never()).search(any(), any());
     }
 
     @Test
@@ -133,7 +150,7 @@ class RoomSearchControllerTest {
     void bindsSeatingArrangementAndRepeatedEquipmentTypeIds() throws Exception {
         UUID projector = UUID.randomUUID();
         UUID whiteboard = UUID.randomUUID();
-        when(roomSearchService.search(any())).thenReturn(List.of());
+        when(roomSearchService.search(any(), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/rooms/search")
                         .param("seatingArrangement", "U-Shape")
@@ -142,7 +159,7 @@ class RoomSearchControllerTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<RoomSearchCriteria> captor = ArgumentCaptor.forClass(RoomSearchCriteria.class);
-        verify(roomSearchService).search(captor.capture());
+        verify(roomSearchService).search(captor.capture(), any());
         assertThat(captor.getValue().seatingArrangement()).isEqualTo("U-Shape");
         assertThat(captor.getValue().equipmentTypeIds()).containsExactlyInAnyOrder(projector, whiteboard);
     }
@@ -167,7 +184,7 @@ class RoomSearchControllerTest {
     @Test
     @WithTestActor
     void bindsTheTimeWindowAsInstants() throws Exception {
-        when(roomSearchService.search(any())).thenReturn(List.of());
+        when(roomSearchService.search(any(), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/rooms/search")
                         .param("from", "2026-10-05T09:00:00Z")
@@ -175,7 +192,7 @@ class RoomSearchControllerTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<RoomSearchCriteria> captor = ArgumentCaptor.forClass(RoomSearchCriteria.class);
-        verify(roomSearchService).search(captor.capture());
+        verify(roomSearchService).search(captor.capture(), any());
         assertThat(captor.getValue().from()).isEqualTo(java.time.Instant.parse("2026-10-05T09:00:00Z"));
         assertThat(captor.getValue().to()).isEqualTo(java.time.Instant.parse("2026-10-05T10:00:00Z"));
     }
@@ -188,6 +205,6 @@ class RoomSearchControllerTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.errors[0].field").value("from"))
                 .andExpect(jsonPath("$.errors[0].message").value("hat ein ungültiges Format"));
-        verify(roomSearchService, never()).search(any());
+        verify(roomSearchService, never()).search(any(), any());
     }
 }

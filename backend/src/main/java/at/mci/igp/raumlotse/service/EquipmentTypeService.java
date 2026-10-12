@@ -54,6 +54,13 @@ public class EquipmentTypeService {
         return equipmentType;
     }
 
+    /** Specialised or general classification for the search ranking (feature 017, FR-004a). */
+    public EquipmentType classify(UUID id, boolean specialised) {
+        EquipmentType equipmentType = findOrThrow(id);
+        equipmentType.setSpecialised(specialised);
+        return equipmentType;
+    }
+
     public EquipmentType deactivate(UUID id) {
         EquipmentType equipmentType = findOrThrow(id);
         equipmentType.setStatus(EntityStatus.DEACTIVATED);

@@ -21,6 +21,7 @@ export const roomSearchSchema = z
     seatingArrangement: z.string(),
     equipmentTypeIds: z.array(z.string()),
     barrierFree: z.boolean(),
+    favoritesOnly: z.boolean(),
     date: z.string(),
     startTime: z.string(),
     endTime: z.string(),
@@ -70,6 +71,7 @@ export function parseSearchParams(params: URLSearchParams): RoomSearchFormState 
   }
   state.equipmentTypeIds = params.getAll(EQUIPMENT_PARAM)
   state.barrierFree = params.get('barrierFree') === 'true'
+  state.favoritesOnly = params.get('favoritesOnly') === 'true'
   return state
 }
 
@@ -81,6 +83,7 @@ export function toSearchParams(state: RoomSearchFormState): URLSearchParams {
   }
   for (const id of state.equipmentTypeIds) params.append(EQUIPMENT_PARAM, id)
   if (state.barrierFree) params.set('barrierFree', 'true')
+  if (state.favoritesOnly) params.set('favoritesOnly', 'true')
   return params
 }
 
@@ -93,6 +96,7 @@ export function toApiQuery(state: RoomSearchFormState): URLSearchParams {
   if (state.seatingArrangement !== '') query.set('seatingArrangement', state.seatingArrangement)
   for (const id of state.equipmentTypeIds) query.append(EQUIPMENT_PARAM, id)
   if (state.barrierFree) query.set('barrierFree', 'true')
+  if (state.favoritesOnly) query.set('favoritesOnly', 'true')
   const window = toInstantWindow(state)
   if (window) {
     query.set('from', window.from)

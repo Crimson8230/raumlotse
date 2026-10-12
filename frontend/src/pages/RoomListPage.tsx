@@ -10,8 +10,10 @@ import {
 } from '../API/rooms'
 import { listBuildings } from '../API/buildings'
 import { listEquipmentTypes } from '../API/equipmentTypes'
+import { listFavoriteRooms } from '../API/favoriteRooms'
 import { formatApiError } from '../API/client'
 import { useAdminMode } from '../auth/useAdminMode'
+import { FavoriteToggle } from '../components/FavoriteToggle/FavoriteToggle'
 import { RoomSearchPanel } from '../components/RoomSearch/RoomSearchPanel'
 import {
   bookingLink,
@@ -20,7 +22,7 @@ import {
   toApiQuery,
   toSearchParams,
 } from '../components/RoomSearch/roomSearchParams'
-import type { Building, EquipmentType, Room, RoomSearchFormState, StatusFilter } from '../types/room'
+import type { Building, EquipmentType, FavoriteRoom, Room, RoomSearchFormState, StatusFilter } from '../types/room'
 import './RoomListPage.css'
 import { entityStatusLabel } from '../utils/labels'
 
@@ -35,6 +37,8 @@ export default function RoomListPage() {
   const [buildings, setBuildings] = useState<Building[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
   const [seatingArrangementNames, setSeatingArrangementNames] = useState<string[]>([])
+  // Null until loaded, so "no favorites yet" is not shown while the list is still on its way (feature 017).
+  const [favorites, setFavorites] = useState<FavoriteRoom[] | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Search filters live in the URL (contracts/ui.md §1), so reload, back/forward and shared links restore them.
@@ -85,6 +89,36 @@ export default function RoomListPage() {
       ignore = true
     }
   }, [])
+
+  useEffect(() => {
+    let ignore = false
+    listFavoriteRooms().then(
+      (loaded) => {
+        if (!ignore) setFavorites(loaded)
+      },
+      (err) => {
+        if (!ignore) setError(formatApiError(err))
+      },
+    )
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const favoriteIds = useMemo(() => new Set((favorites ?? []).map((f) => f.roomId)), [favorites])
+  const unavailableFavorites = useMemo(() => (favorites ?? []).filter((f) => !f.available), [favorites])
+  const favoritesOnly = searching && searchState.favoritesOnly
+
+  // A changed favorite changes the ranking: reload favorites and re-run the current search (FR-011).
+  async function handleFavoriteChanged() {
+    setError(null)
+    try {
+      const [loadedFavorites] = await Promise.all([listFavoriteRooms(), reload()])
+      setFavorites(loadedFavorites)
+    } catch (err) {
+      setError(formatApiError(err))
+    }
+  }
 
   const equipmentNames = useMemo(
     () => Object.fromEntries(equipmentTypes.map((type) => [type.id, type.name])),
@@ -155,7 +189,11 @@ export default function RoomListPage() {
       />
 
       {rooms.length === 0 ? (
-        searching ? (
+        favoritesOnly && favorites?.length === 0 ? (
+          <p className="status-empty">
+            Du hast noch keine Favoriten. Markiere Räume mit dem Stern, um sie hier zu sehen.
+          </p>
+        ) : searching ? (
           <div className="status-empty">
             <p>Keine passenden Räume gefunden.</p>
             <button type="button" onClick={handleReset}>
@@ -166,51 +204,83 @@ export default function RoomListPage() {
           <p className="status-empty">Keine Räume mit diesem Status.</p>
         )
       ) : (
-        <ul className="list-plain">
-          {rooms.map((room) => (
-            <li key={room.id} className="panel room-list-item">
-              <div>
-                <Link className="room-list-name" to={roomLink(room.id, searchState)}>{room.name}</Link>
-                <span>{room.building.name}</span>
-                <span>{room.floor.name}</span>
-                <span className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
-                  {entityStatusLabel(room.status)}
-                </span>
-                <span className="room-list-detail">
-                  {room.seatingArrangements.map((s) => `${s.name} (max ${s.maxCapacity})`).join(', ')}
-                </span>
-                {room.barrierFreeReachable && <span className="room-list-detail">Barrierefrei erreichbar</span>}
-                {room.equipmentTypeIds.length > 0 && (
-                  <span className="room-list-detail">
-                    {room.equipmentTypeIds.map((id) => equipmentNames[id] ?? id).join(', ')}
+        <>
+          {searching && <p className="room-list-sort-note">Sortiert nach Eignung</p>}
+          <ul className="list-plain">
+            {rooms.map((room) => (
+              <li key={room.id} className="panel room-list-item">
+                <div>
+                  {room.status === 'ACTIVE' && (
+                    <FavoriteToggle
+                      roomId={room.id}
+                      roomName={room.name}
+                      isFavorite={favoriteIds.has(room.id)}
+                      onChanged={handleFavoriteChanged}
+                    />
+                  )}
+                  <Link className="room-list-name" to={roomLink(room.id, searchState)}>{room.name}</Link>
+                  <span>{room.building.name}</span>
+                  <span>{room.floor.name}</span>
+                  <span className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
+                    {entityStatusLabel(room.status)}
                   </span>
-                )}
-              </div>
+                  <span className="room-list-detail">
+                    {room.seatingArrangements.map((s) => `${s.name} (max ${s.maxCapacity})`).join(', ')}
+                  </span>
+                  {room.barrierFreeReachable && <span className="room-list-detail">Barrierefrei erreichbar</span>}
+                  {room.equipmentTypeIds.length > 0 && (
+                    <span className="room-list-detail">
+                      {room.equipmentTypeIds.map((id) => equipmentNames[id] ?? id).join(', ')}
+                    </span>
+                  )}
+                </div>
 
-              <div className="actions">
-                {room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
-                  <Link
-                    to={bookingLink(room.id, searchState)}
-                    className="room-list-book"
-                    aria-label={`${room.name} buchen`}
-                  >
-                    Buchen
-                  </Link>
-                )}
-                {roomManage && (
-                  <>
-                    {room.status === 'ACTIVE' ? (
-                      <button type="button" onClick={() => guarded(() => deactivateRoom(room.id))} aria-label={`${room.name} deaktivieren`}>Deaktivieren</button>
-                    ) : (
-                      <button type="button" onClick={() => guarded(() => reactivateRoom(room.id))} aria-label={`${room.name} reaktivieren`}>Reaktivieren</button>
-                    )}
-                    <button type="button" onClick={() => guarded(() => deleteRoom(room.id))} aria-label={`${room.name} löschen`}>Löschen</button>
-                  </>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+                <div className="actions">
+                  {room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
+                    <Link
+                      to={bookingLink(room.id, searchState)}
+                      className="room-list-book"
+                      aria-label={`${room.name} buchen`}
+                    >
+                      Buchen
+                    </Link>
+                  )}
+                  {roomManage && (
+                    <>
+                      {room.status === 'ACTIVE' ? (
+                        <button type="button" onClick={() => guarded(() => deactivateRoom(room.id))} aria-label={`${room.name} deaktivieren`}>Deaktivieren</button>
+                      ) : (
+                        <button type="button" onClick={() => guarded(() => reactivateRoom(room.id))} aria-label={`${room.name} reaktivieren`}>Reaktivieren</button>
+                      )}
+                      <button type="button" onClick={() => guarded(() => deleteRoom(room.id))} aria-label={`${room.name} löschen`}>Löschen</button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {favoritesOnly && unavailableFavorites.length > 0 && (
+        <section aria-labelledby="unavailable-favorites-heading" className="room-list-unavailable">
+          <h2 id="unavailable-favorites-heading">Nicht verfügbar</h2>
+          <ul className="list-plain">
+            {unavailableFavorites.map((favorite) => (
+              <li key={favorite.roomId} className="panel room-list-item">
+                <div>
+                  <FavoriteToggle
+                    roomId={favorite.roomId}
+                    roomName={favorite.roomName}
+                    isFavorite
+                    onChanged={handleFavoriteChanged}
+                  />
+                  <span>{`${favorite.buildingName} · ${favorite.floorName} · ${favorite.roomName}`}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </main>
   )

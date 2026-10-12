@@ -27,6 +27,10 @@ public class EquipmentType {
     @Enumerated(EnumType.STRING)
     private EntityStatus status = EntityStatus.ACTIVE;
 
+    /** Scarce equipment (e.g. PC workstations) that ranks a room lower when not requested (feature 017). */
+    @Column(nullable = false)
+    private boolean specialised;
+
     protected EquipmentType() {
     }
 
@@ -60,5 +64,13 @@ public class EquipmentType {
 
     public void setStatus(EntityStatus status) {
         this.status = status;
+    }
+
+    public boolean isSpecialised() {
+        return specialised;
+    }
+
+    public void setSpecialised(boolean specialised) {
+        this.specialised = specialised;
     }
 }

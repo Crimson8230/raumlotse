@@ -4,6 +4,8 @@ import { useAdminMode } from '../auth/useAdminMode'
 import { getRoom } from '../API/rooms'
 import { listRoomReservations } from '../API/reservations'
 import { getRoomStatus } from '../API/roomStatus'
+import { listFavoriteRooms } from '../API/favoriteRooms'
+import { FavoriteToggle } from '../components/FavoriteToggle/FavoriteToggle'
 import { ReservationForm } from '../components/ReservationForm/ReservationForm'
 import { ReservationList } from '../components/ReservationList/ReservationList'
 import { CheckInQrCode } from '../components/CheckInQrCode/CheckInQrCode'
@@ -33,6 +35,7 @@ export default function RoomDetailPage() {
   const bookRequested = searchParams.get('book') === 'true'
   const [prefill, setPrefill] = useState<{ start: string; end: string } | null>(null)
   const [room, setRoom] = useState<Room | undefined>(undefined)
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
@@ -70,6 +73,29 @@ export default function RoomDetailPage() {
     )
     return () => { ignore = true }
   }, [roomId, adminMode])
+
+  // Favorites only drive the star; if they cannot be loaded the page still works without it (feature 017).
+  useEffect(() => {
+    let ignore = false
+    listFavoriteRooms().then(
+      (loaded) => {
+        if (!ignore) setFavoriteIds(new Set(loaded.map((favorite) => favorite.roomId)))
+      },
+      () => {},
+    )
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const handleFavoriteChanged = useCallback((changedRoomId: string, favorite: boolean) => {
+    setFavoriteIds((current) => {
+      const next = new Set(current)
+      if (favorite) next.add(changedRoomId)
+      else next.delete(changedRoomId)
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     if (!roomId) return
@@ -129,7 +155,17 @@ export default function RoomDetailPage() {
   return (
     <main className="room-detail-page">
       <div className="room-detail-header">
-        <h1>{room.name}</h1>
+        <div className="room-detail-title">
+          <h1>{room.name}</h1>
+          {room.status === 'ACTIVE' && (
+            <FavoriteToggle
+              roomId={room.id}
+              roomName={room.name}
+              isFavorite={favoriteIds.has(room.id)}
+              onChanged={handleFavoriteChanged}
+            />
+          )}
+        </div>
         <div>
           <Link to={`/rooms/${room.id}/display`}>Raumanzeige</Link>{' '}
           {permissions.includes('OWN_ACTIVE_DEVICE_CONTROL') && deviceEligibility?.key === eligibilityKey && deviceEligibility.eligible && (

@@ -17,7 +17,8 @@ public record RoomSearchCriteria(
         Set<UUID> equipmentTypeIds,
         boolean barrierFree,
         Instant from,
-        Instant to) {
+        Instant to,
+        boolean favoritesOnly) {
 
     public RoomSearchCriteria {
         seatingArrangement = seatingArrangement == null || seatingArrangement.isBlank()
@@ -35,6 +36,12 @@ public record RoomSearchCriteria(
     public RoomSearchCriteria(Integer minPersons, Integer maxPersons, UUID buildingId, String seatingArrangement,
             Set<UUID> equipmentTypeIds) {
         this(minPersons, maxPersons, buildingId, seatingArrangement, equipmentTypeIds, false);
+    }
+
+    /** Without the favorites-only restriction (feature 017). */
+    public RoomSearchCriteria(Integer minPersons, Integer maxPersons, UUID buildingId, String seatingArrangement,
+            Set<UUID> equipmentTypeIds, boolean barrierFree, Instant from, Instant to) {
+        this(minPersons, maxPersons, buildingId, seatingArrangement, equipmentTypeIds, barrierFree, from, to, false);
     }
 
     /** Without a time window. */
@@ -69,10 +76,14 @@ public record RoomSearchCriteria(
         if (minPersons == null && maxPersons == null && seatingArrangement == null) {
             return true;
         }
-        return room.getSeatingArrangements().stream().anyMatch(arrangement ->
-                (minPersons == null || arrangement.getMaxCapacity() >= minPersons)
-                        && (maxPersons == null || arrangement.getMaxCapacity() <= maxPersons)
-                        && (seatingArrangement == null || arrangement.getName().equalsIgnoreCase(seatingArrangement)));
+        return room.getSeatingArrangements().stream().anyMatch(this::arrangementMatches);
+    }
+
+    /** Whether this single arrangement satisfies the person range and layout; shared with {@link RoomRanking}. */
+    boolean arrangementMatches(SeatingArrangement arrangement) {
+        return (minPersons == null || arrangement.getMaxCapacity() >= minPersons)
+                && (maxPersons == null || arrangement.getMaxCapacity() <= maxPersons)
+                && (seatingArrangement == null || arrangement.getName().equalsIgnoreCase(seatingArrangement));
     }
 
     /** The room must have every requested equipment type assigned (FR-008). */

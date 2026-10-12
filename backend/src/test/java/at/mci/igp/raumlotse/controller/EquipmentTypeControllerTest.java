@@ -9,6 +9,8 @@ import at.mci.igp.raumlotse.service.UserRoleSafety;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,7 +35,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(EquipmentTypeController.class)
 @WithMockAdmin
 @Import(SecurityConfig.class)
-class EquipmentTypeControllerTest {
+class EquipmentTypeControllerTest {
+
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
@@ -57,6 +60,65 @@ class EquipmentTypeControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Projector"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    void createWithoutClassificationIsGeneral() throws Exception {
+        when(equipmentTypeService.create("Klimaanlage")).thenReturn(new EquipmentType("Klimaanlage"));
+
+        mockMvc.perform(post("/api/equipment-types").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Klimaanlage\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.specialised").value(false));
+        verify(equipmentTypeService, never()).classify(any(), org.mockito.ArgumentMatchers.anyBoolean());
+    }
+
+    @Test
+    void createCanClassifyAsSpecialised() throws Exception {
+        EquipmentType created = new EquipmentType("PC-Arbeitsplätze");
+        UUID id = UUID.randomUUID();
+        org.springframework.test.util.ReflectionTestUtils.setField(created, "id", id);
+        EquipmentType classified = new EquipmentType("PC-Arbeitsplätze");
+        classified.setSpecialised(true);
+        when(equipmentTypeService.create("PC-Arbeitsplätze")).thenReturn(created);
+        when(equipmentTypeService.classify(id, true)).thenReturn(classified);
+
+        mockMvc.perform(post("/api/equipment-types").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"PC-Arbeitsplätze\",\"specialised\":true}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.specialised").value(true));
+    }
+
+    @Test
+    void updateWithoutClassificationKeepsIt() throws Exception {
+        UUID id = UUID.randomUUID();
+        EquipmentType lab = new EquipmentType("Labor");
+        lab.setSpecialised(true);
+        when(equipmentTypeService.rename(id, "Labor")).thenReturn(lab);
+
+        mockMvc.perform(put("/api/equipment-types/" + id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Labor\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.specialised").value(true));
+        verify(equipmentTypeService, never()).classify(any(), org.mockito.ArgumentMatchers.anyBoolean());
+    }
+
+    @Test
+    void updateCanResetTheClassification() throws Exception {
+        UUID id = UUID.randomUUID();
+        EquipmentType general = new EquipmentType("Labor");
+        when(equipmentTypeService.rename(id, "Labor")).thenReturn(new EquipmentType("Labor"));
+        when(equipmentTypeService.classify(id, false)).thenReturn(general);
+
+        mockMvc.perform(put("/api/equipment-types/" + id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Labor\",\"specialised\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.specialised").value(false));
+        verify(equipmentTypeService).classify(id, false);
     }
 
     @Test

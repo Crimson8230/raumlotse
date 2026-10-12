@@ -105,6 +105,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     """)
     Set<UUID> findOccupiedRoomIds(@Param("from") Instant from, @Param("to") Instant to);
 
+    /**
+     * Popularity of all rooms (feature 017, FR-005): reservations of all users with status RESERVED, ACTIVE or
+     * COMPLETED whose start lies in [since, now]. Rooms without such bookings are absent.
+     */
+    @Query("""
+        select new at.mci.igp.raumlotse.dto.RoomBookingCount(r.room.id, count(r)) from Reservation r
+        where r.status in (at.mci.igp.raumlotse.domain.ReservationStatus.RESERVED,
+                           at.mci.igp.raumlotse.domain.ReservationStatus.ACTIVE,
+                           at.mci.igp.raumlotse.domain.ReservationStatus.COMPLETED)
+          and r.startTime >= :since
+          and r.startTime <= :now
+        group by r.room.id
+    """)
+    List<at.mci.igp.raumlotse.dto.RoomBookingCount> countRecentByRoom(@Param("since") Instant since,
+            @Param("now") Instant now);
+
     List<Reservation> findByStatusAndEndTimeLessThanEqual(ReservationStatus status, Instant endTime);
 
     List<Reservation> findTop10ByCreatedByUserIdAndStatusInAndEndTimeGreaterThanOrderByStartTimeAsc(

@@ -18,6 +18,7 @@ export interface EquipmentCatalogProps {
 export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {}) {
   const [types, setTypes] = useState<EquipmentType[]>([])
   const [newName, setNewName] = useState('')
+  const [newSpecialised, setNewSpecialised] = useState(false)
   const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
@@ -67,8 +68,9 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
         onSubmit={(e) => {
           e.preventDefault()
           guarded(async () => {
-            await createEquipmentType(newName)
+            await (newSpecialised ? createEquipmentType(newName, undefined, true) : createEquipmentType(newName))
             setNewName('')
+            setNewSpecialised(false)
           })
         }}
       >
@@ -76,6 +78,10 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
           <label htmlFor="new-equipment-type-name">Name des neuen Ausstattungstyps</label>
           <input id="new-equipment-type-name" value={newName} onChange={(e) => setNewName(e.target.value)} />
         </div>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={newSpecialised} onChange={(e) => setNewSpecialised(e.target.checked)} />
+          Spezialausstattung (wirkt sich auf die Sortierung aus)
+        </label>
         <button type="submit">Ausstattungstyp hinzufügen</button>
       </form>
 
@@ -91,6 +97,17 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
               <span className={type.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                 ({entityStatusLabel(type.status)})
               </span>
+              {type.specialised && <span className="catalog-tag">Spezial</span>}
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={type.specialised ?? false}
+                  onChange={(e) => guarded(() => renameEquipmentType(type.id, type.name, undefined, e.target.checked))}
+                  aria-label={`${type.name} ist Spezialausstattung`}
+                />
+                Spezialausstattung
+              </label>
 
               <div className="inline-form">
                 <div>
