@@ -138,7 +138,7 @@ export function MapCanvas({ map, placements, editable, activeRoomId, placementAc
                   setDragging({ roomId: room.id })
                 }}
               >
-                <span className="map-marker-label">{room.name}</span>
+                <span className="map-marker-label room-name">{room.name}</span>
               </button>
             )
           })}

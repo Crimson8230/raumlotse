@@ -10,6 +10,7 @@ import {
 import { formatApiError } from '../../API/client'
 import type { EquipmentType } from '../../types/room'
 import { entityStatusLabel } from '../../utils/labels'
+import { ErrorMessage, Field } from '../../components/ui'
 
 export interface EquipmentCatalogProps {
   onCatalogChanged?: () => void
@@ -58,9 +59,7 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
     <section aria-label="Katalog der Ausstattungstypen" className="panel">
       <h2>Ausstattung</h2>
       {error && (
-        <p role="alert" className="feedback-error">
-          {error}
-        </p>
+        <ErrorMessage>{error}</ErrorMessage>
       )}
 
       <form
@@ -74,15 +73,14 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
           })
         }}
       >
-        <div>
-          <label htmlFor="new-equipment-type-name">Name des neuen Ausstattungstyps</label>
-          <input id="new-equipment-type-name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-        </div>
+        <Field label="Name des neuen Ausstattungstyps" required>
+          {(control) => <input {...control} value={newName} onChange={(e) => setNewName(e.target.value)} />}
+        </Field>
         <label className="checkbox-label">
           <input type="checkbox" checked={newSpecialised} onChange={(e) => setNewSpecialised(e.target.checked)} />
           Spezialausstattung (wirkt sich auf die Sortierung aus)
         </label>
-        <button type="submit">Ausstattungstyp hinzufügen</button>
+        <button type="submit" className="btn-primary">Ausstattungstyp hinzufügen</button>
       </form>
 
       {types.length === 0 ? (

@@ -5,6 +5,7 @@ import { formatApiError } from '../API/client'
 import { RoomDeviceIcons } from '../components/RoomDeviceIcons/RoomDeviceIcons'
 import type { CheckInMethod, CheckInPreview, CheckInResult } from '../types/checkIn'
 import { formatTime } from '../utils/date'
+import { ErrorMessage } from '../components/ui'
 
 const DEVICE_NAMES = { LIGHTING: 'Licht', VENTILATION: 'Lüftung', DOOR: 'Tür' } as const
 
@@ -44,19 +45,19 @@ export default function CheckInPage() {
     }
   }
 
-  if (!roomId) return <main><p role="alert">Raum nicht gefunden.</p></main>
-  if (!loaded || loaded.roomId !== roomId) return <main><p className="status-loading">Check-in wird geladen…</p></main>
-  if (!loaded.preview) return <main><h1>Check-in</h1><p role="alert">{loaded.error}</p></main>
+  if (!roomId) return <main id="inhalt"><p role="alert">Raum nicht gefunden.</p></main>
+  if (!loaded || loaded.roomId !== roomId) return <main id="inhalt"><p className="status-loading">Check-in wird geladen…</p></main>
+  if (!loaded.preview) return <main id="inhalt"><h1>Check-in</h1><ErrorMessage>{loaded.error}</ErrorMessage></main>
 
   const { preview } = loaded
   const booking = preview.reservation
   return (
-    <main className="check-in-page">
+    <main id="inhalt" className="check-in-page">
       <h1>Check-in: {preview.roomName}</h1>
       {booking && (
         <section className="panel" aria-label="Buchung">
           <p>{booking.reservedFor}</p>
-          <p>{formatTime(new Date(booking.startTime))} – {formatTime(new Date(booking.endTime))}</p>
+          <p className="mono">{formatTime(new Date(booking.startTime))} – {formatTime(new Date(booking.endTime))}</p>
         </section>
       )}
 
@@ -89,7 +90,7 @@ export default function CheckInPage() {
           )}
         </>
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
     </main>
   )
 }

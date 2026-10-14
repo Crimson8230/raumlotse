@@ -4,6 +4,7 @@ import { getRolePermissions, listRoleOptions, saveRolePermissions } from '../API
 import type { PermissionCode, RoleOption, RolePermissions } from '../types/permission'
 import type { RoleCode } from '../types/userRole'
 import './RolePermissionPage.css'
+import { ErrorMessage } from '../components/ui'
 
 export default function RolePermissionPage() {
   const [roles, setRoles] = useState<RoleOption[]>([])
@@ -66,7 +67,7 @@ export default function RolePermissionPage() {
     setSuccess(false)
   }
 
-  return <main className="role-permission-page">
+  return <main id="inhalt" className="role-permission-page">
     <h1>Rollenrechte verwalten</h1>
     <p>Die fünf Rollen sind fest vorgegeben. Rechte mehrerer Rollen werden für einen Nutzer vereinigt.</p>
     <label htmlFor="permission-role">Rolle</label>
@@ -80,7 +81,7 @@ export default function RolePermissionPage() {
     }}>
       {roles.map(role => <option key={role.code} value={role.code}>{role.label}</option>)}
     </select>
-    {error && <p role="alert">{error}</p>}
+    {error && <ErrorMessage>{error}</ErrorMessage>}
     {error && !saved && <button type="button" onClick={() => void reload()} disabled={busy}>Erneut laden</button>}
     {review && <button type="button" onClick={() => void reload()} disabled={busy}>Aktuellen Stand laden</button>}
     {success && <p role="status">Rollenrechte gespeichert.</p>}

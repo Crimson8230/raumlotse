@@ -4,6 +4,7 @@ import { ApiError } from '../API/client'
 import { listUsers } from '../API/userRoles'
 import type { UserList } from '../types/userRole'
 import '../components/UserRoles/UserRoleEditor.css'
+import { Field } from '../components/ui'
 
 export default function UserRoleListPage() {
   const [draft, setDraft] = useState('')
@@ -25,11 +26,12 @@ export default function UserRoleListPage() {
     return () => { active = false }
   }, [query])
   const current = result?.query === query ? result : null
-  return <main className="role-page">
+  return <main id="inhalt" className="role-page">
     <h1>Benutzerrollen</h1>
     <form className="role-search" onSubmit={event => { event.preventDefault(); setQuery({ q: draft.trim(), page: 0, attempt: 0 }) }}>
-      <label htmlFor="user-role-search">Name oder Kontokennung</label>
-      <input id="user-role-search" type="search" maxLength={100} value={draft} onChange={e => setDraft(e.target.value)} />
+      <Field label="Name oder Kontokennung">
+        {control => <input {...control} type="search" maxLength={100} value={draft} onChange={e => setDraft(e.target.value)} />}
+      </Field>
       <button type="submit">Suchen</button>
     </form>
     {!current && <p role="status">Benutzer werden geladen…</p>}

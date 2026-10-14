@@ -26,5 +26,6 @@ Vertrag und Props: `specs/018-shared-ui-building-blocks/contracts/ui-blocks.md`.
 
 ## Hinweise
 
-- Der `SkipLink` ist noch in keine Seite eingebunden (Schicht 3).
+- Der `SkipLink` ist seit Feature 019 in `RequireAuth` und `LoginPage` eingebunden; jedes `<main>` trägt `id="inhalt"` (Regeltest `src/pages.rules.test.ts`).
+- Raumnamen tragen die Klasse `room-name` (Serif), Zeiten und Zahlen `mono`; Fehler laufen über `ErrorMessage`, Feldfehler des Servers über `fieldErrorsOf` (`API/client.ts`).
 - Der `Strip` braucht für eine laufende "Jetzt"-Marke eine von der Seite aktualisierte `now`-Prop.

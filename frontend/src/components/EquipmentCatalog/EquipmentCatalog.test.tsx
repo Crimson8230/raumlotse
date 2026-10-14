@@ -120,3 +120,23 @@ describe('EquipmentCatalog', () => {
     await screen.findByText(/assigned to one or more rooms/i)
   })
 })
+
+describe('EquipmentCatalog list structure and fields (feature 019)', () => {
+  it('shows records as real list items and the empty state as text', async () => {
+    equipment.listEquipmentTypes.mockResolvedValue([type(), type({ id: 'e2', name: 'Whiteboard' })])
+    render(<EquipmentCatalog />)
+    expect(await screen.findAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('says so in words when there are no equipment types', async () => {
+    render(<EquipmentCatalog />)
+    expect(await screen.findByText('Noch keine Ausstattungstypen.')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('marks the new-name field as required and the add button as primary', () => {
+    render(<EquipmentCatalog />)
+    expect(screen.getByLabelText(/name des neuen ausstattungstyps/i)).toHaveAttribute('aria-required', 'true')
+    expect(screen.getByRole('button', { name: /ausstattungstyp hinzufügen/i })).toHaveClass('btn-primary')
+  })
+})

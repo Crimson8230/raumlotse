@@ -1,6 +1,7 @@
 import { isValidRoleSelection, roleOptions } from '../../types/userRole'
 import type { RoleCode } from '../../types/userRole'
 import './UserRoleEditor.css'
+import { ErrorMessage } from '../ui'
 interface Props {
   value: RoleCode[]
   onChange: (roles: RoleCode[]) => void
@@ -20,9 +21,9 @@ export function UserRoleEditor({ value, onChange, onSave, onCancel, busy, disabl
         {option.label}
       </label>)}
     </fieldset>
-    {!valid && <p id="role-selection-error" role="alert">Mindestens eine Rolle ist erforderlich.</p>}
+    {!valid && <ErrorMessage id="role-selection-error">Mindestens eine Rolle ist erforderlich.</ErrorMessage>}
     <div className="role-actions">
-      <button type="submit" disabled={!valid || busy || disabled}>Speichern</button>
+      <button type="submit" className="btn-primary" disabled={!valid || busy || disabled}>Speichern</button>
       <button type="button" disabled={busy} onClick={onCancel}>Abbrechen</button>
     </div>
     {busy && <p role="status">Rollen werden gespeichert…</p>}

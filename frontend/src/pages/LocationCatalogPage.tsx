@@ -8,7 +8,7 @@ export default function LocationCatalogPage() {
   const floors = permissions.includes('FLOOR_MANAGE')
   const equipment = permissions.includes('EQUIPMENT_TYPE_MANAGE')
   return (
-    <main>
+    <main id="inhalt">
       <h1>Standorte</h1>
       <p>Gebäude, Stockwerke &amp; Ausstattung verwalten</p>
       {(buildings || floors) && <BuildingCatalog canManageBuildings={buildings} canManageFloors={floors} />}

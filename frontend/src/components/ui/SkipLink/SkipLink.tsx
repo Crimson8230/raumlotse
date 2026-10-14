@@ -9,7 +9,7 @@ interface SkipLinkProps {
 
 /**
  * Sprunglink "Zum Inhalt springen". Seitenvertrag: erstes fokussierbares Element der Seite, und der
- * Hauptinhalt trägt die Id `targetId` (Standard `inhalt`). Der Baustein ist noch in keine Seite eingebunden.
+ * Hauptinhalt trägt die Id `targetId` (Standard `inhalt`). Eingebunden in `RequireAuth` und `LoginPage` (Feature 019).
  */
 export function SkipLink({ targetId = 'inhalt', children = 'Zum Inhalt springen' }: SkipLinkProps) {
   function jump(event: MouseEvent<HTMLAnchorElement>) {

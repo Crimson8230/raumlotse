@@ -94,7 +94,9 @@ describe('RoomForm (create mode)', () => {
 
     await screen.findByText(/mindestens eine sitzordnung/i)
     expect(rooms.createRoom).not.toHaveBeenCalled()
-    expect(screen.getByText(/mindestens eine sitzordnung/i)).toHaveClass('feedback-error')
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Fehler:')
+    expect(alert).toHaveTextContent(/mindestens eine sitzordnung/i)
   })
 
   it('lets the administrator create a building and floor inline when none exist yet', async () => {
@@ -165,8 +167,8 @@ describe('RoomForm (edit mode)', () => {
     await user.click(screen.getByRole('button', { name: /raum speichern/i }))
 
     const conflictMessage = await screen.findByText(/modified by someone else/i)
-    expect(conflictMessage).toHaveClass('feedback-conflict')
-    expect(conflictMessage).not.toHaveClass('feedback-error')
+    expect(conflictMessage.closest('.feedback-conflict')).not.toBeNull()
+    expect(conflictMessage.closest('.feedback-error')).toBeNull()
   })
 })
 
@@ -211,5 +213,43 @@ describe('RoomForm (barrier-free exclusion)', () => {
     await waitFor(() =>
       expect(rooms.updateRoom).toHaveBeenCalledWith('r1', expect.objectContaining({ notBarrierFree: false })),
     )
+  })
+})
+
+describe('RoomForm fields and errors (feature 019)', () => {
+  it('marks required fields, explains the marking once and has one primary action', async () => {
+    render(<RoomForm onSaved={vi.fn()} />)
+    await screen.findByLabelText(/^gebäude/i)
+
+    expect(screen.getAllByText('Pflichtfeld').length).toBeGreaterThanOrEqual(3)
+    expect(screen.getAllByText(/Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet/)).toHaveLength(1)
+    expect(document.querySelectorAll('.btn-primary')).toHaveLength(1)
+  })
+
+  it('shows server errors on their fields by label, not by technical name', async () => {
+    const user = userEvent.setup()
+    rooms.createRoom.mockRejectedValue(
+      new ApiError(400, {
+        title: 'Validation Failed',
+        status: 400,
+        detail: 'Ungültige Eingabe.',
+        errors: [
+          { field: 'name', message: 'darf nicht leer sein' },
+          { field: 'seatingArrangements[0].maxCapacity', message: 'muss größer als 0 sein' },
+        ],
+      }),
+    )
+    render(<RoomForm onSaved={vi.fn()} />)
+
+    await user.type(screen.getByLabelText(/raumname/i), 'x')
+    await user.selectOptions(await screen.findByLabelText(/^gebäude/i), 'b1')
+    await user.selectOptions(await screen.findByLabelText(/^stockwerk/i), 'f1')
+    await user.type(screen.getByLabelText(/name der sitzordnung/i), 'Theater')
+    await user.type(screen.getByLabelText(/max\. kapazität/i), '5')
+    await user.click(screen.getByRole('button', { name: /raum anlegen/i }))
+
+    await waitFor(() => expect(screen.getByLabelText(/raumname/i)).toHaveAttribute('aria-invalid', 'true'))
+    expect(screen.getByLabelText(/max\. kapazität/i)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.queryByText(/seatingArrangements|maxCapacity/)).not.toBeInTheDocument()
   })
 })

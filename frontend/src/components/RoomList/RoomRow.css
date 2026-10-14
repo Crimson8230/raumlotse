@@ -1,0 +1,70 @@
+/* Raumzeile (Feature 019): Info | Streifen | Aktionen; auf schmalen Schirmen untereinander. */
+li.room-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.room-row__info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.room-row__strip {
+  min-width: 0;
+}
+
+.room-row__strip-note {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+}
+
+.room-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: 0;
+}
+
+/* Verwaltungsaktionen: abgesetzt und sekundär (nie die primäre Aktion). */
+.room-row__manage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-hairline);
+}
+
+.room-list-open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  li.room-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-row__actions {
+    justify-content: flex-start;
+  }
+
+  .room-row__manage {
+    padding-left: 0;
+    border-left: 0;
+  }
+}

@@ -1,4 +1,5 @@
 import type { Problem } from '../types/room'
+import { fieldLabel } from '../components/ui/fieldLabels'
 
 export class ApiError extends Error {
   readonly status: number
@@ -42,6 +43,26 @@ async function parseErrorBody(response: Response): Promise<Problem | undefined> 
  * backend's per-field validation messages (`Problem.errors[]`) when present, so an
  * administrator can see exactly which field failed and why (SC-005).
  */
+/**
+ * User-facing label of a backend field path such as `startTime` or `seatingArrangements[0].maxCapacity`
+ * ("Sitzordnung 1 – Höchstkapazität"): technical names never reach the user (feature 019, FR-009).
+ */
+function labelOfFieldPath(path: string): string {
+  return path
+    .split('.')
+    .map((part) => {
+      const match = /^([^[\]]+)\[(\d+)\]$/.exec(part)
+      return match ? `${fieldLabel(match[1])} ${Number(match[2]) + 1}` : fieldLabel(part)
+    })
+    .join(' – ')
+}
+
+/** Field name → message of the backend's per-field validation errors, for attaching errors to their fields. */
+export function fieldErrorsOf(err: unknown): Record<string, string> {
+  if (!(err instanceof ApiError)) return {}
+  return Object.fromEntries((err.problem?.errors ?? []).map((e) => [e.field, e.message]))
+}
+
 export function formatApiError(err: unknown): string {
   if (err instanceof ApiError) {
     const detail = err.problem?.detail ?? err.message
@@ -49,7 +70,7 @@ export function formatApiError(err: unknown): string {
     if (fieldErrors.length === 0) {
       return detail
     }
-    const fieldList = fieldErrors.map((e) => `${e.field}: ${e.message}`).join('; ')
+    const fieldList = fieldErrors.map((e) => `${labelOfFieldPath(e.field)}: ${e.message}`).join('; ')
     return `${detail} (${fieldList})`
   }
   return err instanceof Error ? err.message : 'Etwas ist schiefgelaufen.'

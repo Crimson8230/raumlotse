@@ -232,6 +232,18 @@ describe('AdminOccupancyPage – day forecast', () => {
     expect(getOccupancyForecast).toHaveBeenLastCalledWith('2099-01-05', undefined)
   })
 
+  it('shows the occupancy per building as a captioned table with a row header (feature 019)', async () => {
+    vi.mocked(getOccupancySnapshot).mockResolvedValue(snapshot({
+      buildings: [{ buildingId: 'b1', buildingName: 'MCI III', buildingActive: true, checkedInPersons: 12, occupiedRooms: 3 }],
+    }))
+    render(<AdminOccupancyPage />)
+    const table = await screen.findByRole('table', { name: /Belegung je Gebäude/ })
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
+      ['Gebäude', 'Eingecheckte Personen', 'Belegte Räume'],
+    )
+    expect(within(table).getByRole('rowheader', { name: 'MCI III' })).toBeInTheDocument()
+  })
+
   it('shows planned values per hour, per building and in total with peaks', async () => {
     vi.mocked(getOccupancyForecast).mockResolvedValue(busyForecast())
     render(<AdminOccupancyPage />)

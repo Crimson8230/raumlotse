@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { MyUpcomingReservations } from './MyUpcomingReservations'
@@ -114,5 +114,21 @@ describe('MyUpcomingReservations', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument()
     })
+  })
+})
+
+describe('MyUpcomingReservations table structure (feature 019)', () => {
+  it('has a caption, column headers and the room as row header', async () => {
+    reservations.getMyUpcomingReservations.mockResolvedValue([
+      sampleReservation({ id: 'res-9', roomId: 'room-9', roomName: 'Audimax' }),
+    ])
+    render(
+      <MemoryRouter>
+        <MyUpcomingReservations />
+      </MemoryRouter>,
+    )
+    const table = await screen.findByRole('table', { name: /Anstehende Reservierungen/ })
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Zeitpunkt', 'Raum', 'Dauer'])
+    expect(within(table).getByRole('rowheader', { name: 'Audimax' })).toBeInTheDocument()
   })
 })

@@ -73,7 +73,9 @@ describe('RoomSearchPanel', () => {
     await user.type(screen.getByLabelText('Personen max.'), '10')
     await user.click(screen.getByRole('button', { name: 'Suchen' }))
 
-    expect(screen.getByText('Min. Personen darf nicht größer als Max. Personen sein.')).toHaveClass('feedback-error')
+    const message = screen.getByText('Min. Personen darf nicht größer als Max. Personen sein.')
+    expect(message.closest('[role="alert"]')).toHaveTextContent('Fehler:')
+    expect(screen.getByLabelText('Personen max.')).toHaveAttribute('aria-invalid', 'true')
     expect(props.onSearch).not.toHaveBeenCalled()
   })
 
@@ -187,7 +189,8 @@ describe('RoomSearchPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Suchen' }))
 
-    expect(screen.getByText('Bis muss nach Von liegen.')).toHaveClass('feedback-error')
+    expect(screen.getByText('Bis muss nach Von liegen.').closest('[role="alert"]')).toHaveTextContent('Fehler:')
+    expect(screen.getByLabelText('Bis')).toHaveAttribute('aria-invalid', 'true')
     expect(props.onSearch).not.toHaveBeenCalled()
   })
 })

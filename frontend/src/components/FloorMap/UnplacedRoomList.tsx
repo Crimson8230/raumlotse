@@ -17,11 +17,16 @@ export function UnplacedRoomList({ rooms, activeRoomId, onSelect, canSelect }: P
       {rooms.map((room) => (
         <li key={room.id}>
           {canSelect ? (
-            <button type="button" aria-pressed={room.id === activeRoomId} onClick={() => onSelect(room.id)}>
+            <button
+              type="button"
+              className="room-name"
+              aria-pressed={room.id === activeRoomId}
+              onClick={() => onSelect(room.id)}
+            >
               {room.name}
             </button>
           ) : (
-            room.name
+            <span className="room-name">{room.name}</span>
           )}
         </li>
       ))}

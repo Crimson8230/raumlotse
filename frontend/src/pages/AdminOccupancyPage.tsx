@@ -3,9 +3,10 @@ import { getOccupancyForecast, getOccupancySnapshot } from '../API/adminOccupanc
 import { listBuildings } from '../API/buildings'
 import { ApiError, formatApiError } from '../API/client'
 import type { Building } from '../types/room'
-import type { BookingEntry, HourForecast, OccupancyForecast, OccupancySnapshot } from '../types/adminOccupancy'
+import type { BookingEntry, BuildingOccupancy, HourForecast, OccupancyForecast, OccupancySnapshot } from '../types/adminOccupancy'
 import './AdminStatisticsPage.css'
 import './AdminOccupancyPage.css'
+import { DataTable, ErrorMessage, Field } from '../components/ui'
 
 const REFRESH_INTERVAL_MS = 30_000
 
@@ -176,22 +177,24 @@ export default function AdminOccupancyPage() {
   const emptyDay = forecast !== null && forecast.peakExpectedPersons === null && forecast.hours.every(hour => !hour.past)
 
   return (
-    <main className="admin-statistics-page admin-occupancy-page">
+    <main id="inhalt" className="admin-statistics-page admin-occupancy-page">
       <h1>Belegung</h1>
       <p className="page-intro">Wie viele Personen sich gerade in den gebuchten Räumen aufhalten.</p>
       {!accessDenied && (
         <form className="statistics-period" onSubmit={event => event.preventDefault()}>
-          <label>Gebäude
-            <select aria-label="Gebäude" value={buildingId} onChange={event => { setSelectedHour(null); setBuildingId(event.target.value) }}>
-              <option value="">Alle Gebäude</option>
-              {buildingOptions.map(building => <option key={building.id} value={building.id}>{building.name}</option>)}
-            </select>
-          </label>
+          <Field label="Gebäude">
+            {control => (
+              <select {...control} value={buildingId} onChange={event => { setSelectedHour(null); setBuildingId(event.target.value) }}>
+                <option value="">Alle Gebäude</option>
+                {buildingOptions.map(building => <option key={building.id} value={building.id}>{building.name}</option>)}
+              </select>
+            )}
+          </Field>
           {filteredName && <span className="occupancy-filter-note">Gefiltert auf: {filteredName}</span>}
         </form>
       )}
       {loading && <p className="statistics-status" role="status">Belegung wird geladen…</p>}
-      {error && <p className="feedback-error" role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
       {snapshot && (
         <section className="statistics-section" aria-labelledby="occupancy-current-heading">
           <h2 id="occupancy-current-heading">Aktuelle Situation</h2>
@@ -215,21 +218,23 @@ export default function AdminOccupancyPage() {
           </div>
           {empty && <p className="statistics-status">Derzeit ist kein Raum in Nutzung.</p>}
           {snapshot.buildings.length > 0 && (
-            <div className="statistics-table-wrap">
-              <table>
-                <caption className="visually-hidden">Belegung je Gebäude</caption>
-                <thead><tr><th scope="col">Gebäude</th><th scope="col">Eingecheckte Personen</th><th scope="col">Belegte Räume</th></tr></thead>
-                <tbody>
-                  {snapshot.buildings.map(building => (
-                    <tr key={building.buildingId}>
-                      <th scope="row">{building.buildingName}{building.buildingActive ? '' : ' (inaktiv)'}</th>
-                      <td>{building.checkedInPersons}</td>
-                      <td>{building.occupiedRooms}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              caption="Belegung je Gebäude"
+              columns={[
+                {
+                  key: 'building',
+                  header: 'Gebäude',
+                  cell: (building: BuildingOccupancy) =>
+                    `${building.buildingName}${building.buildingActive ? '' : ' (inaktiv)'}`,
+                },
+                { key: 'persons', header: 'Eingecheckte Personen', mono: true, cell: (building: BuildingOccupancy) => building.checkedInPersons },
+                { key: 'rooms', header: 'Belegte Räume', mono: true, cell: (building: BuildingOccupancy) => building.occupiedRooms },
+              ]}
+              rows={snapshot.buildings}
+              rowKey={(building) => building.buildingId}
+              rowHeader="building"
+              emptyText="Keine Gebäude."
+            />
           )}
           <h3 id="occupancy-running-heading">Laufende Buchungen</h3>
           {snapshot.runningBookings.length === 0
@@ -250,48 +255,49 @@ export default function AdminOccupancyPage() {
           <form className="statistics-period" onSubmit={event => event.preventDefault()}>
             <label>Tag<input aria-label="Tag" type="date" min={todayLocal()} value={day} onChange={event => { setSelectedHour(null); setDay(event.target.value) }} /></label>
           </form>
-          {forecastError && <p className="feedback-error" role="alert">{forecastError}</p>}
+          {forecastError && <ErrorMessage>{forecastError}</ErrorMessage>}
           {forecast && (
             <>
               {emptyDay && <p className="statistics-status">An diesem Tag sind keine Buchungen vorhanden.</p>}
-              <div className="statistics-table-wrap">
-                <table>
-                  <caption className="visually-hidden">Tagesprognose je Stunde und Gebäude</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Uhrzeit</th>
-                      {forecast.buildings.map(building => <th scope="col" key={building.buildingId}>{building.buildingName}</th>)}
-                      <th scope="col">Gesamt</th>
-                      <th scope="col">Räume</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forecast.hours.map(hour => (
-                      <tr key={hour.start} className={hour.peak ? 'occupancy-peak-row' : undefined}>
-                        <th scope="row">
-                          {hour.past
-                            ? hour.localLabel
-                            : <button type="button" className="occupancy-hour" onClick={event => {
-                                hourTrigger.current = event.currentTarget
-                                setSelectedHour(hour)
-                              }}>{hour.localLabel}</button>}
-                        </th>
-                        {hour.past
-                          ? <td colSpan={forecast.buildings.length + 2} className="occupancy-past">vergangen</td>
-                          : (
-                            <>
-                              {hour.buildings.map(value => (
-                                <td key={value.buildingId}><PlannedValue value={value.expectedPersons} peak={value.peak} /></td>
-                              ))}
-                              <td><PlannedValue value={hour.expectedPersons} peak={hour.peak} /></td>
-                              <td>{hour.bookedRooms}</td>
-                            </>
-                          )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                caption="Tagesprognose je Stunde und Gebäude"
+                columns={[
+                  {
+                    key: 'time',
+                    header: 'Uhrzeit',
+                    mono: true,
+                    cell: (hour: HourForecast) =>
+                      hour.past
+                        ? hour.localLabel
+                        : <button type="button" className="occupancy-hour" onClick={event => {
+                            hourTrigger.current = event.currentTarget
+                            setSelectedHour(hour)
+                          }}>{hour.localLabel}</button>,
+                  },
+                  ...forecast.buildings.map((building, index) => ({
+                    key: `building-${building.buildingId}`,
+                    header: building.buildingName,
+                    mono: true,
+                    cell: (hour: HourForecast) => hour.past
+                      ? ''
+                      : <PlannedValue value={hour.buildings[index].expectedPersons} peak={hour.buildings[index].peak} />,
+                  })),
+                  {
+                    key: 'total',
+                    header: 'Gesamt',
+                    mono: true,
+                    // Vergangene Stunden tragen ihr Wort in der Spalte "Gesamt"; die übrigen Zellen bleiben leer.
+                    cell: (hour: HourForecast) => hour.past
+                      ? <span className="occupancy-past">vergangen</span>
+                      : <PlannedValue value={hour.expectedPersons} peak={hour.peak} />,
+                  },
+                  { key: 'rooms', header: 'Räume', mono: true, cell: (hour: HourForecast) => hour.past ? '' : hour.bookedRooms },
+                ]}
+                rows={forecast.hours}
+                rowKey={(hour: HourForecast) => hour.start}
+                rowHeader="time"
+                emptyText="Keine Stunden."
+              />
             </>
           )}
           {selectedHour && (

@@ -4,6 +4,7 @@ import { getMyUpcomingReservations } from '../../API/reservations'
 import { formatDateTimeRange, formatDuration } from '../../utils/date'
 import type { Reservation } from '../../types/reservation'
 import './MyUpcomingReservations.css'
+import { DataTable, ErrorMessage } from '../ui'
 
 export function MyUpcomingReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -38,39 +39,34 @@ export function MyUpcomingReservations() {
 
       {loading && <p className="loading-state">Reservierungen werden geladen...</p>}
 
-      {error && (
-        <div role="alert" className="feedback-error">
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
 
-      {!loading && !error && reservations.length === 0 && (
-        <p className="empty-state">Keine anstehenden Reservierungen vorhanden.</p>
-      )}
-
-      {!loading && !error && reservations.length > 0 && (
-        <div className="table-responsive">
-          <table className="upcoming-reservations-table">
-            <thead>
-              <tr>
-                <th>Zeitpunkt</th>
-                <th>Raum</th>
-                <th>Dauer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reservations.map((res) => (
-                <tr key={res.id}>
-                  <td>{formatDateTimeRange(res.startTime, res.endTime)}</td>
-                  <td>
-                    <Link to={`/rooms/${res.roomId}`}>{res.roomName}</Link>
-                  </td>
-                  <td>{formatDuration(res.startTime, res.endTime)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!loading && !error && (
+        <DataTable
+          caption="Anstehende Reservierungen"
+          columns={[
+            {
+              key: 'time',
+              header: 'Zeitpunkt',
+              mono: true,
+              cell: (res) => formatDateTimeRange(res.startTime, res.endTime),
+            },
+            {
+              key: 'room',
+              header: 'Raum',
+              cell: (res) => (
+                <Link className="room-name" to={`/rooms/${res.roomId}`}>
+                  {res.roomName}
+                </Link>
+              ),
+            },
+            { key: 'duration', header: 'Dauer', mono: true, cell: (res) => formatDuration(res.startTime, res.endTime) },
+          ]}
+          rows={reservations}
+          rowKey={(res) => res.id}
+          rowHeader="room"
+          emptyText="Keine anstehenden Reservierungen vorhanden."
+        />
       )}
     </section>
   )

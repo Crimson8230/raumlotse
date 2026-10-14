@@ -49,6 +49,7 @@ describe('CheckInPage', () => {
     const start = formatTime(new Date(booking.startTime))
     const end = formatTime(new Date(booking.endTime))
     expect(screen.getByText(new RegExp(`${start}\\s*–\\s*${end}`))).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(`${start}\\s*–\\s*${end}`))).toHaveClass('mono')
     expect(api.checkIn).not.toHaveBeenCalled()
 
     await user.click(screen.getByRole('button', { name: 'Anwesenheit bestätigen' }))

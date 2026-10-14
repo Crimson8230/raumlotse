@@ -5,6 +5,7 @@ import { formatApiError } from '../../API/client'
 import { uploadMapImage } from '../../API/maps'
 import type { MapSummary } from '../../types/map'
 import type { Building, Floor } from '../../types/room'
+import { ErrorMessage, Field } from '../../components/ui'
 
 interface Props {
   /** When given, the control replaces this map's image instead of creating a new map. */
@@ -105,18 +106,20 @@ export function MapUploadControl({ map, existingMaps, onSaved }: Props) {
           </label>
         </>
       )}
-      <label>
-        Grundriss (PNG oder JPEG, max. 10 MB)
-        <input
-          type="file"
-          accept="image/png,image/jpeg"
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-        />
-      </label>
-      <button type="submit" disabled={busy || !file || !targetFloorId}>
+      <Field label="Grundriss (PNG oder JPEG, max. 10 MB)" required>
+        {(control) => (
+          <input
+            {...control}
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        )}
+      </Field>
+      <button type="submit" className="btn-primary" disabled={busy || !file || !targetFloorId}>
         {replacing ? 'Bild ersetzen' : 'Karte anlegen'}
       </button>
-      {error && <p role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
       {notice && <p role="status">{notice}</p>}
     </form>
   )

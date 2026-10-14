@@ -42,6 +42,13 @@ function renderLoginFrom(from: unknown) {
 }
 
 describe('LoginPage', () => {
+  it('starts with the skip link and has the main content target (feature 019, US1)', async () => {
+    renderLogin()
+    await userEvent.tab()
+    expect(screen.getByRole('link', { name: 'Zum Inhalt springen' })).toHaveFocus()
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'inhalt')
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     auth.refreshCsrfToken.mockResolvedValue(undefined)

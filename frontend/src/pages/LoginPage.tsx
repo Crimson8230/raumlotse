@@ -4,6 +4,7 @@ import { canonicalEmail, loginSchema } from '../auth/loginSchema'
 import { ApiError } from '../API/client'
 import { useAuth } from '../auth/useAuth'
 import { safeReturnPath } from '../auth/returnPath'
+import { ErrorMessage, Field, SkipLink } from '../components/ui'
 import './LoginPage.css'
 
 export default function LoginPage() {
@@ -87,20 +88,29 @@ export default function LoginPage() {
   const remaining = Math.max(0, Math.ceil(((cooldowns[currentEmailKey] ?? 0) - now) / 1000))
 
   return (
-    <main className="login-page">
+    <>
+    <SkipLink targetId="inhalt" />
+    <main id="inhalt" className="login-page">
       <form className="login-card" onSubmit={submit} aria-labelledby="login-title" noValidate>
         <h1 id="login-title">Anmelden</h1>
         <p>Melden Sie sich mit E-Mail-Adresse und Passwort bei Raumlotse an.</p>
-        <label htmlFor="login-email">E-Mail-Adresse</label>
-        <input id="login-email" name="email" type="email" autoComplete="username" required maxLength={254}
-          value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy} />
-        <label htmlFor="login-password">Passwort</label>
-        <input id="login-password" name="password" type="password" autoComplete="current-password" required
-          maxLength={1024} value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
+        <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
+        <Field label="E-Mail-Adresse" required>
+          {(control) => (
+            <input {...control} name="email" type="email" autoComplete="username" required maxLength={254}
+              value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy} />
+          )}
+        </Field>
+        <Field label="Passwort" required>
+          {(control) => (
+            <input {...control} name="password" type="password" autoComplete="current-password" required
+              maxLength={1024} value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
+          )}
+        </Field>
         {remaining > 0
           ? <p className="login-error" role="status">Too many failed login attempts. Try again in {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}.</p>
-          : error && <p className="login-error" role="alert">{error}</p>}
-        <button type="submit" disabled={busy || remaining > 0 || state === 'loading' || state === 'finishing-login' || (state === 'unavailable' && !!user)}>
+          : error && <ErrorMessage>{error}</ErrorMessage>}
+        <button type="submit" className="btn-primary" disabled={busy || remaining > 0 || state === 'loading' || state === 'finishing-login' || (state === 'unavailable' && !!user)}>
           {busy ? 'Anmeldung läuft…' : 'Anmelden'}
         </button>
         {state === 'unavailable' && user && <button type="button" onClick={retrySessionSetup} disabled={busy}>
@@ -108,5 +118,6 @@ export default function LoginPage() {
         </button>}
       </form>
     </main>
+    </>
   )
 }

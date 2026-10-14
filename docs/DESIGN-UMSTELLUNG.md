@@ -20,23 +20,25 @@ Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und 
 | **1 – Tokens, Schriften, globale Stile** | Tokens in `src/index.css`, lokale Schriften (`@fontsource`), eckige Elemente, 44-px-Ziele, invertierte Admin-Leiste, Badges als Muster + Wort, Komponenten-CSS ohne feste Farben | **erledigt** (Commit `style(frontend)`), im Browser per Screenshots geprüft |
 | **Übersetzung ins Deutsche** | Frontend-Texte, Statuslabels (`utils/labels.ts`), Backend-Meldungen, Validierungs-Locale | **erledigt** |
 | **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | **erledigt** (Feature 018; Sichtprüfung im Browser offen, siehe `specs/018-shared-ui-building-blocks/checklists/visual-review.md`) |
-| **3 – Seiten umbauen** | siehe Abschnitt 3 | teilweise |
+| **3 – Seiten umbauen** | siehe Abschnitt 3 | Teil 1 erledigt (Feature 019: Sprunglink, Raumzeile mit Streifen, Fehlermuster, Tabellen, Typografie); Rest siehe Abschnitt 3 |
 | **4 – Neue Funktionen** | siehe Abschnitt 4 | offen, je ein eigener Spec-Kit-Durchlauf |
 
 Reihenfolge-Empfehlung: Schicht 2 → Rest von Schicht 3 → Schicht 4 pro Funktion (Veranstaltungstitel und Stockwerk-Reihenfolge zuerst).
 
 ## 3. Offene Punkte Schicht 3 (Seiten)
 
-- Sprunglink „Zum Inhalt springen“ auf allen Seiten und `id="inhalt"` an den `<main>`-Elementen (CSS-Klasse `.skip-link` existiert, ist aber nirgends eingebunden).
-- `.btn-primary` ist angelegt, wird noch nirgends verwendet (z. B. „Buchen“, „Reservierung bestätigen“, „Speichern“).
-- Raumliste als Listenzeile nach Design (Nummer, Name in Serif, Streifen mit Jetzt-Marke, genau eine Aktion); Streifen-Bauteil `.strip` ist nur als CSS-Klasse vorhanden.
+Erledigt mit Feature 019 (Teil 1): Sprunglink und `id="inhalt"` an allen `<main>`; Raumliste als Zeile mit Streifen, „Jetzt“-Marke, einer Hauptaktion und Gruppe „Verwalten“; Fehlermuster (Symbol + „Fehler:“ + Text) und Feldlabels statt technischer Feldnamen; Tabellen über `DataTable`; Zeiten in Mono, Raumnamen in Serif (soweit nicht in zusammengesetzten Textzeilen); `.btn-primary` für die Hauptaktionen; Navigation im Administrationsmodus mit nicht umbrechendem Indikator.
+
+Noch offen:
+
 - Raumdetail/Buchen nach Lektorat-Board: Abschnitt „Raum auf einen Blick“ (Sitzordnungen, Ausstattung, Zugang) **unter** „Meine Buchungen“, Belegungen des Tages mit Titeln, Formular rechts.
 - Studierenden-Ansicht: bisher gemeinsame Ansicht mit dem Lektorat; Design sieht Veranstaltung + Ort statt Plätze/Ausstattung vor (hängt an Abschnitt 4).
-- Standorte/Admin: Master-Detail (Häuser links, Stockwerke rechts mit Pfeil-Buttons zum Sortieren), Formulare „Haus bearbeiten“ / „Stockwerk bearbeiten“, Raumtabelle mit `caption`, `scope` und Spalte „Zugang“.
-- Datums-/Zeitwerte überall in Mono; Raumnamen überall in Serif (nur in der Raumliste umgesetzt). Grund: Die Null von Atkinson Hyperlegible ist durchgestrichen und nicht abschaltbar.
-- Navigation: Im Administrationsmodus bricht der Indikator bei 1280 px in eine zweite Zeile um (sechs Links plus Indikator).
-- Barrierefreiheit in der App noch nicht umgesetzt: `aria-label` der Streifen mit allen Zeitfenstern und „Jetzt“, Fehlermuster (Symbol + „Fehler:“ + Text) in den Formularen, `table`/`caption`/`scope`, echte `ul`/`li` in den Listen, native Datums-/Zeitfelder und Pflichtfeld-Markierung im Buchungsformular, Pflichtfeld-Hinweis.
-- Frontend-Feldnamen in Validierungsfehlern erscheinen technisch („startTime: darf nicht null sein“): Zuordnung Feldname → Label im Frontend.
+- Standorte/Admin: Master-Detail (Häuser links, Stockwerke rechts mit Pfeil-Buttons zum Sortieren), Formulare „Haus bearbeiten“ / „Stockwerk bearbeiten“, Spalte „Zugang“ in der Raumtabelle.
+- Raumnummer als eigenes Feld der Raumzeile: `Room` hat keine Nummer, der Name trägt sie.
+- Mono für Zeiten in zusammengesetzten Textzeilen (Belegungslisten der Auslastungsseite) und Serif für Raumnamen darin.
+- Navigation: Ob die Leiste im Administrationsmodus bei 1280 px mit allen Rechten in **eine** Zeile passt, ist im Browser zu prüfen (zehn Links plus Indikator und Schalter sind rechnerisch zu breit; der Block bricht kontrolliert in eine zweite Zeile).
+- Barrierefreiheit: axe-Lauf im Browser; Streifen-`aria-label` mit „Jetzt“ ist umgesetzt, Pflichtfeld-Hinweis in allen Formularen.
+- Echte `ul`/`li`-Listen: bestehende Katalog- und Rollenlisten sind bereits Listen; ein Wechsel auf `DataList` ändert deren Panel-Layout und ist Teil 2.
 
 ## 4. Offene Punkte Schicht 4 (neue Funktionen, noch nicht im Backend/Spec)
 

@@ -49,10 +49,18 @@
 
 .nav-admin-mode {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
+  margin-left: auto;
   padding: var(--space-1) 0;
+}
+
+/* Indikator und Schalter brechen nie in sich um: passt der Block nicht neben die Links, rutscht er als Ganzes in die nächste Zeile. */
+.nav-admin-indicator,
+.nav-admin-mode button {
+  white-space: nowrap;
 }
 
 .nav-admin-indicator {
@@ -60,6 +68,16 @@
   align-items: center;
   gap: 0.35rem;
   font-weight: 700;
+}
+
+/* Im Administrationsmodus sind es bis zu zehn Links: enger setzen, damit möglichst alles in eine Zeile passt. */
+.nav-admin .nav-list {
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.nav-admin .nav-link {
+  padding-inline: 0;
 }
 
 /* Administrationsmodus = invertierte Anzeige: die ganze Leiste kippt auf Tinte. Blau auf Tinte hätte nur 2:1,
