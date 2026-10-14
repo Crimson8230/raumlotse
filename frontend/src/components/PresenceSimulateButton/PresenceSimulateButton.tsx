@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatApiError } from '../../API/client'
 import { simulatePresence, type PresenceEventResult } from '../../API/presence'
 import { useAdminMode } from '../../auth/useAdminMode'
+import { ErrorMessage } from '../../components/ui'
 
 function clock(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -40,7 +41,7 @@ export function PresenceSimulateButton({ roomId, lastPresenceAt }: { roomId: str
       ) : (
         shownPresence && <p role="status">Zuletzt Bewegung erkannt: {clock(shownPresence)}</p>
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
     </div>
   )
 }

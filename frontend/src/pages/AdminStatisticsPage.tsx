@@ -5,6 +5,7 @@ import { formatApiError } from '../API/client'
 import type { AdminStatisticsResponse, RoomStatistics, FeatureStatistics, StatisticsPeriodInput } from '../types/adminStatistics'
 import { isValidStatisticsPeriod } from '../types/adminStatistics'
 import './AdminStatisticsPage.css'
+import { DataTable, ErrorMessage, Field } from '../components/ui'
 
 function formatLocalDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -73,16 +74,20 @@ export default function AdminStatisticsPage() {
   const noReservations = data?.summary.totalReservations === 0
 
   return (
-    <main className="admin-statistics-page">
+    <main id="inhalt" className="admin-statistics-page">
       <h1>Admin-Statistiken</h1>
       <p className="page-intro">Raumnutzung und Buchungen für den ausgewählten Zeitraum.</p>
       <form className="statistics-period" onSubmit={applyPeriod}>
-        <label>Von<input aria-label="Von" type="date" value={draft.from} onChange={event => setDraft({ ...draft, from: event.target.value })} /></label>
-        <label>Bis<input aria-label="Bis" type="date" value={draft.to} onChange={event => setDraft({ ...draft, to: event.target.value })} /></label>
+        <Field label="Von">
+          {control => <input {...control} type="date" value={draft.from} onChange={event => setDraft({ ...draft, from: event.target.value })} />}
+        </Field>
+        <Field label="Bis">
+          {control => <input {...control} type="date" value={draft.to} onChange={event => setDraft({ ...draft, to: event.target.value })} />}
+        </Field>
         <button type="submit">Zeitraum anwenden</button>
       </form>
       {loading && <p className="statistics-status" role="status">Statistiken werden geladen…</p>}
-      {error && <p className="feedback-error" role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
       {!loading && data && (
         <>
           <p className="statistics-period-note">Zeitraum: {data.period.from} bis {data.period.to} · Zeitzone: {data.period.timezone}</p>
@@ -93,10 +98,35 @@ export default function AdminStatisticsPage() {
             <article className="statistics-card"><h2>Datengrundlage</h2><strong>{data.summary.validReservationCount}</strong><span>gültige Buchungen · {data.summary.missingAttendeeCount} ohne Personenangabe</span></article>
           </section>
           <section className="statistics-section"><div className="statistics-section-heading"><h2>Raumauslastung</h2><button type="button" onClick={() => setRoomDescending(value => !value)}>Nach Auslastung sortieren {roomDescending ? '↓' : '↑'}</button></div><p className="statistics-help">Auslastung = gebuchte Raumzeit geteilt durch die gesamte Kalenderzeit des Zeitraums.</p>
-            <div className="statistics-table-wrap"><table><caption className="visually-hidden">Raumauslastung je Raum</caption><thead><tr><th>Raum</th><th>Status</th><th>Buchungen</th><th>Gebuchte Zeit</th><th>Auslastung</th></tr></thead><tbody>{sortedRooms.map((room: RoomStatistics) => <tr key={room.roomId}><th scope="row">{room.roomName}</th><td>{room.roomStatus}</td><td>{room.bookingCount}</td><td>{formatHours(room.bookedSeconds)}</td><td>{formatNumber(room.utilizationPercent)} %</td></tr>)}</tbody></table></div>
+            <DataTable
+              caption="Raumauslastung je Raum"
+              columns={[
+                { key: 'room', header: 'Raum', cell: (room: RoomStatistics) => <span className="room-name">{room.roomName}</span> },
+                { key: 'status', header: 'Status', cell: (room: RoomStatistics) => room.roomStatus },
+                { key: 'bookings', header: 'Buchungen', mono: true, cell: (room: RoomStatistics) => room.bookingCount },
+                { key: 'time', header: 'Gebuchte Zeit', mono: true, cell: (room: RoomStatistics) => formatHours(room.bookedSeconds) },
+                { key: 'utilization', header: 'Auslastung', mono: true, cell: (room: RoomStatistics) => `${formatNumber(room.utilizationPercent)} %` },
+              ]}
+              rows={sortedRooms}
+              rowKey={(room: RoomStatistics) => room.roomId}
+              rowHeader="room"
+              emptyText="Keine Räume im ausgewählten Zeitraum."
+            />
           </section>
           <section className="statistics-section"><div className="statistics-section-heading"><h2>Raumfeatures</h2><button type="button" onClick={() => setFeatureDescending(value => !value)}>Nach Nutzung sortieren {featureDescending ? '↓' : '↑'}</button></div><p className="statistics-help">Ein Raum mit mehreren Features zählt je Feature, aber nicht mehrfach in den Gesamtzahlen.</p>
-            <div className="statistics-table-wrap"><table><caption className="visually-hidden">Nutzung der Raumfeatures</caption><thead><tr><th>Feature</th><th>Status</th><th>Buchungen</th><th>Gebuchte Zeit</th></tr></thead><tbody>{sortedFeatures.map((feature: FeatureStatistics) => <tr key={feature.featureId}><th scope="row">{feature.featureName}</th><td>{feature.featureStatus}</td><td>{feature.bookingCount}</td><td>{formatHours(feature.bookedSeconds)}</td></tr>)}</tbody></table></div>
+            <DataTable
+              caption="Nutzung der Raumfeatures"
+              columns={[
+                { key: 'feature', header: 'Feature', cell: (feature: FeatureStatistics) => feature.featureName },
+                { key: 'status', header: 'Status', cell: (feature: FeatureStatistics) => feature.featureStatus },
+                { key: 'bookings', header: 'Buchungen', mono: true, cell: (feature: FeatureStatistics) => feature.bookingCount },
+                { key: 'time', header: 'Gebuchte Zeit', mono: true, cell: (feature: FeatureStatistics) => formatHours(feature.bookedSeconds) },
+              ]}
+              rows={sortedFeatures}
+              rowKey={(feature: FeatureStatistics) => feature.featureId}
+              rowHeader="feature"
+              emptyText="Keine Raumfeatures im ausgewählten Zeitraum."
+            />
           </section>
         </>
       )}

@@ -20,6 +20,7 @@ import {
 import { formatApiError } from '../../API/client'
 import type { Building, Floor } from '../../types/room'
 import { entityStatusLabel } from '../../utils/labels'
+import { ErrorMessage, Field } from '../../components/ui'
 
 export interface BuildingCatalogProps {
   /** Called whenever a building/floor is created, so an embedding form can refresh its pickers. */
@@ -87,9 +88,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
     <section aria-label="Katalog der Gebäude und Stockwerke" className="panel">
       <h2>Gebäude</h2>
       {error && (
-        <p role="alert" className="feedback-error">
-          {error}
-        </p>
+        <ErrorMessage>{error}</ErrorMessage>
       )}
 
       {canManageBuildings && <form
@@ -103,14 +102,11 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
           })
         }}
       >
-        <div>
-          <label htmlFor="new-building-name">Name des neuen Gebäudes</label>
-          <input
-            id="new-building-name"
-            value={newBuildingName}
-            onChange={(e) => setNewBuildingName(e.target.value)}
-          />
-        </div>
+        <Field label="Name des neuen Gebäudes" required>
+          {(control) => (
+            <input {...control} value={newBuildingName} onChange={(e) => setNewBuildingName(e.target.value)} />
+          )}
+        </Field>
         <label className="checkbox-label">
           <input
             type="checkbox"
@@ -119,7 +115,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
           />
           Aufzug vorhanden
         </label>
-        <button type="submit">Gebäude hinzufügen</button>
+        <button type="submit" className="btn-primary">Gebäude hinzufügen</button>
       </form>}
 
       {buildings.length === 0 ? (
@@ -129,7 +125,6 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
         {buildings.map((building) => {
           const floors = floorsByBuilding[building.id] ?? []
           const renameId = `rename-building-${building.id}`
-          const newFloorId = `new-floor-${building.id}`
           return (
             <li key={building.id} className="panel">
               <span className="catalog-name">{building.name}</span>{' '}
@@ -186,16 +181,17 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                   })
                 }}
               >
-                <div>
-                  <label className="sr-only" htmlFor={newFloorId}>{`Name des neuen Stockwerks in ${building.name}`}</label>
-                  <input
-                    id={newFloorId}
-                    value={newFloorNames[building.id] ?? ''}
-                    onChange={(e) =>
-                      setNewFloorNames((prev) => ({ ...prev, [building.id]: e.target.value }))
-                    }
-                  />
-                </div>
+                <Field label={`Name des neuen Stockwerks in ${building.name}`} required>
+                  {(control) => (
+                    <input
+                      {...control}
+                      value={newFloorNames[building.id] ?? ''}
+                      onChange={(e) =>
+                        setNewFloorNames((prev) => ({ ...prev, [building.id]: e.target.value }))
+                      }
+                    />
+                  )}
+                </Field>
                 <label className="checkbox-label">
                   <input
                     type="checkbox"
@@ -204,7 +200,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                   />
                   Erdgeschoss (stufenloser Zugang)
                 </label>
-                <button type="submit" aria-label={`Stockwerk zu ${building.name} hinzufügen`}>Hinzufügen</button>
+                <button type="submit" className="btn-primary" aria-label={`Stockwerk zu ${building.name} hinzufügen`}>Hinzufügen</button>
               </form>}
 
               {floors.length === 0 ? (

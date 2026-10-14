@@ -148,3 +148,23 @@ describe('BuildingCatalog', () => {
     await waitFor(() => expect(floors.updateFloor).toHaveBeenCalledWith('f1', 'EG', false))
   })
 })
+
+describe('BuildingCatalog list structure and fields (feature 019)', () => {
+  it('shows buildings and floors as real list items', async () => {
+    buildings.listBuildings.mockResolvedValue([building()])
+    floors.listFloors.mockResolvedValue([floor(), floor({ id: 'f2', name: '2' })])
+    render(<BuildingCatalog />)
+    expect(await screen.findAllByRole('listitem')).toHaveLength(3)
+  })
+
+  it('says so in words when there are no buildings', async () => {
+    render(<BuildingCatalog />)
+    expect(await screen.findByText('Noch keine Gebäude.')).toBeInTheDocument()
+  })
+
+  it('marks the new-building field as required and the add button as primary', () => {
+    render(<BuildingCatalog />)
+    expect(screen.getByLabelText(/name des neuen gebäudes/i)).toHaveAttribute('aria-required', 'true')
+    expect(screen.getByRole('button', { name: /gebäude hinzufügen/i })).toHaveClass('btn-primary')
+  })
+})

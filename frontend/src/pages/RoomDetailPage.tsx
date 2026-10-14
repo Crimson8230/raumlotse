@@ -16,6 +16,7 @@ import type { Room } from '../types/room'
 import type { Reservation } from '../types/reservation'
 import './RoomDetailPage.css'
 import { entityStatusLabel } from '../utils/labels'
+import { ErrorMessage } from '../components/ui'
 
 /** `?start=&end=` from a room search (contracts/ui.md §3); null unless both are valid instants and end > start. */
 function bookingWindow(start: string | null, end: string | null): { start: string; end: string } | null {
@@ -136,7 +137,7 @@ export default function RoomDetailPage() {
 
   if (loading) {
     return (
-      <main>
+      <main id="inhalt">
         <p className="status-loading">Wird geladen…</p>
       </main>
     )
@@ -144,16 +145,14 @@ export default function RoomDetailPage() {
 
   if (loadError || !room) {
     return (
-      <main>
-        <p role="alert" className="feedback-error">
-          {loadError ?? 'Raum nicht gefunden.'}
-        </p>
+      <main id="inhalt">
+        <ErrorMessage>{loadError ?? 'Raum nicht gefunden.'}</ErrorMessage>
       </main>
     )
   }
 
   return (
-    <main className="room-detail-page">
+    <main id="inhalt" className="room-detail-page">
       <div className="room-detail-header">
         <div className="room-detail-title">
           <h1>{room.name}</h1>

@@ -7,6 +7,8 @@ import * as roomsApi from '../API/rooms'
 import * as buildingsApi from '../API/buildings'
 import * as equipmentTypesApi from '../API/equipmentTypes'
 import * as favoriteRoomsApi from '../API/favoriteRooms'
+import * as reservationsApi from '../API/reservations'
+import { resetDayWindowsCache } from '../components/RoomList/dayWindows'
 import type { Room } from '../types/room'
 
 const mode = vi.hoisted(() => ({ adminMode: true, permissions: ['READ', 'RESERVE', 'ROOM_MANAGE'] as string[] }))
@@ -18,11 +20,13 @@ vi.mock('../API/rooms')
 vi.mock('../API/buildings')
 vi.mock('../API/equipmentTypes')
 vi.mock('../API/favoriteRooms')
+vi.mock('../API/reservations')
 
 const rooms = vi.mocked(roomsApi)
 const buildings = vi.mocked(buildingsApi)
 const equipmentTypes = vi.mocked(equipmentTypesApi)
 const favoriteRooms = vi.mocked(favoriteRoomsApi)
+const reservations = vi.mocked(reservationsApi)
 
 function room(overrides: Partial<Room> = {}): Room {
   return {
@@ -73,6 +77,8 @@ beforeEach(() => {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  resetDayWindowsCache()
+  reservations.listRoomReservations.mockResolvedValue([])
   rooms.searchRooms.mockResolvedValue([])
   rooms.listRooms.mockResolvedValue([])
   rooms.listSeatingArrangementNames.mockResolvedValue(['Theater'])
@@ -481,5 +487,67 @@ describe('RoomListPage', () => {
       await screen.findByText('Room 101')
       expect(screen.queryByRole('button', { name: /favorit/i })).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('RoomListPage strips (feature 019)', () => {
+  it('shows the day strip of each active room and loads its reservations', async () => {
+    rooms.searchRooms.mockResolvedValue([room(), room({ id: 'r2', name: 'Room 102' })])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getAllByRole('img', { name: /ganztägig frei/ })).toHaveLength(2))
+    expect(reservations.listRoomReservations).toHaveBeenCalledWith('r1', expect.any(String), expect.any(String))
+    expect(reservations.listRoomReservations).toHaveBeenCalledWith('r2', expect.any(String), expect.any(String))
+  })
+
+  it('renders the rooms as list items of one list', async () => {
+    rooms.searchRooms.mockResolvedValue([room(), room({ id: 'r2', name: 'Room 102' })])
+
+    renderPage()
+
+    await screen.findByText('Room 102')
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('keeps the list usable and says so when a strip cannot be loaded', async () => {
+    reservations.listRoomReservations.mockRejectedValue(new Error('boom'))
+    rooms.searchRooms.mockResolvedValue([room()])
+
+    renderPage()
+
+    expect(await screen.findByText('Belegung nicht verfügbar')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Room 101 buchen' })).toBeInTheDocument()
+  })
+
+  it('shows no strip for deactivated rooms', async () => {
+    const user = userEvent.setup()
+    rooms.listRooms.mockResolvedValue([room({ id: 'r2', name: 'Room 102', status: 'DEACTIVATED' })])
+
+    renderPage()
+    await user.selectOptions(screen.getByLabelText(/status/i), 'all')
+
+    await screen.findByText('Room 102')
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(reservations.listRoomReservations).not.toHaveBeenCalled()
+  })
+
+  it('moves the "Jetzt" marker without a reload', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date(2026, 9, 14, 8, 0) })
+    try {
+      rooms.searchRooms.mockResolvedValue([room()])
+      renderPage()
+      const strip = await screen.findByRole('img', { name: /Jetzt: 08:00/ })
+      expect(strip).toBeInTheDocument()
+
+      await act(async () => {
+        vi.setSystemTime(new Date(2026, 9, 14, 8, 30))
+        await vi.advanceTimersByTimeAsync(60_000)
+      })
+
+      expect(await screen.findByRole('img', { name: /Jetzt: 08:(29|30|31)/ })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

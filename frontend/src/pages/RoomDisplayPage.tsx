@@ -117,7 +117,7 @@ export default function RoomDisplayPage() {
 
 if (loading) {
   return (
-    <main>
+    <main id="inhalt">
       <p className="status-loading">Raumanzeige wird geladen…</p>
     </main>
   )

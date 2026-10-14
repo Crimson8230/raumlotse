@@ -27,6 +27,7 @@ export function RoomDisplay({
 }: RoomDisplayProps) {
   return (
     <main
+      id="inhalt"
       className="room-display"
       data-testid="room-display"
     >

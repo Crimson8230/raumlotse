@@ -4,6 +4,7 @@ import { RoomForm } from '../components/RoomForm/RoomForm'
 import { getRoom } from '../API/rooms'
 import type { Room } from '../types/room'
 import { entityStatusLabel } from '../utils/labels'
+import { ErrorMessage } from '../components/ui'
 
 export default function RoomFormPage() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -38,7 +39,7 @@ export default function RoomFormPage() {
 
   if (loading) {
     return (
-      <main>
+      <main id="inhalt">
         <p className="status-loading">Wird geladen…</p>
       </main>
     )
@@ -46,16 +47,14 @@ export default function RoomFormPage() {
 
   if (loadError) {
     return (
-      <main>
-        <p role="alert" className="feedback-error">
-          {loadError}
-        </p>
+      <main id="inhalt">
+        <ErrorMessage>{loadError}</ErrorMessage>
       </main>
     )
   }
 
   return (
-    <main>
+    <main id="inhalt">
       <h1>{room ? `${room.name} bearbeiten` : 'Neuer Raum'}</h1>
       {room && (
         <dl className="panel">

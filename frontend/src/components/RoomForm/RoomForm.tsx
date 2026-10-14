@@ -3,7 +3,8 @@ import { createBuilding, listBuildings } from '../../API/buildings'
 import { createFloor, listFloors } from '../../API/floors'
 import { listEquipmentTypes } from '../../API/equipmentTypes'
 import { createRoom, updateRoom } from '../../API/rooms'
-import { ApiError, formatApiError } from '../../API/client'
+import { ApiError, fieldErrorsOf, formatApiError } from '../../API/client'
+import { ErrorMessage, Field } from '../ui'
 import type { Building, EquipmentType, Floor, Room, SeatingArrangement } from '../../types/room'
 import './RoomForm.css'
 
@@ -30,6 +31,8 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   const [showNewFloorForm, setShowNewFloorForm] = useState(false)
   const [newFloorName, setNewFloorName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // Fehler je Feld (Schlüssel = technischer Feldpfad des Backends); `error` gilt für das ganze Formular.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [errorKind, setErrorKind] = useState<'error' | 'conflict'>('error')
   const [submitting, setSubmitting] = useState(false)
 
@@ -112,6 +115,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setFieldErrors({})
     setErrorKind('error')
 
     if (seatingArrangements.length === 0) {
@@ -137,6 +141,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       // A 409 means someone else saved this room since it was loaded (optimistic-locking
       // conflict) — a distinct, recoverable state from a hard validation failure (FR-009).
       setErrorKind(err instanceof ApiError && err.status === 409 ? 'conflict' : 'error')
+      setFieldErrors(fieldErrorsOf(err))
       setError(formatApiError(err))
     } finally {
       setSubmitting(false)
@@ -173,47 +178,48 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
   return (
     <form onSubmit={handleSubmit} className="panel room-form">
       {error && (
-        <p role="alert" className={errorKind === 'conflict' ? 'feedback-conflict' : 'feedback-error'}>
-          {error}
-        </p>
+        <div className={errorKind === 'conflict' ? 'feedback-conflict' : undefined}>
+          <ErrorMessage>{error}</ErrorMessage>
+        </div>
       )}
 
-      <div>
-        <label htmlFor="room-name">Raumname</label>
-        <input id="room-name" value={name} onChange={(e) => setName(e.target.value)} required />
-      </div>
+      <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
+
+      <Field label="Raumname" required error={fieldErrors.name}>
+        {(control) => <input {...control} value={name} onChange={(e) => setName(e.target.value)} required />}
+      </Field>
 
       <div>
-        <label htmlFor="room-building">Gebäude</label>
-        <select
-          id="room-building"
-          value={selectedBuildingId}
-          onChange={(e) => {
-            setSelectedBuildingId(e.target.value)
-            setSelectedFloorId('')
-            setFloors([])
-          }}
-          required
-        >
-          <option value="" disabled>
-            Gebäude wählen
-          </option>
-          {buildings.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+        <Field label="Gebäude" required error={fieldErrors.buildingId}>
+          {(control) => (
+            <select
+              {...control}
+              value={selectedBuildingId}
+              onChange={(e) => {
+                setSelectedBuildingId(e.target.value)
+                setSelectedFloorId('')
+                setFloors([])
+              }}
+              required
+            >
+              <option value="" disabled>
+                Gebäude wählen
+              </option>
+              {buildings.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
         {showNewBuildingForm ? (
           <div className="inline-form">
-            <div>
-              <label htmlFor="new-building-name">Name des neuen Gebäudes</label>
-              <input
-                id="new-building-name"
-                value={newBuildingName}
-                onChange={(e) => setNewBuildingName(e.target.value)}
-              />
-            </div>
+            <Field label="Name des neuen Gebäudes">
+              {(control) => (
+                <input {...control} value={newBuildingName} onChange={(e) => setNewBuildingName(e.target.value)} />
+              )}
+            </Field>
             <button type="button" onClick={handleCreateBuilding}>
               Gebäude anlegen
             </button>
@@ -226,30 +232,34 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       </div>
 
       <div>
-        <label htmlFor="room-floor">Stockwerk</label>
-        <select
-          id="room-floor"
-          value={selectedFloorId}
-          onChange={(e) => setSelectedFloorId(e.target.value)}
-          disabled={!selectedBuildingId}
-          required
-        >
-          <option value="" disabled>
-            Stockwerk wählen
-          </option>
-          {floors.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+        <Field label="Stockwerk" required error={fieldErrors.floorId}>
+          {(control) => (
+            <select
+              {...control}
+              value={selectedFloorId}
+              onChange={(e) => setSelectedFloorId(e.target.value)}
+              disabled={!selectedBuildingId}
+              required
+            >
+              <option value="" disabled>
+                Stockwerk wählen
+              </option>
+              {floors.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
         {selectedBuildingId &&
           (showNewFloorForm ? (
             <div className="inline-form">
-              <div>
-                <label htmlFor="new-floor-name">Name des neuen Stockwerks</label>
-                <input id="new-floor-name" value={newFloorName} onChange={(e) => setNewFloorName(e.target.value)} />
-              </div>
+              <Field label="Name des neuen Stockwerks">
+                {(control) => (
+                  <input {...control} value={newFloorName} onChange={(e) => setNewFloorName(e.target.value)} />
+                )}
+              </Field>
               <button type="button" onClick={handleCreateFloor}>
                 Stockwerk anlegen
               </button>
@@ -294,26 +304,36 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
         <legend>Sitzordnungen</legend>
         {seatingArrangements.map((row, index) => (
           <div key={index} className="inline-form">
-            <div>
-              <label htmlFor={`seating-name-${index}`}>{`Name der Sitzordnung (${index + 1})`}</label>
-              <input
-                id={`seating-name-${index}`}
-                value={row.name}
-                onChange={(e) => updateSeatingArrangement(index, { name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor={`seating-capacity-${index}`}>{`Max. Kapazität (${index + 1})`}</label>
-              <input
-                id={`seating-capacity-${index}`}
-                type="number"
-                min={1}
-                value={row.maxCapacity}
-                onChange={(e) => updateSeatingArrangement(index, { maxCapacity: Number(e.target.value) })}
-                required
-              />
-            </div>
+            <Field
+              label={`Name der Sitzordnung (${index + 1})`}
+              required
+              error={fieldErrors[`seatingArrangements[${index}].name`]}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  value={row.name}
+                  onChange={(e) => updateSeatingArrangement(index, { name: e.target.value })}
+                  required
+                />
+              )}
+            </Field>
+            <Field
+              label={`Max. Kapazität (${index + 1})`}
+              required
+              error={fieldErrors[`seatingArrangements[${index}].maxCapacity`]}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="number"
+                  min={1}
+                  value={row.maxCapacity}
+                  onChange={(e) => updateSeatingArrangement(index, { maxCapacity: Number(e.target.value) })}
+                  required
+                />
+              )}
+            </Field>
             <button type="button" onClick={() => removeSeatingArrangement(index)}>
               {`Sitzordnung entfernen (${index + 1})`}
             </button>
@@ -325,7 +345,7 @@ export function RoomForm({ room, onSaved }: RoomFormProps) {
       </fieldset>
 
       <div className="actions">
-        <button type="submit" disabled={submitting}>
+        <button type="submit" className="btn-primary" disabled={submitting}>
           {room ? 'Raum speichern' : 'Raum anlegen'}
         </button>
       </div>

@@ -1,5 +1,5 @@
 import { MemoryRouter } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Navigation } from './Navigation'
@@ -130,5 +130,25 @@ describe('Navigation', () => {
 
     expect(screen.getByRole('link', { name: 'Räume' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
+  })
+})
+
+describe('Navigation layout (feature 019, FR-015)', () => {
+  it('keeps the administration indicator and switch from wrapping internally', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const css = readFileSync(join(__dirname, 'Navigation.css'), 'utf8')
+    expect(css).toMatch(/\.nav-admin-indicator,\s*\.nav-admin-mode button\s*\{\s*white-space:\s*nowrap/)
+    expect(css).toMatch(/\.nav-admin-mode\s*\{[^}]*flex:\s*0 0 auto/)
+  })
+
+  it('shows all admin links and the indicator in one navigation landmark', () => {
+    mode.state = { loading: false, failed: false, admin: true, adminMode: true }
+    mode.eligible = true
+    mode.permissions = ['READ', 'BUILDING_MANAGE', 'MAP_MANAGE', 'STATISTICS_READ']
+    renderNav('/admin/locations')
+    const nav = screen.getByRole('navigation', { name: 'Hauptnavigation' })
+    expect(within(nav).getAllByRole('link').length).toBeGreaterThanOrEqual(8)
+    expect(within(nav).getByRole('status')).toHaveTextContent('Administrationsmodus aktiv')
   })
 })

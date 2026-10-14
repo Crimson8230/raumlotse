@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAdminStatistics } from '../API/adminStatistics'
@@ -53,6 +53,17 @@ describe('AdminStatisticsPage', () => {
     expect(screen.getByText('Projector')).toBeInTheDocument()
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText(/25\s*%/)).toBeInTheDocument()
+  })
+
+  it('exposes both tables with caption, column headers and a room/feature row header (feature 019)', async () => {
+    render(<AdminStatisticsPage />)
+    const rooms = await screen.findByRole('table', { name: /Raumauslastung je Raum/ })
+    expect(within(rooms).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
+      ['Raum', 'Status', 'Buchungen', 'Gebuchte Zeit', 'Auslastung'],
+    )
+    expect(within(rooms).getByRole('rowheader', { name: 'Room A' })).toBeInTheDocument()
+    const features = screen.getByRole('table', { name: /Nutzung der Raumfeatures/ })
+    expect(within(features).getByRole('rowheader', { name: 'Projector' })).toBeInTheDocument()
   })
 
   it('reloads every metric for the submitted period', async () => {

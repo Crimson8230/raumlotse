@@ -20,6 +20,7 @@ import { MapUploadControl } from '../components/FloorMap/MapUploadControl'
 import type { Connection, MapDetail, MapSummary, Position, RoomRef } from '../types/map'
 import { useCurrentRoles } from '../auth/useCurrentRoles'
 import './MapPage.css'
+import { ErrorMessage } from '../components/ui'
 
 /**
  * `editable` is set by the `/admin/maps` routes only; those are guarded by administration mode, so the page itself
@@ -164,9 +165,9 @@ export default function MapPage({ editable = false }: { editable?: boolean }) {
   const current = maps?.find((candidate) => candidate.id === selectedId)
 
   return (
-    <main className="map-page">
+    <main id="inhalt" className="map-page">
       <h1>{editable ? 'Karten bearbeiten' : 'Karten'}</h1>
-      {error && <p role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
       {maps && (
         <MapSelector
           maps={maps}

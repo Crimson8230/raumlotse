@@ -3,6 +3,7 @@ import { ApiError, formatApiError } from '../../API/client'
 import { getRoomDeviceControls, setRoomDeviceState } from '../../API/roomDevices'
 import type { RoomDevice, RoomDeviceKind } from '../../types/roomDevice'
 import './RoomDeviceControls.css'
+import { ErrorMessage } from '../../components/ui'
 
 const labels: Record<RoomDeviceKind, string> = { LIGHTING: 'Beleuchtung', VENTILATION: 'Lüftung', PROJECTOR: 'Projector', DOOR: 'Tür' }
 
@@ -39,6 +40,6 @@ export function RoomDeviceControls({ roomId }: { roomId: string }) {
   }
   if (loading) return <section className="panel" aria-label="Gerätesteuerung"><p>Gerätesteuerung wird geladen…</p></section>
   if (forbidden) return <section className="panel" aria-label="Gerätesteuerung"><p role="alert">Die Steuerung steht nur während Ihrer aktiven Reservierung zur Verfügung.</p></section>
-  if (error && devices.length === 0) return <section className="panel" aria-label="Gerätesteuerung"><p role="alert">{error}</p><button type="button" onClick={() => void load()}>Erneut versuchen</button></section>
-  return <section className="panel room-device-controls" aria-label="Gerätesteuerung"><h2>Gerätesteuerung</h2>{error && <p role="alert">{error}</p>}<div className="room-device-grid">{devices.map((device) => <article key={device.kind} className="room-device-card"><h3>{labels[device.kind]}</h3><p aria-live="polite">{stateText(device)}</p><button type="button" aria-pressed={device.state} disabled={!device.enabled || busy !== null} onClick={() => void toggle(device)}>{actionText(device)}</button></article>)}</div>{devices.every((d) => d.kind !== 'PROJECTOR') && <p className="device-unavailable">Für diesen Raum ist kein Beamer eingerichtet.</p>}</section>
+  if (error && devices.length === 0) return <section className="panel" aria-label="Gerätesteuerung"><ErrorMessage>{error}</ErrorMessage><button type="button" onClick={() => void load()}>Erneut versuchen</button></section>
+  return <section className="panel room-device-controls" aria-label="Gerätesteuerung"><h2>Gerätesteuerung</h2>{error && <ErrorMessage>{error}</ErrorMessage>}<div className="room-device-grid">{devices.map((device) => <article key={device.kind} className="room-device-card"><h3>{labels[device.kind]}</h3><p aria-live="polite">{stateText(device)}</p><button type="button" aria-pressed={device.state} disabled={!device.enabled || busy !== null} onClick={() => void toggle(device)}>{actionText(device)}</button></article>)}</div>{devices.every((d) => d.kind !== 'PROJECTOR') && <p className="device-unavailable">Für diesen Raum ist kein Beamer eingerichtet.</p>}</section>
 }

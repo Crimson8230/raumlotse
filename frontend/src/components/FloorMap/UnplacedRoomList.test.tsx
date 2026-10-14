@@ -39,3 +39,12 @@ describe('UnplacedRoomList', () => {
     expect(screen.getByText('Raum 1')).toBeInTheDocument()
   })
 })
+
+describe('UnplacedRoomList typography (feature 019)', () => {
+  it('sets room names in the serif room-name style, as button text and as plain text', () => {
+    const { rerender } = render(<UnplacedRoomList rooms={rooms} activeRoomId={undefined} onSelect={vi.fn()} canSelect />)
+    expect(screen.getByRole('button', { name: 'Raum 1' })).toHaveClass('room-name')
+    rerender(<UnplacedRoomList rooms={rooms} activeRoomId={undefined} onSelect={vi.fn()} canSelect={false} />)
+    expect(screen.getByText('Raum 1')).toHaveClass('room-name')
+  })
+})

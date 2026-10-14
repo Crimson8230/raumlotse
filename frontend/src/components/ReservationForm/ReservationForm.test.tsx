@@ -284,7 +284,7 @@ describe('ReservationForm', () => {
     await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveClass('feedback-conflict')
+    expect(alert.closest('.feedback-conflict')).not.toBeNull()
     expect(alert).toHaveTextContent(/scheduling conflict/i)
 
     const link = screen.getByRole('link', { name: /zurück zur raumübersicht/i })
@@ -345,5 +345,63 @@ describe('ReservationForm', () => {
     unmount()
     render(<ReservationForm room={sampleRoom()} onSaved={vi.fn()} />)
     expect(screen.getByRole('checkbox', { name: 'E-Mail-Benachrichtigung' })).not.toBeChecked()
+  })
+})
+
+describe('ReservationForm fields and errors (feature 019)', () => {
+  function renderForm() {
+    return render(
+      <MemoryRouter>
+        <ReservationForm room={sampleRoom()} onSaved={vi.fn()} />
+      </MemoryRouter>,
+    )
+  }
+
+  it('marks required fields with the word "Pflichtfeld" and explains the marking once', () => {
+    renderForm()
+    expect(screen.getAllByText('Pflichtfeld').length).toBeGreaterThanOrEqual(4)
+    expect(screen.getAllByText(/Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet/)).toHaveLength(1)
+  })
+
+  it('shows the submit as the only primary action', () => {
+    renderForm()
+    const primary = document.querySelectorAll('.btn-primary')
+    expect(primary).toHaveLength(1)
+    expect(primary[0]).toHaveTextContent('Reservierung bestätigen')
+  })
+
+  it('attaches a missing-time error to the start field with symbol and "Fehler:"', async () => {
+    const user = userEvent.setup()
+    renderForm()
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
+
+    const start = screen.getByLabelText('Beginn')
+    expect(start).toHaveAttribute('aria-invalid', 'true')
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Fehler:')
+    expect(alert).toHaveTextContent('Beginn und Ende sind erforderlich.')
+    expect(start.getAttribute('aria-describedby')).toContain(alert.id)
+  })
+
+  it('shows server field errors by their label and on the field, not by the technical name', async () => {
+    const user = userEvent.setup()
+    reservations.createReservation.mockRejectedValue(
+      new ApiError(400, {
+        title: 'Validation Failed',
+        status: 400,
+        detail: 'Ungültige Eingabe.',
+        errors: [{ field: 'endTime', message: 'liegt außerhalb der Buchungszeiten' }],
+      }),
+    )
+    renderForm()
+    await user.type(screen.getByLabelText('Beginn'), '2026-10-01T10:00')
+    await user.type(screen.getByLabelText('Ende'), '2026-10-01T11:00')
+    await user.selectOptions(screen.getByLabelText('Sitzordnung'), SEAT_ONE_ID)
+    await user.type(screen.getByLabelText('Teilnehmende'), '10')
+    await user.click(screen.getByRole('button', { name: /reservierung bestätigen/i }))
+
+    await waitFor(() => expect(screen.getByLabelText('Ende')).toHaveAttribute('aria-invalid', 'true'))
+    expect(screen.queryByText(/endTime/)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/liegt außerhalb der Buchungszeiten/).length).toBeGreaterThanOrEqual(1)
   })
 })

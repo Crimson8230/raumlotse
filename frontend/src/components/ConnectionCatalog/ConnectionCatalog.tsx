@@ -3,6 +3,7 @@ import { createConnection, deleteConnection, deleteConnectionPoint, updateConnec
 import { formatApiError } from '../../API/client'
 import { CONNECTION_TYPE_LABEL } from '../FloorMap/connectionLabels'
 import type { Connection, ConnectionType } from '../../types/map'
+import { ErrorMessage, Field } from '../../components/ui'
 
 interface Props {
   connections: Connection[]
@@ -63,7 +64,7 @@ export function ConnectionCatalog({
   return (
     <section aria-label="Verbindungen" className="connection-catalog">
       <h2>Verbindungen (Treppen und Aufzüge)</h2>
-      {error && <p role="alert">{error}</p>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
       {connections.length === 0 && <p className="map-empty">Noch keine Verbindung angelegt.</p>}
       <ul>
         {connections.map((connection) => {
@@ -73,25 +74,29 @@ export function ConnectionCatalog({
             <li key={connection.id}>
               {isEditing ? (
                 <form onSubmit={save}>
-                  <label>
-                    Name
-                    <input
-                      value={editing.name}
-                      maxLength={100}
-                      onChange={(event) => setEditing({ ...editing, name: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Typ
-                    <select
-                      value={editing.type}
-                      onChange={(event) => setEditing({ ...editing, type: event.target.value as ConnectionType })}
-                    >
-                      <option value="ELEVATOR">Aufzug</option>
-                      <option value="STAIRS">Treppe</option>
-                    </select>
-                  </label>
-                  <button type="submit">Speichern</button>
+                  <Field label="Name" required>
+                    {(control) => (
+                      <input
+                        {...control}
+                        value={editing.name}
+                        maxLength={100}
+                        onChange={(event) => setEditing({ ...editing, name: event.target.value })}
+                      />
+                    )}
+                  </Field>
+                  <Field label="Typ">
+                    {(control) => (
+                      <select
+                        {...control}
+                        value={editing.type}
+                        onChange={(event) => setEditing({ ...editing, type: event.target.value as ConnectionType })}
+                      >
+                        <option value="ELEVATOR">Aufzug</option>
+                        <option value="STAIRS">Treppe</option>
+                      </select>
+                    )}
+                  </Field>
+                  <button type="submit" className="btn-primary">Speichern</button>
                   <button type="button" onClick={() => setEditing(undefined)}>
                     Abbrechen
                   </button>
@@ -142,18 +147,20 @@ export function ConnectionCatalog({
       </ul>
       {admin && (
         <form onSubmit={create} className="connection-create">
-          <label>
-            Name der Verbindung
-            <input value={newName} maxLength={100} onChange={(event) => setNewName(event.target.value)} />
-          </label>
-          <label>
-            Typ
-            <select value={newType} onChange={(event) => setNewType(event.target.value as ConnectionType)}>
-              <option value="ELEVATOR">Aufzug</option>
-              <option value="STAIRS">Treppe</option>
-            </select>
-          </label>
-          <button type="submit" disabled={newName.trim() === ''}>
+          <Field label="Name der Verbindung" required>
+            {(control) => (
+              <input {...control} value={newName} maxLength={100} onChange={(event) => setNewName(event.target.value)} />
+            )}
+          </Field>
+          <Field label="Typ">
+            {(control) => (
+              <select {...control} value={newType} onChange={(event) => setNewType(event.target.value as ConnectionType)}>
+                <option value="ELEVATOR">Aufzug</option>
+                <option value="STAIRS">Treppe</option>
+              </select>
+            )}
+          </Field>
+          <button type="submit" className="btn-primary" disabled={newName.trim() === ''}>
             Verbindung anlegen
           </button>
         </form>

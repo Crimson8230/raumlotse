@@ -24,7 +24,7 @@ function HomePage() {
     backendStatus === 'checking...' ? 'status-loading' : backendStatus === 'unreachable' ? 'status-unreachable' : undefined
 
   return (
-    <main>
+    <main id="inhalt">
       <h1>Raumlotse</h1>
       <p>Seminar- und Unterrichtsraumreservierung</p>
       <p>

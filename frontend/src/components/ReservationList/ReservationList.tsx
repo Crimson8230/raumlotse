@@ -16,6 +16,7 @@ import type { Reservation } from '../../types/reservation'
 import './ReservationList.css'
 import { reservationStatusLabels } from '../../utils/labels'
 import { reservationMetadataSchema } from './reservationMetadataSchema'
+import { ErrorMessage, Field } from '../../components/ui'
 
 export interface ReservationListProps {
   room: Room
@@ -133,9 +134,7 @@ export function ReservationList({
   return (
     <div className="reservation-list-container">
       {error && (
-        <p role="alert" className="feedback-error">
-          {error}
-        </p>
+        <ErrorMessage>{error}</ErrorMessage>
       )}
 
       {reservations.length === 0 ? (
@@ -207,45 +206,45 @@ export function ReservationList({
                       handleSaveEdit(visible)
                     }}
                   >
-                    <div>
-                      <label htmlFor={`edit-attendees-${res.id}`}>Teilnehmende bearbeiten</label>
-                      <input
-                        id={`edit-attendees-${res.id}`}
-                        type="number"
-                        min="1"
-                        max={visible.seatingArrangement?.maxCapacity}
-                        required
-                        value={editAttendees}
-                        onChange={(e) =>
-                          setEditAttendees(
-                          e.target.value,
-                        )
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`edit-reserved-for-${res.id}`}>Reserviert für</label>
-                      <input
-                        id={`edit-reserved-for-${res.id}`}
-                        type="text"
-                        required
-                        maxLength={255}
-                        value={editReservedFor}
-                        onChange={(e) => setEditReservedFor(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`edit-notes-${res.id}`}>Notizen bearbeiten</label>
-                      <textarea
-                        id={`edit-notes-${res.id}`}
-                        rows={2}
-                        maxLength={2000}
-                        value={editNote}
-                        onChange={(e) => setEditNote(e.target.value)}
-                      />
-                    </div>
+                    <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
+                    <Field label="Teilnehmende bearbeiten" required>
+                      {(control) => (
+                        <input
+                          {...control}
+                          type="number"
+                          min="1"
+                          max={visible.seatingArrangement?.maxCapacity}
+                          required
+                          value={editAttendees}
+                          onChange={(e) => setEditAttendees(e.target.value)}
+                        />
+                      )}
+                    </Field>
+                    <Field label="Reserviert für" required>
+                      {(control) => (
+                        <input
+                          {...control}
+                          type="text"
+                          required
+                          maxLength={255}
+                          value={editReservedFor}
+                          onChange={(e) => setEditReservedFor(e.target.value)}
+                        />
+                      )}
+                    </Field>
+                    <Field label="Notizen bearbeiten">
+                      {(control) => (
+                        <textarea
+                          {...control}
+                          rows={2}
+                          maxLength={2000}
+                          value={editNote}
+                          onChange={(e) => setEditNote(e.target.value)}
+                        />
+                      )}
+                    </Field>
                     <div className="actions">
-                      <button type="submit" disabled={isBusy}>
+                      <button type="submit" className="btn-primary" disabled={isBusy}>
                         Speichern
                       </button>
                       <button type="button" onClick={handleCancelEdit} disabled={isBusy}>

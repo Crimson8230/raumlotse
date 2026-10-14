@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { createReservation, getAvailableEquipment } from '../../API/reservations'
-import { ApiError, formatApiError } from '../../API/client'
+import { ApiError, fieldErrorsOf, formatApiError } from '../../API/client'
 import { toDateTimeLocalValue } from '../../utils/date'
 import { useAuth } from '../../auth/useAuth'
 import type { Room } from '../../types/room'
 import type { EquipmentTypeSummary, Reservation } from '../../types/reservation'
+import { ErrorMessage, Field } from '../ui'
 import { reservationFormSchema } from './reservationFormSchema'
 import './ReservationForm.css'
 
@@ -33,6 +34,8 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
   const [emailNotification, setEmailNotification] = useState(false)
   const [loadingEquipment, setLoadingEquipment] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Fehler je Feld (Schlüssel = technischer Feldname des Backends); `error` gilt für das ganze Formular.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isConflict, setIsConflict] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -82,6 +85,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setFieldErrors({})
     setIsConflict(false)
 
     const selectedArrangement = room.seatingArrangements.find(
@@ -89,39 +93,39 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
     )
     const attendeesNum = Number(expectedAttendees)
     if (selectedArrangement && attendeesNum > selectedArrangement.maxCapacity) {
-      setError(
-        `Die Teilnehmerzahl (${attendeesNum}) überschreitet die Kapazität der Sitzordnung (${selectedArrangement.maxCapacity}).`,
-      )
+      setFieldErrors({
+        expectedAttendees: `Die Teilnehmerzahl (${attendeesNum}) überschreitet die Kapazität der Sitzordnung (${selectedArrangement.maxCapacity}).`,
+      })
       return
     }
 
     if (!startTime || !endTime) {
-      setError('Beginn und Ende sind erforderlich.')
+      setFieldErrors({ [startTime ? 'endTime' : 'startTime']: 'Beginn und Ende sind erforderlich.' })
       return
     }
 
     if (!seatingArrangementId) {
-      setError('Bitte eine Sitzordnung wählen.')
+      setFieldErrors({ seatingArrangementId: 'Bitte eine Sitzordnung wählen.' })
       return
     }
 
     if (!selectedArrangement) {
-      setError('Ungültige Sitzordnung ausgewählt.')
+      setFieldErrors({ seatingArrangementId: 'Ungültige Sitzordnung ausgewählt.' })
       return
     }
 
     if (!expectedAttendees || isNaN(attendeesNum) || attendeesNum < 1) {
-      setError('Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.')
+      setFieldErrors({ expectedAttendees: 'Die Teilnehmerzahl muss eine ganze Zahl ab 1 sein.' })
       return
     }
 
     if (!reservedFor.trim()) {
-      setError('Reserviert für ist ein Pflichtfeld.')
+      setFieldErrors({ reservedFor: 'Reserviert für ist ein Pflichtfeld.' })
       return
     }
 
     if (reservedFor.trim().length > 255) {
-      setError('Reserviert für darf maximal 255 Zeichen lang sein.')
+      setFieldErrors({ reservedFor: 'Reserviert für darf maximal 255 Zeichen lang sein.' })
       return
     }
 
@@ -161,6 +165,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       const saved = await createReservation(room.id, parsed.data)
       onSaved(saved)
     } catch (err) {
+      setFieldErrors(fieldErrorsOf(err))
       setError(formatApiError(err))
       if (err instanceof ApiError && err.status === 409) {
         setIsConflict(true)
@@ -173,8 +178,8 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
   return (
     <form onSubmit={handleSubmit} noValidate className="panel reservation-form">
       {error && (
-        <div role="alert" className={isConflict ? 'feedback-conflict' : 'feedback-error'}>
-          <p>{error}</p>
+        <div className={isConflict ? 'feedback-conflict' : undefined}>
+          <ErrorMessage>{error}</ErrorMessage>
           {isConflict && (
             <p>
               <Link to="/rooms">Zurück zur Raumübersicht</Link>
@@ -183,90 +188,95 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
         </div>
       )}
 
-      <div>
-        <label htmlFor="res-booked-by">Gebucht von</label>
-        <input id="res-booked-by" type="text" value={auth?.user?.displayName ?? 'Angemeldetes Konto'} readOnly />
-      </div>
+      <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
 
-      <div>
-        <label htmlFor="res-start-time">Beginn</label>
-        <input
-          id="res-start-time"
-          type="datetime-local"
-          lang="de-AT"
-          required
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-        />
-      </div>
+      <Field label="Gebucht von">
+        {(control) => (
+          <input {...control} type="text" value={auth?.user?.displayName ?? 'Angemeldetes Konto'} readOnly />
+        )}
+      </Field>
 
-      <div>
-        <label htmlFor="res-end-time">Ende</label>
-        <input
-          id="res-end-time"
-          type="datetime-local"
-          lang="de-AT"
-          required
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-        />
-      </div>
+      <Field label="Beginn" required error={fieldErrors.startTime}>
+        {(control) => (
+          <input
+            {...control}
+            type="datetime-local"
+            lang="de-AT"
+            required
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+          />
+        )}
+      </Field>
 
-      <div>
-        <label htmlFor="res-seating">Sitzordnung</label>
-        <select
-          id="res-seating"
-          required
-          value={seatingArrangementId}
-          onChange={(e) => setSeatingArrangementId(e.target.value)}
-        >
-          {room.seatingArrangements.length > 1 && (
-            <option value="">Sitzordnung wählen</option>
-          )}
-          {room.seatingArrangements.map((sa) => (
-            <option key={sa.id} value={sa.id}>
-              {sa.name} (Capacity: {sa.maxCapacity})
-            </option>
-          ))}
-        </select>
-      </div>
+      <Field label="Ende" required error={fieldErrors.endTime}>
+        {(control) => (
+          <input
+            {...control}
+            type="datetime-local"
+            lang="de-AT"
+            required
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+          />
+        )}
+      </Field>
 
-      <div>
-        <label htmlFor="res-attendees">Teilnehmende</label>
-        <input
-          id="res-attendees"
-          type="number"
-          min="1"
-          required
-          value={expectedAttendees}
-          onChange={(e) =>
-            setExpectedAttendees(e.target.value === '' ? '' : parseInt(e.target.value, 10))
-          }
-        />
-      </div>
+      <Field label="Sitzordnung" required error={fieldErrors.seatingArrangementId}>
+        {(control) => (
+          <select
+            {...control}
+            required
+            value={seatingArrangementId}
+            onChange={(e) => setSeatingArrangementId(e.target.value)}
+          >
+            {room.seatingArrangements.length > 1 && <option value="">Sitzordnung wählen</option>}
+            {room.seatingArrangements.map((sa) => (
+              <option key={sa.id} value={sa.id}>
+                {sa.name} (Capacity: {sa.maxCapacity})
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
 
-      <div>
-        <label htmlFor="res-reserved-for">Reserviert für</label>
-        <input
-          id="res-reserved-for"
-          type="text"
-          required
-          maxLength={255}
-          value={reservedFor}
-          onChange={(e) => setReservedFor(e.target.value)}
-        />
-      </div>
+      <Field label="Teilnehmende" required error={fieldErrors.expectedAttendees}>
+        {(control) => (
+          <input
+            {...control}
+            type="number"
+            min="1"
+            required
+            value={expectedAttendees}
+            onChange={(e) => setExpectedAttendees(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+          />
+        )}
+      </Field>
 
-      <div>
-        <label htmlFor="res-notes">Notizen</label>
-        <textarea
-          id="res-notes"
-          rows={3}
-          maxLength={2000}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
+      <Field label="Reserviert für" required error={fieldErrors.reservedFor}>
+        {(control) => (
+          <input
+            {...control}
+            type="text"
+            required
+            maxLength={255}
+            value={reservedFor}
+            onChange={(e) => setReservedFor(e.target.value)}
+          />
+        )}
+      </Field>
+
+      <Field label="Notizen" error={fieldErrors.note}>
+        {(control) => (
+          <textarea
+            {...control}
+            rows={3}
+            maxLength={2000}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        )}
+      </Field>
 
       <fieldset>
         <legend>Zusätzliche Ausstattung</legend>
@@ -305,7 +315,7 @@ export function ReservationForm({ room, onSaved, onCancel, initialStartTime, ini
       </div>
 
       <div className="actions">
-        <button type="submit" disabled={submitting}>
+        <button type="submit" className="btn-primary" disabled={submitting}>
           Reservierung bestätigen
         </button>
         {onCancel && (

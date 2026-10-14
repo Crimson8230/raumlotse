@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, apiRequest, clearCsrfToken, formatApiError } from './client'
+import { ApiError, apiRequest, clearCsrfToken, fieldErrorsOf, formatApiError } from './client'
+import { fieldLabel } from '../components/ui'
 
 describe('formatApiError', () => {
   it('returns the general detail message when there are no field errors', () => {
@@ -20,8 +21,64 @@ describe('formatApiError', () => {
     })
 
     expect(formatApiError(err)).toBe(
-      'One or more fields are invalid. (name: must not be blank; seatingArrangements[0].maxCapacity: must be greater than zero)',
+      'One or more fields are invalid. (Name: must not be blank; Sitzordnung 1 – Höchstkapazität: must be greater than zero)',
     )
+  })
+
+  it('shows the label of a technical field name, never the technical name (feature 019, FR-009)', () => {
+    const err = new ApiError(400, {
+      title: 'Validation Failed',
+      status: 400,
+      detail: 'Ungültig.',
+      errors: [{ field: 'startTime', message: 'darf nicht null sein' }],
+    })
+
+    expect(formatApiError(err)).toBe('Ungültig. (Beginn: darf nicht null sein)')
+  })
+
+  it('makes unknown field names readable instead of technical', () => {
+    const err = new ApiError(400, {
+      title: 'Validation Failed',
+      status: 400,
+      detail: 'Ungültig.',
+      errors: [{ field: 'someNewField', message: 'fehlt' }],
+    })
+
+    expect(formatApiError(err)).toBe('Ungültig. (Some new field: fehlt)')
+  })
+
+  it('has a label for every field of the request payloads', () => {
+    const fields = [
+      'startTime', 'endTime', 'seatingArrangementId', 'expectedAttendees', 'additionalEquipmentTypeIds', 'note',
+      'reservedFor', 'name', 'buildingId', 'floorId', 'seatingArrangements', 'equipmentTypeIds',
+      'barrierFreeReachable', 'minPersons', 'maxPersons', 'maxCapacity', 'code', 'groundFloor', 'hasElevator',
+      'earlyCheckInMinutes', 'gracePeriodMinutes', 'roles', 'email', 'password',
+    ]
+    for (const field of fields) expect(fieldLabel(field), field).not.toMatch(/^[a-z]+[A-Z]|^[a-z]+$/)
+  })
+})
+
+describe('fieldErrorsOf', () => {
+  it('maps technical field names to their messages', () => {
+    const err = new ApiError(400, {
+      title: 'Validation Failed',
+      status: 400,
+      detail: 'Ungültig.',
+      errors: [
+        { field: 'startTime', message: 'darf nicht null sein' },
+        { field: 'endTime', message: 'muss nach dem Beginn liegen' },
+      ],
+    })
+
+    expect(fieldErrorsOf(err)).toEqual({
+      startTime: 'darf nicht null sein',
+      endTime: 'muss nach dem Beginn liegen',
+    })
+  })
+
+  it('returns an empty object for errors without field details', () => {
+    expect(fieldErrorsOf(new Error('boom'))).toEqual({})
+    expect(fieldErrorsOf(new ApiError(409, { title: 'C', status: 409, detail: 'x' }))).toEqual({})
   })
 
   it('falls back to a generic message for a non-ApiError, non-Error value', () => {

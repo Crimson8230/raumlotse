@@ -20,6 +20,12 @@ export const defaultFieldLabels: Record<string, string> = {
   groundFloor: 'Erdgeschoss',
   hasElevator: 'Aufzug',
   state: 'Status',
+  additionalEquipmentTypeIds: 'Zusätzliche Ausstattung',
+  seatingArrangements: 'Sitzordnung',
+  barrierFreeReachable: 'Barrierefrei erreichbar',
+  earlyCheckInMinutes: 'Frühester Check-in (Minuten)',
+  gracePeriodMinutes: 'Karenzzeit (Minuten)',
+  roles: 'Rollen',
 }
 
 function humanize(name: string): string {

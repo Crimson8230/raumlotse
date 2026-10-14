@@ -3,6 +3,7 @@ import { Star } from 'lucide-react'
 import { formatApiError } from '../../API/client'
 import { markFavoriteRoom, unmarkFavoriteRoom } from '../../API/favoriteRooms'
 import './FavoriteToggle.css'
+import { ErrorMessage } from '../../components/ui'
 
 interface FavoriteToggleProps {
   roomId: string
@@ -47,9 +48,7 @@ export function FavoriteToggle({ roomId, roomName, isFavorite, onChanged }: Favo
         <Star aria-hidden="true" fill={shown ? 'currentColor' : 'none'} />
       </button>
       {error && (
-        <span role="alert" className="feedback-error">
-          {error}
-        </span>
+        <ErrorMessage>{error}</ErrorMessage>
       )}
     </span>
   )

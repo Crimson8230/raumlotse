@@ -63,7 +63,7 @@ export default function UserRolePage() {
       if (version.active) setView(previous => failed(userId, previous, error))
     } finally { if (version.active) setBusy(false) }
   }
-  return <main className="role-page">
+  return <main id="inhalt" className="role-page">
     <h1>Benutzerrollen bearbeiten</h1>
     {!current && <p role="status">Rollen werden geladen…</p>}
     {current?.denied && <p role="alert">Kein Zugriff auf die Rollenverwaltung.</p>}
