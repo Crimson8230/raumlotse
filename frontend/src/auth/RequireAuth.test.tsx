@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequireAuth } from './RequireAuth'
 
-vi.mock('./useAuth', () => ({ useAuth: () => ({ state: 'anonymous' }) }))
+const auth = vi.hoisted(() => ({ state: 'anonymous' }))
+vi.mock('./useAuth', () => ({ useAuth: () => ({ state: auth.state }) }))
 vi.mock('../components/Navigation/Navigation', () => ({ Navigation: () => null }))
 
 function LoginProbe() {
@@ -12,6 +13,8 @@ function LoginProbe() {
 }
 
 describe('RequireAuth', () => {
+  beforeEach(() => { auth.state = 'anonymous' })
+
   it('remembers the full path including the query string for after login', () => {
     render(
       <MemoryRouter initialEntries={['/rooms/r1/check-in?method=nfc']}>
@@ -24,5 +27,22 @@ describe('RequireAuth', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('from: /rooms/r1/check-in?method=nfc')).toBeInTheDocument()
+  })
+
+  it('shows the help footer after the main content when signed in (feature 020)', () => {
+    auth.state = 'authenticated'
+    render(
+      <MemoryRouter initialEntries={['/x']}>
+        <Routes>
+          <Route element={<RequireAuth />}>
+            <Route path="/x" element={<main id="inhalt">x</main>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const main = screen.getByRole('main')
+    const footer = screen.getByRole('contentinfo')
+    expect(main.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Hilfe' })).toHaveAttribute('href', '/hilfe')
   })
 })

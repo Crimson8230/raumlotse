@@ -1,0 +1,13 @@
+.app-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.app-footer__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

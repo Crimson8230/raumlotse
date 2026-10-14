@@ -73,6 +73,7 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
           })
         }}
       >
+        <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
         <Field label="Name des neuen Ausstattungstyps" required>
           {(control) => <input {...control} value={newName} onChange={(e) => setNewName(e.target.value)} />}
         </Field>

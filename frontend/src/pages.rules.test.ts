@@ -95,7 +95,7 @@ describe('page rules (feature 020)', () => {
     expect(bad).toEqual([])
   })
 
-  it.skip('(b) no uppercase combined with letter-spacing in any rule', () => {
+  it('(b) no uppercase combined with letter-spacing in any rule', () => {
     const bad = collectCss(here).flatMap((path) => {
       const css = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
       return [...css.matchAll(/\{[^}]*\}/g)]
@@ -105,7 +105,7 @@ describe('page rules (feature 020)', () => {
     expect(bad).toEqual([])
   })
 
-  it.skip('(c) every form with a required field explains the marking', () => {
+  it('(c) every form with a required field explains the marking', () => {
     const bad = sources
       .filter(({ text }) => /<form\b/.test(text) && /\brequired\b/.test(text) && !/form-required-hint/.test(text))
       .map(({ file }) => file)

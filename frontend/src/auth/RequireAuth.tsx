@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Navigation } from '../components/Navigation/Navigation'
+import { Footer } from '../components/Footer/Footer'
 import { SkipLink } from '../components/ui'
 import { useAuth } from './useAuth'
 
@@ -13,5 +14,5 @@ export function RequireAuth() {
     return <main id="inhalt" className="auth-status"><p role="alert">Die Anmeldung ist vorübergehend nicht verfügbar. Seite neu laden und erneut versuchen.</p></main>
   }
   if (state !== 'authenticated') return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
-  return <><SkipLink targetId="inhalt" /><Navigation /><Outlet /></>
+  return <><SkipLink targetId="inhalt" /><Navigation /><Outlet /><Footer /></>
 }

@@ -33,8 +33,6 @@
   border-radius: 0;
   font-size: var(--font-size-small);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* Zustand = Muster + Wort: reserviert = Schraffur-Marke, aktiv = volle Tinte, abgeschlossen/abgelaufen = gepunktet,

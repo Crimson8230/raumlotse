@@ -73,6 +73,7 @@ export function MapUploadControl({ map, existingMaps, onSaved }: Props) {
 
   return (
     <form className="map-upload" onSubmit={submit}>
+      <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
       {!replacing && (
         <>
           <label>

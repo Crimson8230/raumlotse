@@ -102,6 +102,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
           })
         }}
       >
+        <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
         <Field label="Name des neuen Gebäudes" required>
           {(control) => (
             <input {...control} value={newBuildingName} onChange={(e) => setNewBuildingName(e.target.value)} />
@@ -182,6 +183,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                   })
                 }}
               >
+                <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
                 <Field label={`Name des neuen Stockwerks in ${building.name}`} required>
                   {(control) => (
                     <input

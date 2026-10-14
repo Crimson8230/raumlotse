@@ -82,14 +82,14 @@ description: "Task list for feature 020 – Pages in Papier & Tinte, Part 2"
 
 **Independent Test**: Footer on every page incl. login; `/hilfe` by keyboard; required hint in every form; no strong-letter-spaced capitals.
 
-- [ ] T027 [P] [US4] Write failing tests `components/Footer/Footer.test.tsx`: `<footer>` with link "Hilfe" to `/hilfe`; and in `auth/RequireAuth.test.tsx` and `pages/LoginPage.test.tsx`: footer follows `main`, same text on both
-- [ ] T028 [P] [US4] Write failing tests `pages/HelpPage.test.tsx`: one `main#inhalt`, `h1` "Hilfe", skip link first, sections (Raum finden und buchen, Bedeutung der Streifen/Muster, Kontakt) from `helpContent.ts`, contact address shown from `HELP_CONTACT`; and in `App.test.tsx`: `/hilfe` is reachable without sign-in
-- [ ] T029 [US4] Implement `components/Footer/Footer.tsx` (+ `.css`), mount in `auth/RequireAuth.tsx` after `<Outlet />` and in `pages/LoginPage.tsx`
-- [ ] T030 [US4] Implement `pages/HelpPage.tsx` and `pages/helpContent.ts` (fixed German text; `HELP_CONTACT` placeholder constant with a comment that the project sets it); add public route `/hilfe` in `App.tsx` outside `RequireAuth` with `SkipLink` and `main#inhalt`
-- [ ] T031 [P] [US4] Write failing tests for the remaining forms that lack the required hint (list from rule (c) of T006: check `components/RoomSearch/RoomSearchPanel.tsx`, `components/UserRoles/UserRoleEditor.tsx`, catalog forms, `components/FloorMap/MapUploadControl.tsx`, `pages/AdminStatisticsPage.tsx`, `pages/UserRoleListPage.tsx`); only forms with at least one required field need the hint
-- [ ] T032 [US4] Add `form-required-hint` to the forms found in T031
-- [ ] T033 [US4] Enable rule (c) of T006 and make it pass
-- [ ] T034 [US4] Remove `text-transform: uppercase` and `letter-spacing` from `.status-badge` in `components/ReservationList/ReservationList.css`; enable rule (b) of T006
+- [x] T027 [P] [US4] Write failing tests `components/Footer/Footer.test.tsx`: `<footer>` with link "Hilfe" to `/hilfe`; and in `auth/RequireAuth.test.tsx` and `pages/LoginPage.test.tsx`: footer follows `main`, same text on both
+- [x] T028 [P] [US4] Write failing tests `pages/HelpPage.test.tsx`: one `main#inhalt`, `h1` "Hilfe", skip link first, sections (Raum finden und buchen, Bedeutung der Streifen/Muster, Kontakt) from `helpContent.ts`, contact address shown from `HELP_CONTACT`; and in `App.test.tsx`: `/hilfe` is reachable without sign-in
+- [x] T029 [US4] Implement `components/Footer/Footer.tsx` (+ `.css`), mount in `auth/RequireAuth.tsx` after `<Outlet />` and in `pages/LoginPage.tsx`
+- [x] T030 [US4] Implement `pages/HelpPage.tsx` and `pages/helpContent.ts` (fixed German text; `HELP_CONTACT` placeholder constant with a comment that the project sets it); add public route `/hilfe` in `App.tsx` outside `RequireAuth` with `SkipLink` and `main#inhalt`
+- [x] T031 [P] [US4] Write failing tests for the remaining forms that lack the required hint (list from rule (c) of T006: check `components/RoomSearch/RoomSearchPanel.tsx`, `components/UserRoles/UserRoleEditor.tsx`, catalog forms, `components/FloorMap/MapUploadControl.tsx`, `pages/AdminStatisticsPage.tsx`, `pages/UserRoleListPage.tsx`); only forms with at least one required field need the hint
+- [x] T032 [US4] Add `form-required-hint` to the forms found in T031
+- [x] T033 [US4] Enable rule (c) of T006 and make it pass
+- [x] T034 [US4] Remove `text-transform: uppercase` and `letter-spacing` from `.status-badge` in `components/ReservationList/ReservationList.css`; enable rule (b) of T006
 
 **Checkpoint**: US4 independently shippable.
 

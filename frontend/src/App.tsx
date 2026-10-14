@@ -19,6 +19,7 @@ import AdminOccupancyPage from './pages/AdminOccupancyPage'
 import RolePermissionPage from './pages/RolePermissionPage'
 import { RequireRoleManagement } from './auth/RequireRoleManagement'
 import { RequirePermission } from './auth/RequirePermission'
+import HelpPage from './pages/HelpPage'
 import AdminSettingsPage from './pages/AdminSettingsPage'
 
 function RoomEditRedirect() {
@@ -35,6 +36,7 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/hilfe" element={<HelpPage />} />
 
         <Route element={<RequireAuth />}>
           <Route path="/" element={<HomePage />} />

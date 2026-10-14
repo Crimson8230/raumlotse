@@ -64,3 +64,16 @@ describe('App display routing', () => {
     expect(screen.getByRole('heading', { name: 'Meine Buchungen' })).toBeInTheDocument()
   })
 })
+
+describe('Help route (feature 020)', () => {
+  it('is reachable without signing in', async () => {
+    auth.me.mockRejectedValue(new Error('unauthenticated'))
+    render(
+      <MemoryRouter initialEntries={['/hilfe']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hilfe' })).toBeInTheDocument()
+  })
+})

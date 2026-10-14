@@ -170,3 +170,13 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Ziel: /')).toBeInTheDocument()
   })
 })
+
+describe('LoginPage footer (feature 020)', () => {
+  it('shows the help link in a footer after the main content', async () => {
+    renderLogin()
+
+    const footer = await screen.findByRole('contentinfo')
+    expect(screen.getByRole('main').compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Hilfe' })).toHaveAttribute('href', '/hilfe')
+  })
+})

@@ -150,6 +150,7 @@ export function ConnectionCatalog({
       />
       {admin && (
         <form onSubmit={create} className="connection-create">
+          <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
           <Field label="Name der Verbindung" required>
             {(control) => (
               <input {...control} value={newName} maxLength={100} onChange={(event) => setNewName(event.target.value)} />
