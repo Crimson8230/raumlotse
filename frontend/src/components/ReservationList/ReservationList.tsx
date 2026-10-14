@@ -22,15 +22,31 @@ export interface ReservationListProps {
   room: Room
   refreshSignal?: number
   onReservationChanged?: () => void
+  /** Eigene (`mine`) oder fremde (`managed`) Buchungen; ohne Angabe alle (Feature 020). */
+  scope?: 'all' | 'mine' | 'managed'
+  /** Von der Seite geladene Reservierungen; dann lädt die Liste nicht selbst und meldet Änderungen nur zurück. */
+  reservations?: Reservation[]
 }
+
+const emptyTexts = {
+  all: 'Für diesen Raum gibt es keine Reservierungen.',
+  mine: 'Sie haben in diesem Raum keine Buchungen.',
+  managed: 'Keine weiteren Reservierungen in diesem Raum.',
+} as const
 
 export function ReservationList({
   room,
   refreshSignal,
   onReservationChanged,
+  scope = 'all',
+  reservations: given,
 }: ReservationListProps) {
   const { permissions } = useAdminMode()
-  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [fetched, setFetched] = useState<Reservation[]>([])
+  const controlled = given !== undefined
+  const allReservations = given ?? fetched
+  const reservations = allReservations.filter((r) =>
+    scope === 'mine' ? r.ownedByMe : scope === 'managed' ? !r.ownedByMe : true)
   const [foreignDetails, setForeignDetails] = useState<Record<string, Reservation>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,21 +57,26 @@ export function ReservationList({
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
+    if (controlled) {
+      setForeignDetails({})
+      return
+    }
     try {
       const data = await listRoomReservations(room.id)
-      setReservations(data)
+      setFetched(data)
       setForeignDetails({})
     } catch (err) {
       setError(formatApiError(err))
     }
-  }, [room.id])
+  }, [room.id, controlled])
 
   useEffect(() => {
+    if (controlled) return
     let ignore = false
     listRoomReservations(room.id)
       .then((data) => {
         if (!ignore) {
-          setReservations(data)
+          setFetched(data)
           setLoading(false)
         }
       })
@@ -68,7 +89,7 @@ export function ReservationList({
     return () => {
       ignore = true
     }
-  }, [room.id, refreshSignal])
+  }, [room.id, refreshSignal, controlled])
 
   function handleStartEdit(res: Reservation) {
     setEditingId(res.id)
@@ -127,7 +148,7 @@ export function ReservationList({
     }
   }
 
-  if (loading) {
+  if (loading && !controlled) {
     return <p className="status-loading">Reservierungen werden geladen…</p>
   }
 
@@ -138,7 +159,7 @@ export function ReservationList({
       )}
 
       {reservations.length === 0 ? (
-        <p className="status-empty">Für diesen Raum gibt es keine Reservierungen.</p>
+        <p className="status-empty">{emptyTexts[scope]}</p>
       ) : (
         <ul className="list-plain reservation-list">
           {reservations.map((res) => {

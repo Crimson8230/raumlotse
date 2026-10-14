@@ -61,6 +61,6 @@ describe('App display routing', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Reservierungen' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meine Buchungen' })).toBeInTheDocument()
   })
 })

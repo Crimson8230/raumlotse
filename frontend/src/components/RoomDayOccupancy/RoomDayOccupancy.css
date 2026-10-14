@@ -1,0 +1,11 @@
+.room-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.room-day__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

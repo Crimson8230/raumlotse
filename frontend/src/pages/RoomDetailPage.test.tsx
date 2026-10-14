@@ -8,6 +8,7 @@ import * as reservationsApi from '../API/reservations'
 import * as roomStatusApi from '../API/roomStatus'
 import * as roomDevicesApi from '../API/roomDevices'
 import * as favoriteRoomsApi from '../API/favoriteRooms'
+import * as equipmentTypesApi from '../API/equipmentTypes'
 import type { Room } from '../types/room'
 
 const mode = vi.hoisted(() => ({ adminMode: false, permissions: ['READ', 'RESERVE', 'OWN_ACTIVE_DEVICE_CONTROL'] as string[] }))
@@ -21,6 +22,7 @@ vi.mock('../API/reservations')
 vi.mock('../API/roomStatus')
 vi.mock('../API/roomDevices')
 vi.mock('../API/favoriteRooms')
+vi.mock('../API/equipmentTypes')
 
 vi.mock('../auth/useAuth', () => ({
   useAuth: () => ({
@@ -34,6 +36,7 @@ const reservations = vi.mocked(reservationsApi)
 const roomStatus = vi.mocked(roomStatusApi)
 const roomDevices = vi.mocked(roomDevicesApi)
 const favoriteRooms = vi.mocked(favoriteRoomsApi)
+const equipmentTypes = vi.mocked(equipmentTypesApi)
 const SEATING_ID = '00000000-0000-4000-8000-000000000001'
 
 function sampleRoom(): Room {
@@ -68,6 +71,7 @@ beforeEach(() => {
   reservations.getAvailableEquipment.mockResolvedValue([])
   favoriteRooms.listFavoriteRooms.mockResolvedValue([])
   reservations.listRoomReservations.mockResolvedValue([])
+  equipmentTypes.listEquipmentTypes.mockResolvedValue([])
   roomStatus.getRoomStatus.mockResolvedValue({
     roomId: 'room-1', status: 'AVAILABLE', devices: { lighting: false, ventilation: false, door: 'LOCKED' }, lastPresenceAt: null,
   })
@@ -153,8 +157,7 @@ describe('RoomDetailPage', () => {
   })
 
 
-  it('renders room details and toggles reservation booking form', async () => {
-    const user = userEvent.setup()
+  it('renders room details and shows the booking form without a toggle', async () => {
     rooms.getRoom.mockResolvedValue(sampleRoom())
 
     renderComponent()
@@ -162,19 +165,60 @@ describe('RoomDetailPage', () => {
     expect(await screen.findByText('Room 101')).toBeInTheDocument()
     expect(screen.getByText('Main Building')).toBeInTheDocument()
     expect(screen.getByText('1st Floor')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Raumanzeige' })).toHaveAttribute(
-      'href',
-      '/rooms/room-1/display',
-    )
-
-    const bookBtn = screen.getByRole('button', { name: /raum buchen/i })
-    await user.click(bookBtn)
-
+    expect(screen.getByRole('link', { name: 'Raumanzeige' })).toHaveAttribute('href', '/rooms/room-1/display')
     expect(screen.getByLabelText(/beginn/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /buchungsformular schließen/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /raum buchen/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /buchungsformular schließen/i })).not.toBeInTheDocument()
+  })
 
-    await user.click(screen.getByRole('button', { name: /buchungsformular schließen/i }))
-    expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
+  it('orders the sections: mine, day occupancy, room overview (feature 020)', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+
+    renderComponent()
+
+    await screen.findByText('Room 101')
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    const order = ['Meine Buchungen', 'Belegungen des Tages', 'Raum auf einen Blick']
+    expect(headings.filter((h) => order.includes(h ?? ''))).toEqual(order)
+    expect(screen.getByRole('heading', { name: 'Raum buchen' })).toBeInTheDocument()
+  })
+
+  it('loads the reservations once per load and shares them between the sections', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+
+    renderComponent()
+
+    await screen.findByText('Room 101')
+    await screen.findByText('Sie haben in diesem Raum keine Buchungen.')
+    expect(reservations.listRoomReservations).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows equipment names and "keine Angabe" in the room overview', async () => {
+    equipmentTypes.listEquipmentTypes.mockResolvedValue([{ id: 'e1', name: 'Beamer', status: 'ACTIVE' }])
+    rooms.getRoom.mockResolvedValue({ ...sampleRoom(), equipmentTypeIds: ['e1'], seatingArrangements: [] })
+
+    renderComponent()
+
+    expect(await screen.findByText('Beamer')).toBeInTheDocument()
+    expect(screen.getByText('Sitzordnungen').nextElementSibling).toHaveTextContent('keine Angabe')
+  })
+
+  it('shows "Weitere Reservierungen" only to users who manage other bookings', async () => {
+    const other = {
+      id: 'o1', roomId: 'room-1', roomName: 'Room 101', startTime: '2026-10-01T10:00:00Z', endTime: '2026-10-01T11:00:00Z',
+      status: 'RESERVED' as const, seatingArrangement: null, expectedAttendees: null, additionalEquipment: [],
+      createdBy: null, reservedFor: null, createdAt: null, ownedByMe: false,
+    }
+    reservations.listRoomReservations.mockResolvedValue([other])
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+    const { unmount } = renderComponent()
+    await screen.findByText('Room 101')
+    expect(screen.queryByRole('heading', { name: 'Weitere Reservierungen' })).not.toBeInTheDocument()
+    unmount()
+
+    mode.permissions = ['READ', 'RESERVE', 'OTHER_RESERVATION_MANAGE']
+    renderComponent()
+    expect(await screen.findByRole('heading', { name: 'Weitere Reservierungen' })).toBeInTheDocument()
   })
 
   it('renders reservations list in room detail page', async () => {
@@ -209,8 +253,7 @@ describe('RoomDetailPage', () => {
 
     renderComponent()
 
-    expect(await screen.findByText('Barrierefrei erreichbar')).toBeInTheDocument()
-    expect(screen.getByText('Ja')).toBeInTheDocument()
+    expect(await screen.findByText('Barrierefrei erreichbar: Ja')).toBeInTheDocument()
   })
 
   it('shows "Nein" for a room that is not barrier-free reachable', async () => {
@@ -218,8 +261,7 @@ describe('RoomDetailPage', () => {
 
     renderComponent()
 
-    expect(await screen.findByText('Barrierefrei erreichbar')).toBeInTheDocument()
-    expect(screen.getByText('Nein')).toBeInTheDocument()
+    expect(await screen.findByText('Barrierefrei erreichbar: Nein')).toBeInTheDocument()
   })
 
   const start = new Date(2026, 9, 5, 11, 0)
@@ -239,13 +281,12 @@ describe('RoomDetailPage', () => {
     ['partial parameters', `/rooms/room-1?start=${encodeURIComponent(start.toISOString())}`],
     ['invalid dates', '/rooms/room-1?start=nope&end=also-nope'],
     ['an end before the start', `/rooms/room-1?start=${encodeURIComponent(end.toISOString())}&end=${encodeURIComponent(start.toISOString())}`],
-  ])('keeps the booking form closed for %s', async (_case, url) => {
+  ])('shows an empty booking form for %s', async (_case, url) => {
     rooms.getRoom.mockResolvedValue(sampleRoom())
 
     renderComponent(url)
 
-    expect(await screen.findByRole('button', { name: /raum buchen/i })).toBeInTheDocument()
-    expect(screen.queryByLabelText(/beginn/i)).not.toBeInTheDocument()
+    expect(await screen.findByLabelText(/beginn/i)).toHaveValue('')
   })
 
   it('never opens the booking form for a deactivated room', async () => {

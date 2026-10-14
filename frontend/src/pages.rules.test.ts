@@ -76,3 +76,39 @@ describe('page rules (feature 019)', () => {
     }
   })
 })
+
+// Source-level rules of feature 020 (T006). Rules start skipped and are enabled by the story that fixes them.
+function collectCss(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return collectCss(path)
+    return entry.name.endsWith('.css') ? [path] : []
+  })
+}
+
+describe('page rules (feature 020)', () => {
+  it.skip('(a) catalogs and role lists use DataList, not list-plain', () => {
+    const bad = sources
+      .filter(({ file }) => /Catalog\//.test(file) || file.endsWith('UserRoleListPage.tsx'))
+      .filter(({ text }) => /<ul[^>]*list-plain/.test(text))
+      .map(({ file }) => file)
+    expect(bad).toEqual([])
+  })
+
+  it.skip('(b) no uppercase combined with letter-spacing in any rule', () => {
+    const bad = collectCss(here).flatMap((path) => {
+      const css = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      return [...css.matchAll(/\{[^}]*\}/g)]
+        .filter((m) => /text-transform:\s*uppercase/.test(m[0]) && /letter-spacing:\s*(?!normal|-)/.test(m[0]))
+        .map(() => relative(here, path))
+    })
+    expect(bad).toEqual([])
+  })
+
+  it.skip('(c) every form with a required field explains the marking', () => {
+    const bad = sources
+      .filter(({ text }) => /<form\b/.test(text) && /\brequired\b/.test(text) && !/form-required-hint/.test(text))
+      .map(({ file }) => file)
+    expect(bad).toEqual([])
+  })
+})

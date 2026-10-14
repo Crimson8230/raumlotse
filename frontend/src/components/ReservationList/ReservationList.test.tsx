@@ -323,3 +323,43 @@ describe('ReservationList', () => {
     })
   })
 })
+
+describe('ReservationList scope (feature 020)', () => {
+  const own = () => sampleReservation({ id: 'own', ownedByMe: true, reservedFor: 'Eigene Gruppe' })
+  const foreign = () => sampleReservation({ id: 'other', ownedByMe: false, reservedFor: 'Fremde Gruppe', createdBy: 'Dr. Fremd' })
+
+  it('lists only own bookings for scope "mine", from the given reservations without fetching', () => {
+    render(<ReservationList room={sampleRoom()} scope="mine" reservations={[own(), foreign()]} />)
+
+    expect(screen.getByText(/Eigene Gruppe/)).toBeInTheDocument()
+    expect(screen.queryByText(/Fremde Gruppe/)).not.toBeInTheDocument()
+    expect(reservations.listRoomReservations).not.toHaveBeenCalled()
+  })
+
+  it('lists only foreign bookings for scope "managed"', () => {
+    mode.permissions = ['READ', 'OWN_RESERVATION_MANAGE', 'OTHER_RESERVATION_MANAGE']
+
+    render(<ReservationList room={sampleRoom()} scope="managed" reservations={[own(), foreign()]} />)
+
+    expect(screen.getByText(/Fremde Gruppe/)).toBeInTheDocument()
+    expect(screen.queryByText(/Eigene Gruppe/)).not.toBeInTheDocument()
+  })
+
+  it('shows its own empty text for scope "mine"', () => {
+    render(<ReservationList room={sampleRoom()} scope="mine" reservations={[foreign()]} />)
+
+    expect(screen.getByText('Sie haben in diesem Raum keine Buchungen.')).toBeInTheDocument()
+  })
+
+  it('asks the page to refresh after an action when reservations are given', async () => {
+    const user = userEvent.setup()
+    const onReservationChanged = vi.fn()
+    reservations.cancelReservation.mockResolvedValue(own())
+
+    render(<ReservationList room={sampleRoom()} scope="mine" reservations={[own()]} onReservationChanged={onReservationChanged} />)
+    await user.click(screen.getByRole('button', { name: 'Stornieren' }))
+
+    await waitFor(() => expect(onReservationChanged).toHaveBeenCalled())
+    expect(reservations.listRoomReservations).not.toHaveBeenCalled()
+  })
+})

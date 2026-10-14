@@ -1,0 +1,14 @@
+.room-overview__list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.room-overview__list dt {
+  color: var(--color-muted);
+}
+
+.room-overview__list dd {
+  margin: 0;
+}

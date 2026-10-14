@@ -15,6 +15,7 @@ Vertrag und Props: `specs/018-shared-ui-building-blocks/contracts/ui-blocks.md`.
 | `SkipLink` | `<SkipLink />` als erstes Element, `<main id="inhalt">` | `SkipLink/SkipLink.test.tsx` |
 | `DataList` | `<DataList items itemKey renderItem emptyText="…" aria-label="…" />` | `DataList/DataList.test.tsx` |
 | `DataTable` | `<DataTable caption columns rows rowKey rowHeader="name" emptyText="…" />` | `DataTable/DataTable.test.tsx` |
+| `RoomName`, `TimeText` | `<RoomName>Raum 2.14</RoomName>`, `<TimeText>10:00–12:00</TimeText>` (Serif / Mono in zusammengesetzten Zeilen) | `Typography/Typography.test.tsx` |
 | `Wayfinding` | `<Wayfinding direction="hoch" target="Aufzug" distance="ca. 40 m" />` | `Wayfinding/Wayfinding.test.tsx` |
 
 ## Invarianten (für jeden Baustein getestet)

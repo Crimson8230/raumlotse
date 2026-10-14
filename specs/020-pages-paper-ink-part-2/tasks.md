@@ -15,17 +15,17 @@ description: "Task list for feature 020 – Pages in Papier & Tinte, Part 2"
 
 ## Phase 1: Setup
 
-- [ ] T001 Run baseline `npx vitest run`, `npx tsc --noEmit`, `npm run lint` in `frontend/`; note the pass count for the PR description
+- [x] T001 Run baseline `npx vitest run`, `npx tsc --noEmit`, `npm run lint` in `frontend/`; note the pass count for the PR description
 - [x] T002 [P] Add devDependency `axe-core` in `frontend/package.json` (`npm install -D axe-core`, pin the version, commit the lockfile); justification for the PR: test-only engine for the accessibility suite (research R9, constitution V)
-- [ ] T003 [P] Create `specs/020-pages-paper-ink-part-2/checklists/visual-review.md` (structure from `specs/019-pages-paper-ink-part-1/checklists/visual-review.md`) with the browser checks of `quickstart.md` (room detail 1280/360 px, composed lines, lists, footer/help, navigation at 1280 px, `prefers-reduced-motion`)
+- [x] T003 [P] Create `specs/020-pages-paper-ink-part-2/checklists/visual-review.md` (structure from `specs/019-pages-paper-ink-part-1/checklists/visual-review.md`) with the browser checks of `quickstart.md` (room detail 1280/360 px, composed lines, lists, footer/help, navigation at 1280 px, `prefers-reduced-motion`)
 
 ## Phase 2: Foundational (blocks all stories)
 
 **Purpose**: Small shared pieces and rule tests used by several stories.
 
-- [ ] T004 [P] Write failing tests `components/ui/Typography/Typography.test.tsx`: `RoomName` renders `<span class="room-name">` with the text, `TimeText` renders `<span class="mono">`; both pass `children` unchanged and add no wrapper text
-- [ ] T005 Implement `RoomName` and `TimeText` in `components/ui/Typography/Typography.tsx`, export from `components/ui/index.ts`, add a row to `components/ui/README.md`
-- [ ] T006 [P] Add rule tests to `pages.rules.test.ts`, initially `it.skip` and enabled in the story that fixes them: (a) no `<ul`/`<ol` with class `list-plain` in `components/*Catalog` and `pages/UserRoleListPage.tsx` (enabled in T026); (b) no CSS rule with `text-transform: uppercase` together with `letter-spacing` (enabled in T034); (c) every non-test `.tsx` with a `<form` and a `Pflichtfeld`-marked `Field required` also renders `form-required-hint` (enabled in T033)
+- [x] T004 [P] Write failing tests `components/ui/Typography/Typography.test.tsx`: `RoomName` renders `<span class="room-name">` with the text, `TimeText` renders `<span class="mono">`; both pass `children` unchanged and add no wrapper text
+- [x] T005 Implement `RoomName` and `TimeText` in `components/ui/Typography/Typography.tsx`, export from `components/ui/index.ts`, add a row to `components/ui/README.md`
+- [x] T006 [P] Add rule tests to `pages.rules.test.ts`, initially `it.skip` and enabled in the story that fixes them: (a) no `<ul`/`<ol` with class `list-plain` in `components/*Catalog` and `pages/UserRoleListPage.tsx` (enabled in T026); (b) no CSS rule with `text-transform: uppercase` together with `letter-spacing` (enabled in T034); (c) every non-test `.tsx` with a `<form` and a `Pflichtfeld`-marked `Field required` also renders `form-required-hint` (enabled in T033)
 
 **Checkpoint**: Typography blocks and rule tests exist.
 
@@ -35,16 +35,16 @@ description: "Task list for feature 020 – Pages in Papier & Tinte, Part 2"
 
 **Independent Test**: Open a room as lecturer with own and foreign bookings today; check section order, form beside at 1280 px, stacked order at 360 px, "keine Angabe" for missing data.
 
-- [ ] T007 [P] [US1] Write failing tests `components/RoomOverview/RoomOverview.test.tsx`: labeled `dl` "Sitzordnungen" (`{name} (max {maxCapacity})`), "Ausstattung" (names from the `equipmentNames` prop, unknown id shown as id), "Zugang" with "Barrierefrei erreichbar: Ja/Nein", "Aufzug im Gebäude: Ja/Nein", "Ebene ohne Stufen: Ja/Nein"; empty seating/equipment read "keine Angabe"
-- [ ] T008 [P] [US1] Write failing tests `components/RoomDayOccupancy/RoomDayOccupancy.test.tsx`: from a `Reservation[]` shows only windows of today; `Strip` for the day; `DataList` with time range in `.mono`, state word (`belegt`, `meine`), "meine" chip for `ownedByMe`; cancelled/expired dropped; empty text "Heute keine Belegungen."; redacted reservations show only time and "Belegt"
-- [ ] T009 [P] [US1] Write failing tests in `components/ReservationList/ReservationList.test.tsx`: new prop `scope="mine"` lists only `ownedByMe` with empty text "Sie haben in diesem Raum keine Buchungen."; `scope="managed"` lists only not-own reservations, rendered only when the user has `OTHER_RESERVATION_MANAGE`; existing actions (edit, cancel, activate, complete, expire, details) unchanged
-- [ ] T010 [US1] Write failing tests in `pages/RoomDetailPage.test.tsx`: section headings in order "Meine Buchungen", "Belegungen des Tages", "Raum auf einen Blick"; booking form visible without a toggle when the room is active and the user has `RESERVE`; no form without `RESERVE` or for inactive rooms while all sections remain; query parameters `start`/`end`/`book` prefill the form; "Weitere Reservierungen" only in administration mode with `OTHER_RESERVATION_MANAGE`; "Check-in-Codes" after the overview; exactly one `main#inhalt` in loading/error states; only one `listRoomReservations` call per load
-- [ ] T011 [P] [US1] Implement `components/RoomOverview/RoomOverview.tsx` (+ `.css`, tokens only, `dl` with `dt`/`dd`, data per `data-model.md` RoomOverview)
-- [ ] T012 [P] [US1] Implement `components/RoomDayOccupancy/RoomDayOccupancy.tsx` (+ `.css`) using `Strip` (07:00–20:00 as in 019 `STRIP_DAY_START/END`), `DataList`, `Chip`, `TimeText`
-- [ ] T013 [US1] Add `scope` prop (`'mine' | 'managed'`, default keeps today's behavior for other callers) and make it accept an optional `reservations` source so the page loads once, in `components/ReservationList/ReservationList.tsx`
-- [ ] T014 [US1] Rebuild `pages/RoomDetailPage.tsx`: header (serif name via `RoomName`, favorite, links) + grid with areas `mine`, `form`, `day`, `overview`, then admin-only "Weitere Reservierungen" and "Check-in-Codes"; remove the toggle and "Buchungsformular schließen"; resolve equipment names with `listEquipmentTypes('all')` once; keep print rule for check-in codes
-- [ ] T015 [US1] Implement grid CSS in `pages/RoomDetailPage.css`: `minmax(0,1fr) minmax(20rem,26rem)` at ≥ 64rem, single column order mine → form → day → overview below; no fixed colors; keep `@media print` rule working with the new structure
-- [ ] T016 [US1] Run `RoomDetailPage` tests, fix adaptations (texts/roles of the removed toggle), confirm no test removed without replacement
+- [x] T007 [P] [US1] Write failing tests `components/RoomOverview/RoomOverview.test.tsx`: labeled `dl` "Sitzordnungen" (`{name} (max {maxCapacity})`), "Ausstattung" (names from the `equipmentNames` prop, unknown id shown as id), "Zugang" with "Barrierefrei erreichbar: Ja/Nein", "Aufzug im Gebäude: Ja/Nein", "Ebene ohne Stufen: Ja/Nein"; empty seating/equipment read "keine Angabe"
+- [x] T008 [P] [US1] Write failing tests `components/RoomDayOccupancy/RoomDayOccupancy.test.tsx`: from a `Reservation[]` shows only windows of today; `Strip` for the day; `DataList` with time range in `.mono`, state word (`belegt`, `meine`), "meine" chip for `ownedByMe`; cancelled/expired dropped; empty text "Heute keine Belegungen."; redacted reservations show only time and "Belegt"
+- [x] T009 [P] [US1] Write failing tests in `components/ReservationList/ReservationList.test.tsx`: new prop `scope="mine"` lists only `ownedByMe` with empty text "Sie haben in diesem Raum keine Buchungen."; `scope="managed"` lists only not-own reservations, rendered only when the user has `OTHER_RESERVATION_MANAGE`; existing actions (edit, cancel, activate, complete, expire, details) unchanged
+- [x] T010 [US1] Write failing tests in `pages/RoomDetailPage.test.tsx`: section headings in order "Meine Buchungen", "Belegungen des Tages", "Raum auf einen Blick"; booking form visible without a toggle when the room is active and the user has `RESERVE`; no form without `RESERVE` or for inactive rooms while all sections remain; query parameters `start`/`end`/`book` prefill the form; "Weitere Reservierungen" only in administration mode with `OTHER_RESERVATION_MANAGE`; "Check-in-Codes" after the overview; exactly one `main#inhalt` in loading/error states; only one `listRoomReservations` call per load
+- [x] T011 [P] [US1] Implement `components/RoomOverview/RoomOverview.tsx` (+ `.css`, tokens only, `dl` with `dt`/`dd`, data per `data-model.md` RoomOverview)
+- [x] T012 [P] [US1] Implement `components/RoomDayOccupancy/RoomDayOccupancy.tsx` (+ `.css`) using `Strip` (07:00–20:00 as in 019 `STRIP_DAY_START/END`), `DataList`, `Chip`, `TimeText`
+- [x] T013 [US1] Add `scope` prop (`'mine' | 'managed'`, default keeps today's behavior for other callers) and make it accept an optional `reservations` source so the page loads once, in `components/ReservationList/ReservationList.tsx`
+- [x] T014 [US1] Rebuild `pages/RoomDetailPage.tsx`: header (serif name via `RoomName`, favorite, links) + grid with areas `mine`, `form`, `day`, `overview`, then admin-only "Weitere Reservierungen" and "Check-in-Codes"; remove the toggle and "Buchungsformular schließen"; resolve equipment names with `listEquipmentTypes('all')` once; keep print rule for check-in codes
+- [x] T015 [US1] Implement grid CSS in `pages/RoomDetailPage.css`: `minmax(0,1fr) minmax(20rem,26rem)` at ≥ 64rem, single column order mine → form → day → overview below; no fixed colors; keep `@media print` rule working with the new structure
+- [x] T016 [US1] Run `RoomDetailPage` tests, fix adaptations (texts/roles of the removed toggle), confirm no test removed without replacement
 
 **Checkpoint**: US1 independently shippable.
 
