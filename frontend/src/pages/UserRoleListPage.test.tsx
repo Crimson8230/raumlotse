@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -23,3 +23,9 @@ it('provides retry and an empty state', async () => {
   await screen.findByText('Keine Benutzer gefunden.')
 })
 
+it('lists the users as a named list (feature 020)', async () => {
+  vi.mocked(api.listUsers).mockResolvedValue({ items: [{ id: 'one', displayName: 'Person', accountLabel: 'one@example.test' }], page: 0, size: 25, totalElements: 1 })
+  render(<MemoryRouter><UserRoleListPage /></MemoryRouter>)
+  const list = await screen.findByRole('list', { name: 'Benutzer' })
+  expect(within(list).getAllByRole('listitem')).toHaveLength(1)
+})

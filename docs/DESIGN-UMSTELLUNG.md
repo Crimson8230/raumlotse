@@ -1,6 +1,6 @@
 # Raumlotse – Designumstellung „Papier & Tinte“
 
-Stand: 2026-10-14 · `dev` auf `639135d` (Features 012–017 gemergt)
+Stand: 2026-10-14 · `dev` auf `3b9a5e3` (Features 012–019 gemergt)
 
 Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und der Systemdokumentation (früher Abschnitt 7) liegen in [`OFFENE-PUNKTE-013.md`](OFFENE-PUNKTE-013.md).
 
@@ -19,26 +19,27 @@ Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und 
 |---|---|---|
 | **1 – Tokens, Schriften, globale Stile** | Tokens in `src/index.css`, lokale Schriften (`@fontsource`), eckige Elemente, 44-px-Ziele, invertierte Admin-Leiste, Badges als Muster + Wort, Komponenten-CSS ohne feste Farben | **erledigt** (Commit `style(frontend)`), im Browser per Screenshots geprüft |
 | **Übersetzung ins Deutsche** | Frontend-Texte, Statuslabels (`utils/labels.ts`), Backend-Meldungen, Validierungs-Locale | **erledigt** |
-| **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | **erledigt** (Feature 018; Sichtprüfung im Browser offen, siehe `specs/018-shared-ui-building-blocks/checklists/visual-review.md`) |
-| **3 – Seiten umbauen** | siehe Abschnitt 3 | Teil 1 erledigt (Feature 019: Sprunglink, Raumzeile mit Streifen, Fehlermuster, Tabellen, Typografie); Rest siehe Abschnitt 3 |
+| **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | **erledigt** (Feature 018; Sichtprüfung im Browser erledigt) |
+| **3 – Seiten umbauen** | siehe Abschnitt 3 | Teil 1 erledigt und gemergt (Feature 019: Sprunglink, Raumzeile mit Streifen, Fehlermuster, Tabellen, Typografie; Sichtprüfung erledigt); Teil 2 erledigt (Feature 020: Raumdetail im Lektorat-Layout, Serif/Mono in Textzeilen, Listen auf `DataList`, Fußzeile mit Hilfeseite, C2, axe-Suite; Browserprüfung siehe `specs/020-pages-paper-ink-part-2/checklists/visual-review.md` offen); Rest siehe Abschnitt 3 |
 | **4 – Neue Funktionen** | siehe Abschnitt 4 | offen, je ein eigener Spec-Kit-Durchlauf |
 
-Reihenfolge-Empfehlung: Schicht 2 → Rest von Schicht 3 → Schicht 4 pro Funktion (Veranstaltungstitel und Stockwerk-Reihenfolge zuerst).
+Reihenfolge-Empfehlung: Rest von Schicht 3 (Teil 2) → Schicht 4 pro Funktion (Veranstaltungstitel und Stockwerk-Reihenfolge zuerst).
 
 ## 3. Offene Punkte Schicht 3 (Seiten)
 
 Erledigt mit Feature 019 (Teil 1): Sprunglink und `id="inhalt"` an allen `<main>`; Raumliste als Zeile mit Streifen, „Jetzt“-Marke, einer Hauptaktion und Gruppe „Verwalten“; Fehlermuster (Symbol + „Fehler:“ + Text) und Feldlabels statt technischer Feldnamen; Tabellen über `DataTable`; Zeiten in Mono, Raumnamen in Serif (soweit nicht in zusammengesetzten Textzeilen); `.btn-primary` für die Hauptaktionen; Navigation im Administrationsmodus mit nicht umbrechendem Indikator.
 
+Erledigt mit Feature 020 (Teil 2): Raumdetail nach Lektorat-Board („Meine Buchungen“, Belegungen des Tages, „Raum auf einen Blick“, Formular rechts, „Weitere Reservierungen“ für Verwaltende); Serif/Mono in zusammengesetzten Zeilen der Auslastungsseite; Katalog-, Benutzer- und Belegungslisten auf `DataList`; Fußzeile mit Hilfelink und statischer Seite `/hilfe`; Pflichtfeld-Hinweis in allen Formularen; Statusmarken ohne gesperrte Großbuchstaben; axe-Suite (`src/a11y.test.tsx`, ohne Kontrast) und Regeltest für `prefers-reduced-motion`.
+
 Noch offen:
 
-- Raumdetail/Buchen nach Lektorat-Board: Abschnitt „Raum auf einen Blick“ (Sitzordnungen, Ausstattung, Zugang) **unter** „Meine Buchungen“, Belegungen des Tages mit Titeln, Formular rechts.
-- Studierenden-Ansicht: bisher gemeinsame Ansicht mit dem Lektorat; Design sieht Veranstaltung + Ort statt Plätze/Ausstattung vor (hängt an Abschnitt 4).
-- Standorte/Admin: Master-Detail (Häuser links, Stockwerke rechts mit Pfeil-Buttons zum Sortieren), Formulare „Haus bearbeiten“ / „Stockwerk bearbeiten“, Spalte „Zugang“ in der Raumtabelle.
-- Raumnummer als eigenes Feld der Raumzeile: `Room` hat keine Nummer, der Name trägt sie.
-- Mono für Zeiten in zusammengesetzten Textzeilen (Belegungslisten der Auslastungsseite) und Serif für Raumnamen darin.
+- Browserprüfung der Teile 019/020 nach `checklists/visual-review.md`: Raumdetail bei 1280/360 px, Kontraste, `prefers-reduced-motion`, Windows-Kontrastmodus.
 - Navigation: Ob die Leiste im Administrationsmodus bei 1280 px mit allen Rechten in **eine** Zeile passt, ist im Browser zu prüfen (zehn Links plus Indikator und Schalter sind rechnerisch zu breit; der Block bricht kontrolliert in eine zweite Zeile).
-- Barrierefreiheit: axe-Lauf im Browser; Streifen-`aria-label` mit „Jetzt“ ist umgesetzt, Pflichtfeld-Hinweis in allen Formularen.
-- Echte `ul`/`li`-Listen: bestehende Katalog- und Rollenlisten sind bereits Listen; ein Wechsel auf `DataList` ändert deren Panel-Layout und ist Teil 2.
+- Studierenden-Ansicht: bisher gemeinsame Ansicht mit dem Lektorat; Design sieht Veranstaltung + Ort statt Plätze/Ausstattung vor (hängt an Abschnitt 4).
+- Standorte/Admin: Master-Detail (Häuser links, Stockwerke rechts mit Pfeil-Buttons zum Sortieren), Formulare „Haus bearbeiten“ / „Stockwerk bearbeiten“, Spalte „Zugang“ in der Raumtabelle (hängt an Abschnitt 4: Stockwerk-Reihenfolge).
+- Raumnummer als eigenes Feld der Raumzeile: `Room` hat keine Nummer, der Name trägt sie.
+- Zugang als Freitext („Raum auf einen Blick“ zeigt nur Barrierefreiheit, Aufzug, Ebene): braucht ein Feld im Backend.
+- Kontaktadresse der Hilfeseite: Platzhalter `HELP_CONTACT` in `frontend/src/pages/helpContent.ts` vor dem Betrieb setzen; `/hilfe` zeigt für Angemeldete die Hauptnavigation, für Anonyme nicht.
 
 ## 4. Offene Punkte Schicht 4 (neue Funktionen, noch nicht im Backend/Spec)
 
@@ -54,12 +55,12 @@ Noch offen:
 
 Zum Stand: Der Review zu WCAG 2.2 wurde teilweise umgesetzt (A1–A10, C1, B3, B5, C5 im Canvas und in Teilen im Frontend). Offen:
 
-- **B1** Konsistenter Hilfe-/Kontakt-Link im Footer (WCAG 3.2.6).
+- ~~**B1** Konsistenter Hilfe-/Kontakt-Link im Footer (WCAG 3.2.6).~~ Erledigt mit Feature 020 (Fußzeile, `/hilfe`).
 - **B2** Anmeldung nach Barrierefreiheits-Regeln entwerfen (Paste erlaubt, Passwortmanager, kein Rätsel; 3.3.8). Hinweis: Das Login existiert, ist aber nicht als Board entworfen.
 - **B4** Karten-Entwurf mit sichtbarer Alternative zum Ziehen (2.5.7); im Frontend gibt es Pfeiltasten. Die Karte (Feature 012) ist gemergt.
-- **C2** 12-px-Beschriftungen in Großbuchstaben mit Sperrung auf ≥ 14 px ohne starke Sperrung.
+- ~~**C2** 12-px-Beschriftungen in Großbuchstaben mit Sperrung auf ≥ 14 px ohne starke Sperrung.~~ Erledigt mit Feature 020 (Regeltest).
 - **C3** Schalter „Muster aus / dezent“ gegen Mustermüdigkeit (flächige Alternative).
-- **C4** `prefers-reduced-motion`: im Canvas und in `index.css` dokumentiert/umgesetzt, aber nicht getestet.
+- **C4** `prefers-reduced-motion`: in `index.css` umgesetzt und per Regeltest abgesichert (Feature 020); im Browser noch zu prüfen.
 - Wirkung im Windows-Kontrastmodus (`forced-colors`) ist nur theoretisch abgesichert (`.strip`-Klasse), nicht am echten System geprüft.
 
 ## 6. Fachliche Entscheidungen

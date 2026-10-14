@@ -20,7 +20,7 @@ import {
 import { formatApiError } from '../../API/client'
 import type { Building, Floor } from '../../types/room'
 import { entityStatusLabel } from '../../utils/labels'
-import { ErrorMessage, Field } from '../../components/ui'
+import { DataList, ErrorMessage, Field } from '../../components/ui'
 
 export interface BuildingCatalogProps {
   /** Called whenever a building/floor is created, so an embedding form can refresh its pickers. */
@@ -102,6 +102,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
           })
         }}
       >
+        <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
         <Field label="Name des neuen Gebäudes" required>
           {(control) => (
             <input {...control} value={newBuildingName} onChange={(e) => setNewBuildingName(e.target.value)} />
@@ -118,15 +119,16 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
         <button type="submit" className="btn-primary">Gebäude hinzufügen</button>
       </form>}
 
-      {buildings.length === 0 ? (
-        <p className="status-empty">Noch keine Gebäude.</p>
-      ) : (
-        <ul className="list-plain">
-        {buildings.map((building) => {
+      <DataList
+        aria-label="Gebäude"
+        items={buildings}
+        itemKey={(building) => building.id}
+        emptyText="Noch keine Gebäude."
+        renderItem={(building) => {
           const floors = floorsByBuilding[building.id] ?? []
           const renameId = `rename-building-${building.id}`
           return (
-            <li key={building.id} className="panel">
+            <div className="panel ui-data-list__body">
               <span className="catalog-name">{building.name}</span>{' '}
               <span className={building.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                 ({entityStatusLabel(building.status)})
@@ -181,6 +183,7 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                   })
                 }}
               >
+                <p className="form-required-hint">Pflichtfelder sind mit „Pflichtfeld“ gekennzeichnet.</p>
                 <Field label={`Name des neuen Stockwerks in ${building.name}`} required>
                   {(control) => (
                     <input
@@ -203,14 +206,15 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                 <button type="submit" className="btn-primary" aria-label={`Stockwerk zu ${building.name} hinzufügen`}>Hinzufügen</button>
               </form>}
 
-              {floors.length === 0 ? (
-                <p className="status-empty">Noch keine Stockwerke.</p>
-              ) : (
-                <ul className="list-plain">
-                {floors.map((floor) => {
+              <DataList
+                aria-label={`Stockwerke von ${building.name}`}
+                items={floors}
+                itemKey={(floor) => floor.id}
+                emptyText="Noch keine Stockwerke."
+                renderItem={(floor) => {
                   const floorRenameId = `rename-floor-${floor.id}`
                   return (
-                    <li key={floor.id}>
+                    <div className="ui-data-list__body">
                       <span className="catalog-name catalog-name-floor">{floor.name}</span>{' '}
                       <span className={floor.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                         ({entityStatusLabel(floor.status)})
@@ -258,16 +262,14 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                         )}
                         <button type="button" onClick={() => guarded(() => deleteFloor(floor.id))} aria-label={`Stockwerk ${floor.name} löschen`}>Löschen</button>
                       </div>}
-                    </li>
+                    </div>
                   )
-                })}
-                </ul>
-              )}
-            </li>
+                }}
+              />
+            </div>
           )
-        })}
-        </ul>
-      )}
+        }}
+      />
     </section>
   )
 }

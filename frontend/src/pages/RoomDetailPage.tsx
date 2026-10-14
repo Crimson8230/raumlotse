@@ -3,11 +3,14 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAdminMode } from '../auth/useAdminMode'
 import { getRoom } from '../API/rooms'
 import { listRoomReservations } from '../API/reservations'
+import { listEquipmentTypes } from '../API/equipmentTypes'
 import { getRoomStatus } from '../API/roomStatus'
 import { listFavoriteRooms } from '../API/favoriteRooms'
 import { FavoriteToggle } from '../components/FavoriteToggle/FavoriteToggle'
 import { ReservationForm } from '../components/ReservationForm/ReservationForm'
 import { ReservationList } from '../components/ReservationList/ReservationList'
+import { RoomOverview } from '../components/RoomOverview/RoomOverview'
+import { RoomDayOccupancy } from '../components/RoomDayOccupancy/RoomDayOccupancy'
 import { CheckInQrCode } from '../components/CheckInQrCode/CheckInQrCode'
 import { RoomDeviceControlsDialog } from '../components/RoomDeviceControls/RoomDeviceControlsDialog'
 import { PresenceSimulateButton } from '../components/PresenceSimulateButton/PresenceSimulateButton'
@@ -16,7 +19,8 @@ import type { Room } from '../types/room'
 import type { Reservation } from '../types/reservation'
 import './RoomDetailPage.css'
 import { entityStatusLabel } from '../utils/labels'
-import { ErrorMessage } from '../components/ui'
+import { ErrorMessage, RoomName } from '../components/ui'
+import { formatApiError } from '../API/client'
 
 /** `?start=&end=` from a room search (contracts/ui.md §3); null unless both are valid instants and end > start. */
 function bookingWindow(start: string | null, end: string | null): { start: string; end: string } | null {
@@ -33,33 +37,55 @@ export default function RoomDetailPage() {
   const [searchParams] = useSearchParams()
   const requestedStart = searchParams.get('start')
   const requestedEnd = searchParams.get('end')
-  const bookRequested = searchParams.get('book') === 'true'
   const [prefill, setPrefill] = useState<{ start: string; end: string } | null>(null)
   const [room, setRoom] = useState<Room | undefined>(undefined)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [showBookingForm, setShowBookingForm] = useState(false)
+  const [formKey, setFormKey] = useState(0)
+  const [reservations, setReservations] = useState<Reservation[] | undefined>(undefined)
+  const [reservationsError, setReservationsError] = useState<string | null>(null)
+  const [equipmentNames, setEquipmentNames] = useState<Record<string, string>>({})
+  const [now, setNow] = useState(() => new Date())
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [refreshSignal, setRefreshSignal] = useState(0)
-  const [deviceEligibility, setDeviceEligibility] = useState<{ key: string; eligible: boolean }>()
-  const eligibilityKey = `${roomId ?? ''}:${refreshSignal}:${permissions.includes('OWN_ACTIVE_DEVICE_CONTROL')}`
+
+  // One reservation query feeds "Meine Buchungen", the day occupancy, the management list and device eligibility.
+  useEffect(() => {
+    if (!roomId) return
+    let ignore = false
+    listRoomReservations(roomId).then(
+      (entries) => {
+        if (ignore) return
+        setReservations(entries)
+        setReservationsError(null)
+      },
+      (err) => {
+        if (ignore) return
+        setReservations([])
+        setReservationsError(formatApiError(err))
+      },
+    )
+    return () => { ignore = true }
+  }, [roomId, refreshSignal])
 
   useEffect(() => {
-    if (!roomId || !permissions.includes('OWN_ACTIVE_DEVICE_CONTROL')) {
-      return
-    }
     let ignore = false
-    listRoomReservations(roomId).then((entries) => {
-      if (!ignore) setDeviceEligibility({
-        key: eligibilityKey,
-        eligible: entries.some((entry) => entry.ownedByMe && entry.status === 'ACTIVE'),
-      })
-    }).catch(() => {
-      if (!ignore) setDeviceEligibility({ key: eligibilityKey, eligible: false })
-    })
+    listEquipmentTypes('all').then(
+      (types) => { if (!ignore) setEquipmentNames(Object.fromEntries(types.map((t) => [t.id, t.name]))) },
+      () => {},
+    )
     return () => { ignore = true }
-  }, [roomId, refreshSignal, permissions, eligibilityKey])
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const deviceEligible =
+    permissions.includes('OWN_ACTIVE_DEVICE_CONTROL') &&
+    (reservations ?? []).some((entry) => entry.ownedByMe && entry.status === 'ACTIVE')
   const [nfcCopied, setNfcCopied] = useState(false)
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false)
   const [lastPresence, setLastPresence] = useState<{ roomId: string; at: string | null } | null>(null)
@@ -107,10 +133,7 @@ export default function RoomDetailPage() {
           setRoom(loaded)
           // Decided only once the room has loaded, so a deactivated room never opens the form (FR-011a).
           const window = bookingWindow(requestedStart, requestedEnd)
-          if ((window || bookRequested) && loaded.status === 'ACTIVE') {
-            setPrefill(window)
-            setShowBookingForm(true)
-          }
+          if (window && loaded.status === 'ACTIVE') setPrefill(window)
           setLoading(false)
         }
       },
@@ -124,14 +147,14 @@ export default function RoomDetailPage() {
     return () => {
       ignore = true
     }
-  }, [roomId, requestedStart, requestedEnd, bookRequested])
+  }, [roomId, requestedStart, requestedEnd])
 
   const closeDeviceDialog = useCallback(() => setDeviceDialogOpen(false), [])
 
   function handleReservationSaved(reservation: Reservation) {
     setSuccessMessage(`Reservierung erfolgreich durch ${reservation.createdBy} gebucht.`)
-    setShowBookingForm(false)
     setPrefill(null)
+    setFormKey((prev) => prev + 1)
     setRefreshSignal((prev) => prev + 1)
   }
 
@@ -151,11 +174,13 @@ export default function RoomDetailPage() {
     )
   }
 
+  const canReserve = room.status === 'ACTIVE' && permissions.includes('RESERVE')
+
   return (
     <main id="inhalt" className="room-detail-page">
       <div className="room-detail-header">
         <div className="room-detail-title">
-          <h1>{room.name}</h1>
+          <h1><RoomName>{room.name}</RoomName></h1>
           {room.status === 'ACTIVE' && (
             <FavoriteToggle
               roomId={room.id}
@@ -167,7 +192,7 @@ export default function RoomDetailPage() {
         </div>
         <div>
           <Link to={`/rooms/${room.id}/display`}>Raumanzeige</Link>{' '}
-          {permissions.includes('OWN_ACTIVE_DEVICE_CONTROL') && deviceEligibility?.key === eligibilityKey && deviceEligibility.eligible && (
+          {deviceEligible && (
             <button type="button" onClick={() => setDeviceDialogOpen(true)}>Geräte steuern</button>
           )}{' '}
           {adminMode && permissions.includes('ROOM_MANAGE') && <Link to={`/admin/rooms/${room.id}/edit`}>Raum bearbeiten</Link>}
@@ -187,13 +212,56 @@ export default function RoomDetailPage() {
         <dd className={room.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
           {entityStatusLabel(room.status)}
         </dd>
-        <dt>Sitzordnungen</dt>
-        <dd>
-          {room.seatingArrangements.map((s) => `${s.name} (max ${s.maxCapacity})`).join(', ')}
-        </dd>
-        <dt>Barrierefrei erreichbar</dt>
-        <dd>{room.barrierFreeReachable ? 'Ja' : 'Nein'}</dd>
       </dl>
+
+      {successMessage && (
+        <p role="status" className="feedback-success">
+          {successMessage}
+        </p>
+      )}
+
+      {reservationsError && <ErrorMessage>{reservationsError}</ErrorMessage>}
+
+      <div className="room-detail-grid">
+        <section className="room-detail-mine" aria-labelledby="room-mine-title">
+          <h2 id="room-mine-title">Meine Buchungen</h2>
+          <ReservationList
+            room={room}
+            scope="mine"
+            reservations={reservations ?? []}
+            onReservationChanged={() => setRefreshSignal((prev) => prev + 1)}
+          />
+        </section>
+
+        {canReserve && (
+          <section className="room-detail-form" aria-labelledby="room-book-title">
+            <h2 id="room-book-title">Raum buchen</h2>
+            <ReservationForm
+              key={formKey}
+              room={room}
+              onSaved={handleReservationSaved}
+              initialStartTime={prefill?.start}
+              initialEndTime={prefill?.end}
+            />
+          </section>
+        )}
+
+        <div className="room-detail-day">
+          <RoomDayOccupancy reservations={reservations ?? []} now={now} />
+        </div>
+      </div>
+
+      {permissions.includes('OTHER_RESERVATION_MANAGE') && (
+        <section className="room-reservations-section" aria-labelledby="room-managed-title">
+          <h2 id="room-managed-title">Weitere Reservierungen</h2>
+          <ReservationList
+            room={room}
+            scope="managed"
+            reservations={reservations ?? []}
+            onReservationChanged={() => setRefreshSignal((prev) => prev + 1)}
+          />
+        </section>
+      )}
 
       {adminMode && (
         <section className="panel room-check-in-codes" aria-labelledby="room-check-in-codes-title">
@@ -221,40 +289,7 @@ export default function RoomDetailPage() {
         </section>
       )}
 
-      {successMessage && (
-        <p role="status" className="feedback-success">
-          {successMessage}
-        </p>
-      )}
-
-      <section className="room-reservations-section">
-        <div className="room-reservations-header">
-          <h2>Reservierungen</h2>
-          {room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSuccessMessage(null)
-                setShowBookingForm((prev) => !prev)
-              }}
-            >
-              {showBookingForm ? 'Buchungsformular schließen' : 'Raum buchen'}
-            </button>
-          )}
-        </div>
-
-        {showBookingForm && room.status === 'ACTIVE' && permissions.includes('RESERVE') && (
-          <ReservationForm
-            room={room}
-            onSaved={handleReservationSaved}
-            onCancel={() => setShowBookingForm(false)}
-            initialStartTime={prefill?.start}
-            initialEndTime={prefill?.end}
-          />
-        )}
-
-        <ReservationList room={room} refreshSignal={refreshSignal} onReservationChanged={() => setRefreshSignal((prev) => prev + 1)} />
-      </section>
+      <RoomOverview room={room} equipmentNames={equipmentNames} />
     </main>
   )
 }

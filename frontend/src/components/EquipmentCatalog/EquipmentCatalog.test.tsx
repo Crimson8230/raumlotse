@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EquipmentCatalog } from './EquipmentCatalog'
@@ -138,5 +138,20 @@ describe('EquipmentCatalog list structure and fields (feature 019)', () => {
     render(<EquipmentCatalog />)
     expect(screen.getByLabelText(/name des neuen ausstattungstyps/i)).toHaveAttribute('aria-required', 'true')
     expect(screen.getByRole('button', { name: /ausstattungstyp hinzufügen/i })).toHaveClass('btn-primary')
+  })
+})
+
+describe('EquipmentCatalog lists (feature 020)', () => {
+  it('exposes the types as a named list and shows an empty text without records', async () => {
+    equipment.listEquipmentTypes.mockResolvedValue([type(), type({ id: 'e2', name: 'Whiteboard' })])
+    const { unmount } = render(<EquipmentCatalog />)
+
+    const list = await screen.findByRole('list', { name: 'Ausstattungstypen' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+    unmount()
+
+    equipment.listEquipmentTypes.mockResolvedValue([])
+    render(<EquipmentCatalog />)
+    expect(await screen.findByText('Noch keine Ausstattungstypen.')).toBeInTheDocument()
   })
 })

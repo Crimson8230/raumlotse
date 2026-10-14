@@ -15,6 +15,7 @@ Vertrag und Props: `specs/018-shared-ui-building-blocks/contracts/ui-blocks.md`.
 | `SkipLink` | `<SkipLink />` als erstes Element, `<main id="inhalt">` | `SkipLink/SkipLink.test.tsx` |
 | `DataList` | `<DataList items itemKey renderItem emptyText="…" aria-label="…" />` | `DataList/DataList.test.tsx` |
 | `DataTable` | `<DataTable caption columns rows rowKey rowHeader="name" emptyText="…" />` | `DataTable/DataTable.test.tsx` |
+| `RoomName`, `TimeText` | `<RoomName>Raum 2.14</RoomName>`, `<TimeText>10:00–12:00</TimeText>` (Serif / Mono in zusammengesetzten Zeilen) | `Typography/Typography.test.tsx` |
 | `Wayfinding` | `<Wayfinding direction="hoch" target="Aufzug" distance="ca. 40 m" />` | `Wayfinding/Wayfinding.test.tsx` |
 
 ## Invarianten (für jeden Baustein getestet)
@@ -29,3 +30,4 @@ Vertrag und Props: `specs/018-shared-ui-building-blocks/contracts/ui-blocks.md`.
 - Der `SkipLink` ist seit Feature 019 in `RequireAuth` und `LoginPage` eingebunden; jedes `<main>` trägt `id="inhalt"` (Regeltest `src/pages.rules.test.ts`).
 - Raumnamen tragen die Klasse `room-name` (Serif), Zeiten und Zahlen `mono`; Fehler laufen über `ErrorMessage`, Feldfehler des Servers über `fieldErrorsOf` (`API/client.ts`).
 - Der `Strip` braucht für eine laufende "Jetzt"-Marke eine von der Seite aktualisierte `now`-Prop.
+- Seit Feature 020 nutzen Kataloge, Benutzer- und Belegungslisten `DataList`; Einträge mit eigenem Layout setzen `ui-data-list__body` auf ihren Inhalt. Zusammengesetzte Textzeilen setzen Namen und Zeiten mit `RoomName`/`TimeText`.

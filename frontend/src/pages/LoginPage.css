@@ -1,5 +1,5 @@
 .login-page {
-  min-height: calc(100vh - 48px);
+  flex: 1 0 auto;
   display: grid;
   place-items: center;
   padding: 24px;

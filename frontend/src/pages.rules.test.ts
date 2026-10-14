@@ -76,3 +76,62 @@ describe('page rules (feature 019)', () => {
     }
   })
 })
+
+// Source-level rules of feature 020 (T006). Rules start skipped and are enabled by the story that fixes them.
+function collectCss(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return collectCss(path)
+    return entry.name.endsWith('.css') ? [path] : []
+  })
+}
+
+describe('page rules (feature 020)', () => {
+  it('(a) catalogs and role lists use DataList, not list-plain', () => {
+    const bad = sources
+      .filter(({ file }) => /Catalog\//.test(file) || file.endsWith('UserRoleListPage.tsx'))
+      .filter(({ text }) => /<ul[^>]*list-plain/.test(text))
+      .map(({ file }) => file)
+    expect(bad).toEqual([])
+  })
+
+  it('(b) no uppercase combined with letter-spacing in any rule', () => {
+    const bad = collectCss(here).flatMap((path) => {
+      const css = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      return [...css.matchAll(/\{[^}]*\}/g)]
+        .filter((m) => /text-transform:\s*uppercase/.test(m[0]) && /letter-spacing:\s*(?!normal|-)/.test(m[0]))
+        .map(() => relative(here, path))
+    })
+    expect(bad).toEqual([])
+  })
+
+  it('(c) every form with a required field explains the marking', () => {
+    const bad = sources
+      .filter(({ text }) => /<form\b/.test(text) && /\brequired\b/.test(text) && !/form-required-hint/.test(text))
+      .map(({ file }) => file)
+    expect(bad).toEqual([])
+  })
+
+  it('(d) motion is switched off for prefers-reduced-motion and no smooth scrolling is used', () => {
+    const index = readFileSync(join(here, 'index.css'), 'utf8')
+    const block = index.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/)
+    expect(block?.[1]).toMatch(/transition:\s*none\s*!important/)
+    expect(block?.[1]).toMatch(/animation:\s*none\s*!important/)
+
+    const smooth = [
+      ...collectCss(here).filter((path) => /scroll-behavior:\s*smooth/.test(readFileSync(path, 'utf8'))),
+      ...sources.filter(({ text }) => /behavior:\s*['"]smooth['"]/.test(text)).map(({ file }) => file),
+    ]
+    expect(smooth).toEqual([])
+  })
+
+  it('(e) the footer sticks to the bottom: the app root is a full-height column and the footer pushes itself down', () => {
+    const index = readFileSync(join(here, 'index.css'), 'utf8')
+    const root = index.match(/#root\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(root).toMatch(/min-height:\s*100(d)?vh/)
+    expect(root).toMatch(/display:\s*flex/)
+    expect(root).toMatch(/flex-direction:\s*column/)
+    const footer = readFileSync(join(here, 'components/Footer/Footer.css'), 'utf8')
+    expect(footer).toMatch(/\.app-footer\s*\{[^}]*margin-top:\s*auto/)
+  })
+})

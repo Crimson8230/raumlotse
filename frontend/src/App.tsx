@@ -19,6 +19,9 @@ import AdminOccupancyPage from './pages/AdminOccupancyPage'
 import RolePermissionPage from './pages/RolePermissionPage'
 import { RequireRoleManagement } from './auth/RequireRoleManagement'
 import { RequirePermission } from './auth/RequirePermission'
+import HelpPage from './pages/HelpPage'
+import { Navigation } from './components/Navigation/Navigation'
+import { useAuth } from './auth/useAuth'
 import AdminSettingsPage from './pages/AdminSettingsPage'
 
 function RoomEditRedirect() {
@@ -30,11 +33,17 @@ function RoomEditRedirect() {
  * Two address spaces (feature 013): everything outside `/admin` is the user view for any signed-in user,
  * everything under `/admin` is administration and requires administration mode.
  */
+function HelpRoute() {
+  const { state } = useAuth()
+  return <HelpPage navigation={state === 'authenticated' ? <Navigation /> : undefined} />
+}
+
 function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/hilfe" element={<HelpRoute />} />
 
         <Route element={<RequireAuth />}>
           <Route path="/" element={<HomePage />} />

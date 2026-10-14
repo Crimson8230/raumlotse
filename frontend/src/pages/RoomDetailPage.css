@@ -23,10 +23,26 @@
   margin-top: 1rem;
 }
 
-.room-reservations-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* "Lektorat"-Layout (Feature 020): schmal einspaltig in der Reihenfolge Meine, Formular, Tag, Überblick. */
+.room-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'mine' 'form' 'day';
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.room-detail-mine { grid-area: mine; }
+.room-detail-form { grid-area: form; }
+.room-detail-day { grid-area: day; }
+
+@media (min-width: 64rem) {
+  .room-detail-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+    grid-template-areas:
+      'mine form'
+      'day form';
+  }
 }
 
 .room-check-in-codes {

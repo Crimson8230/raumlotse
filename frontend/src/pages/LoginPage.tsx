@@ -4,6 +4,7 @@ import { canonicalEmail, loginSchema } from '../auth/loginSchema'
 import { ApiError } from '../API/client'
 import { useAuth } from '../auth/useAuth'
 import { safeReturnPath } from '../auth/returnPath'
+import { Footer } from '../components/Footer/Footer'
 import { ErrorMessage, Field, SkipLink } from '../components/ui'
 import './LoginPage.css'
 
@@ -118,6 +119,7 @@ export default function LoginPage() {
         </button>}
       </form>
     </main>
+    <Footer />
     </>
   )
 }
