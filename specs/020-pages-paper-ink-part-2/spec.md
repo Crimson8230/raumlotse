@@ -149,7 +149,7 @@ As the project team, I want an automated accessibility check and a visual review
 ## Assumptions
 
 - **"Meine Buchungen"** is the current user's reservations for this room, from the existing reservation list; no new query is introduced.
-- **Access information** is whatever the room already carries (e.g. access notes, check-in rules); if the data model has none, the part reads "keine Angabe" and a model change is a layer-4 item.
+- **Access information** (resolved in planning) is what the room already carries: barrier-free reachability, lift in the building, step-free ground floor. A free-text access note does not exist and is a layer-4 item.
 - **Help link target** (decided 2026-10-14): a new static help page inside the application, reachable from the footer on every page. It contains short fixed German text (how to find and book a room, what the strip patterns mean, who to contact); the contact address is a placeholder to be set by the project. No backend, no editing.
 - **Out of scope**: editable help content, event title, student view, locations master-detail and floor order, role restriction for booking, door sign and floor display, review items B2, B4, C3, room number as its own field.
 - **Language**: all new labels German, consistent with the existing translation.
