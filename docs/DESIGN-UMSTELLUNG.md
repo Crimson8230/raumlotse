@@ -19,7 +19,7 @@ Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und 
 |---|---|---|
 | **1 – Tokens, Schriften, globale Stile** | Tokens in `src/index.css`, lokale Schriften (`@fontsource`), eckige Elemente, 44-px-Ziele, invertierte Admin-Leiste, Badges als Muster + Wort, Komponenten-CSS ohne feste Farben | **erledigt** (Commit `style(frontend)`), im Browser per Screenshots geprüft |
 | **Übersetzung ins Deutsche** | Frontend-Texte, Statuslabels (`utils/labels.ts`), Backend-Meldungen, Validierungs-Locale | **erledigt** |
-| **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | offen |
+| **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | **erledigt** (Feature 018; Sichtprüfung im Browser offen, siehe `specs/018-shared-ui-building-blocks/checklists/visual-review.md`) |
 | **3 – Seiten umbauen** | siehe Abschnitt 3 | teilweise |
 | **4 – Neue Funktionen** | siehe Abschnitt 4 | offen, je ein eigener Spec-Kit-Durchlauf |
 
