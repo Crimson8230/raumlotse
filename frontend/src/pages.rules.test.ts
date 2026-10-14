@@ -87,7 +87,7 @@ function collectCss(dir: string): string[] {
 }
 
 describe('page rules (feature 020)', () => {
-  it.skip('(a) catalogs and role lists use DataList, not list-plain', () => {
+  it('(a) catalogs and role lists use DataList, not list-plain', () => {
     const bad = sources
       .filter(({ file }) => /Catalog\//.test(file) || file.endsWith('UserRoleListPage.tsx'))
       .filter(({ text }) => /<ul[^>]*list-plain/.test(text))

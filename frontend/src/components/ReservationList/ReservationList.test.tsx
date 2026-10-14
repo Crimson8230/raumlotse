@@ -363,3 +363,14 @@ describe('ReservationList scope (feature 020)', () => {
     expect(reservations.listRoomReservations).not.toHaveBeenCalled()
   })
 })
+
+describe('ReservationList typography (feature 020)', () => {
+  it('sets the time range of a booking in mono', async () => {
+    reservations.listRoomReservations.mockResolvedValue([sampleReservation()])
+
+    const { container } = render(<ReservationList room={sampleRoom()} />)
+
+    await screen.findByText(/Prof\. Smith/)
+    expect(container.querySelector('.reservation-time')).toHaveClass('mono')
+  })
+})

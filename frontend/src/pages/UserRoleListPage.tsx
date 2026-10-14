@@ -4,7 +4,7 @@ import { ApiError } from '../API/client'
 import { listUsers } from '../API/userRoles'
 import type { UserList } from '../types/userRole'
 import '../components/UserRoles/UserRoleEditor.css'
-import { Field } from '../components/ui'
+import { DataList, Field } from '../components/ui'
 
 export default function UserRoleListPage() {
   const [draft, setDraft] = useState('')
@@ -41,9 +41,10 @@ export default function UserRoleListPage() {
     </div>}
     {current?.data && <>
       {current.data.items.length === 0 ? <p role="status">Keine Benutzer gefunden.</p> :
-        <ul className="role-users">{current.data.items.map(user => <li key={user.id}>
-          <Link to={'/admin/users/' + encodeURIComponent(user.id) + '/roles'}><strong>{user.displayName}</strong><span>{user.accountLabel}</span></Link>
-        </li>)}</ul>}
+        <div className="role-users"><DataList aria-label="Benutzer" items={current.data.items} itemKey={user => user.id}
+          emptyText="Keine Benutzer gefunden."
+          renderItem={user => <Link className="ui-data-list__body" to={'/admin/users/' + encodeURIComponent(user.id) + '/roles'}>
+            <strong>{user.displayName}</strong><span>{user.accountLabel}</span></Link>} /></div>}
       <div className="role-pagination">
         <button disabled={query.page === 0} onClick={() => setQuery({ ...query, page: query.page - 1 })}>Zurück</button>
         <span aria-live="polite">Seite {query.page + 1} · {current.data.totalElements} Benutzer</span>

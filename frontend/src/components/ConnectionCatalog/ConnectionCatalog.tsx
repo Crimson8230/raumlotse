@@ -3,7 +3,7 @@ import { createConnection, deleteConnection, deleteConnectionPoint, updateConnec
 import { formatApiError } from '../../API/client'
 import { CONNECTION_TYPE_LABEL } from '../FloorMap/connectionLabels'
 import type { Connection, ConnectionType } from '../../types/map'
-import { ErrorMessage, Field } from '../../components/ui'
+import { DataList, ErrorMessage, Field } from '../../components/ui'
 
 interface Props {
   connections: Connection[]
@@ -65,13 +65,16 @@ export function ConnectionCatalog({
     <section aria-label="Verbindungen" className="connection-catalog">
       <h2>Verbindungen (Treppen und Aufzüge)</h2>
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      {connections.length === 0 && <p className="map-empty">Noch keine Verbindung angelegt.</p>}
-      <ul>
-        {connections.map((connection) => {
+      <DataList
+        aria-label="Verbindungen auf den Karten"
+        items={connections}
+        itemKey={(connection) => connection.id}
+        emptyText="Noch keine Verbindung angelegt."
+        renderItem={(connection) => {
           const hasPointHere = connection.points.some((point) => point.mapId === currentMapId)
           const isEditing = editing?.id === connection.id
           return (
-            <li key={connection.id}>
+            <div className="ui-data-list__body">
               {isEditing ? (
                 <form onSubmit={save}>
                   <Field label="Name" required>
@@ -141,10 +144,10 @@ export function ConnectionCatalog({
                   )}
                 </>
               )}
-            </li>
+            </div>
           )
-        })}
-      </ul>
+        }}
+      />
       {admin && (
         <form onSubmit={create} className="connection-create">
           <Field label="Name der Verbindung" required>

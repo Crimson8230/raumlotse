@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConnectionCatalog } from './ConnectionCatalog'
@@ -105,5 +105,21 @@ describe('ConnectionCatalog', () => {
     expect(screen.getByText('Aufzug A')).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/name der verbindung/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('ConnectionCatalog list (feature 020)', () => {
+  it('exposes the connections as a named list', () => {
+    setup()
+
+    const list = screen.getByRole('list', { name: 'Verbindungen auf den Karten' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('shows the empty text without connections', () => {
+    setup({ connections: [] })
+
+    expect(screen.getByText('Noch keine Verbindung angelegt.')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 })

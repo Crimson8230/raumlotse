@@ -6,7 +6,7 @@ import type { Building } from '../types/room'
 import type { BookingEntry, BuildingOccupancy, HourForecast, OccupancyForecast, OccupancySnapshot } from '../types/adminOccupancy'
 import './AdminStatisticsPage.css'
 import './AdminOccupancyPage.css'
-import { DataTable, ErrorMessage, Field } from '../components/ui'
+import { DataList, DataTable, ErrorMessage, Field, RoomName, TimeText } from '../components/ui'
 
 const REFRESH_INTERVAL_MS = 30_000
 
@@ -27,19 +27,34 @@ function persons(count: number): string {
   return count === 1 ? '1 Person' : `${count} Personen`
 }
 
-function bookingLine(booking: BookingEntry): string {
-  const status = booking.checkInStatus === 'CHECKED_IN'
+function checkInText(booking: BookingEntry, notCheckedIn: string): string {
+  return booking.checkInStatus === 'CHECKED_IN'
     ? `eingecheckt${booking.checkedInAt ? ` seit ${formatTime(booking.checkedInAt)}` : ''}`
-    : 'reserviert'
-  return `${booking.roomName} · ${formatTime(booking.startTime)}–${formatTime(booking.endTime)} · ${persons(booking.expectedAttendees)} · ${status}`
+    : notCheckedIn
 }
 
-function runningLine(booking: BookingEntry): string {
-  const status = booking.checkInStatus === 'CHECKED_IN'
-    ? `eingecheckt${booking.checkedInAt ? ` seit ${formatTime(booking.checkedInAt)}` : ''}`
-    : 'noch nicht eingecheckt'
-  return [booking.buildingName, booking.floorName, booking.roomName,
-    `${formatTime(booking.startTime)}–${formatTime(booking.endTime)}`, persons(booking.expectedAttendees), status].join(' · ')
+function timeRange(booking: BookingEntry): string {
+  return `${formatTime(booking.startTime)}–${formatTime(booking.endTime)}`
+}
+
+/** Zeilentext bleibt Wort für Wort gleich; Raumname in Serif, Zeiten und Zahlen in Mono (Feature 020). */
+function bookingLine(booking: BookingEntry) {
+  return (
+    <>
+      <RoomName>{booking.roomName}</RoomName> · <TimeText>{timeRange(booking)}</TimeText> ·{' '}
+      <TimeText>{persons(booking.expectedAttendees)}</TimeText> · {checkInText(booking, 'reserviert')}
+    </>
+  )
+}
+
+function runningLine(booking: BookingEntry) {
+  return (
+    <>
+      {booking.buildingName} · {booking.floorName} · <RoomName>{booking.roomName}</RoomName> ·{' '}
+      <TimeText>{timeRange(booking)}</TimeText> · <TimeText>{persons(booking.expectedAttendees)}</TimeText> ·{' '}
+      {checkInText(booking, 'noch nicht eingecheckt')}
+    </>
+  )
 }
 
 function PlannedValue({ value, peak }: { value: number | null; peak: boolean }) {
@@ -71,9 +86,13 @@ function HourDetailDialog({ hour, onClose, onBackToCurrent }: {
         {hour.floors.map(group => (
           <div key={group.floorId} className="occupancy-floor-group">
             <h3>{group.buildingName} · {group.floorName} – {persons(group.expectedPersons)}</h3>
-            <ul>
-              {group.bookings.map(booking => <li key={booking.reservationId}>{bookingLine(booking)}</li>)}
-            </ul>
+            <DataList
+              aria-label={`Buchungen: ${group.buildingName} · ${group.floorName}`}
+              items={group.bookings}
+              itemKey={booking => booking.reservationId}
+              renderItem={bookingLine}
+              emptyText="Keine Buchungen."
+            />
           </div>
         ))}
         <button type="button" onClick={onBackToCurrent}>Zur aktuellen Situation</button>
@@ -240,9 +259,13 @@ export default function AdminOccupancyPage() {
           {snapshot.runningBookings.length === 0
             ? <p className="statistics-status">Derzeit laufen keine Buchungen.</p>
             : (
-              <ul className="occupancy-running" aria-labelledby="occupancy-running-heading">
-                {snapshot.runningBookings.map(booking => <li key={booking.reservationId}>{runningLine(booking)}</li>)}
-              </ul>
+              <DataList
+                aria-label="Laufende Buchungen"
+                items={snapshot.runningBookings}
+                itemKey={booking => booking.reservationId}
+                renderItem={runningLine}
+                emptyText="Derzeit laufen keine Buchungen."
+              />
             )}
         </section>
       )}

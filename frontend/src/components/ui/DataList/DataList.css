@@ -13,3 +13,9 @@
   border-bottom: 1px solid var(--color-hairline);
   overflow-wrap: anywhere;
 }
+
+/* Inhalt eines Eintrags nimmt die volle Zeile ein, damit bestehende Eintragslayouts unverändert fließen. */
+.ui-data-list__body {
+  flex: 1 1 100%;
+  min-width: 0;
+}

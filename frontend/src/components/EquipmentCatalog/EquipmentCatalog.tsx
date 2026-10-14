@@ -10,7 +10,7 @@ import {
 import { formatApiError } from '../../API/client'
 import type { EquipmentType } from '../../types/room'
 import { entityStatusLabel } from '../../utils/labels'
-import { ErrorMessage, Field } from '../../components/ui'
+import { DataList, ErrorMessage, Field } from '../../components/ui'
 
 export interface EquipmentCatalogProps {
   onCatalogChanged?: () => void
@@ -83,14 +83,15 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
         <button type="submit" className="btn-primary">Ausstattungstyp hinzufügen</button>
       </form>
 
-      {types.length === 0 ? (
-        <p className="status-empty">Noch keine Ausstattungstypen.</p>
-      ) : (
-        <ul className="list-plain">
-        {types.map((type) => {
+      <DataList
+        aria-label="Ausstattungstypen"
+        items={types}
+        itemKey={(type) => type.id}
+        emptyText="Noch keine Ausstattungstypen."
+        renderItem={(type) => {
           const renameId = `rename-equipment-type-${type.id}`
           return (
-            <li key={type.id}>
+            <div className="ui-data-list__body">
               <span className="catalog-name">{type.name}</span>{' '}
               <span className={type.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                 ({entityStatusLabel(type.status)})
@@ -130,11 +131,10 @@ export function EquipmentCatalog({ onCatalogChanged }: EquipmentCatalogProps = {
                 )}
                 <button type="button" onClick={() => guarded(() => deleteEquipmentType(type.id))} aria-label={`Ausstattungstyp ${type.name} löschen`}>Löschen</button>
               </div>
-            </li>
+            </div>
           )
-        })}
-        </ul>
-      )}
+        }}
+      />
     </section>
   )
 }

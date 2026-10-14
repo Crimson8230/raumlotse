@@ -176,7 +176,7 @@ export function ReservationList({
                   <span className={`status-badge status-${res.status.toLowerCase()}`}>
                     {reservationStatusLabels[res.status]}
                   </span>
-                  <span className="reservation-time">
+                  <span className="reservation-time mono">
                     {formatDateTimeRange(res.startTime, res.endTime)}
                   </span>
                 </div>

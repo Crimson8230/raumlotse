@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BuildingCatalog } from './BuildingCatalog'
@@ -166,5 +166,26 @@ describe('BuildingCatalog list structure and fields (feature 019)', () => {
     render(<BuildingCatalog />)
     expect(screen.getByLabelText(/name des neuen gebäudes/i)).toHaveAttribute('aria-required', 'true')
     expect(screen.getByRole('button', { name: /gebäude hinzufügen/i })).toHaveClass('btn-primary')
+  })
+})
+
+describe('BuildingCatalog lists (feature 020)', () => {
+  it('exposes buildings and floors as named lists with one item per record', async () => {
+    buildings.listBuildings.mockResolvedValue([building(), building({ id: 'b2', name: 'Annex' })])
+    floors.listFloors.mockImplementation(async (buildingId?: string) => (buildingId === 'b1' ? [floor()] : []))
+
+    render(<BuildingCatalog />)
+    await screen.findByText('Main')
+
+    const list = screen.getByRole('list', { name: 'Gebäude' })
+    expect(within(list).getAllByRole('listitem').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByRole('list', { name: 'Stockwerke von Main' })).toBeInTheDocument()
+  })
+
+  it('shows empty texts instead of empty lists', async () => {
+    render(<BuildingCatalog />)
+
+    expect(await screen.findByText('Noch keine Gebäude.')).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Gebäude' })).not.toBeInTheDocument()
   })
 })

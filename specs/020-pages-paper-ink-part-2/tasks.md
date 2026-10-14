@@ -54,9 +54,9 @@ description: "Task list for feature 020 – Pages in Papier & Tinte, Part 2"
 
 **Independent Test**: Occupancy page: inspect lines; screen-reader text identical to before.
 
-- [ ] T017 [P] [US2] Write failing tests in `pages/AdminOccupancyPage.test.tsx`: in a booking line the room name is inside `.room-name` and each time range inside `.mono`; `textContent` of the line equals the previous string (`{Raum} · {HH:MM}–{HH:MM} · {Personen} · {Status}`)
-- [ ] T018 [US2] Replace `bookingLine`/`runningLine` string builders in `pages/AdminOccupancyPage.tsx` with fragments using `RoomName` and `TimeText`; group headings `{Haus} · {Stockwerk} – {n}` keep text, numbers in `.mono`
-- [ ] T019 [P] [US2] Grep other composed lines (`ReservationList` header, `MyUpcomingReservations`, `AdminStatisticsPage`, `FavoriteToggle` labels excluded as aria-text) and apply `RoomName`/`TimeText` where a name or time sits inside a text string; add one test per touched file
+- [x] T017 [P] [US2] Write failing tests in `pages/AdminOccupancyPage.test.tsx`: in a booking line the room name is inside `.room-name` and each time range inside `.mono`; `textContent` of the line equals the previous string (`{Raum} · {HH:MM}–{HH:MM} · {Personen} · {Status}`)
+- [x] T018 [US2] Replace `bookingLine`/`runningLine` string builders in `pages/AdminOccupancyPage.tsx` with fragments using `RoomName` and `TimeText`; group headings `{Haus} · {Stockwerk} – {n}` keep text, numbers in `.mono`
+- [x] T019 [P] [US2] Grep other composed lines (`ReservationList` header, `MyUpcomingReservations`, `AdminStatisticsPage`, `FavoriteToggle` labels excluded as aria-text) and apply `RoomName`/`TimeText` where a name or time sits inside a text string; add one test per touched file
 
 **Checkpoint**: US2 independently shippable.
 
@@ -66,13 +66,13 @@ description: "Task list for feature 020 – Pages in Papier & Tinte, Part 2"
 
 **Independent Test**: Each list with and without records; actions and confirmations as before.
 
-- [ ] T020 [P] [US3] Write failing tests in `components/BuildingCatalog/BuildingCatalog.test.tsx` for both lists: `list` role with accessible name ("Gebäude", "Stockwerke von {Gebäude}"), `listitem` per record, empty text; existing action tests untouched
-- [ ] T021 [P] [US3] Write failing tests in `components/EquipmentCatalog/EquipmentCatalog.test.tsx` and `components/ConnectionCatalog/ConnectionCatalog.test.tsx`: `list` with accessible name, empty text
-- [ ] T022 [P] [US3] Write failing tests in `pages/UserRoleListPage.test.tsx` (role users list) and `pages/AdminOccupancyPage.test.tsx` (running bookings list, hour detail lists): `list` with accessible name, empty text
-- [ ] T023 [US3] Convert `components/BuildingCatalog/BuildingCatalog.tsx` (lines ~124 and ~209) to `DataList`, keep buttons, confirmation and layout classes; adapt `BuildingCatalog.css` if panel spacing changes
-- [ ] T024 [P] [US3] Convert `components/EquipmentCatalog/EquipmentCatalog.tsx` and `components/ConnectionCatalog/ConnectionCatalog.tsx` to `DataList`
-- [ ] T025 [P] [US3] Convert the `role-users` list in `pages/UserRoleListPage.tsx` and the `<ul>` lists in `pages/AdminOccupancyPage.tsx` (lines ~74, ~243) to `DataList`; leave `Navigation`, `UnplacedRoomList`, `RoomDeviceIcons`, `ConnectionLayer` as they are (research R6)
-- [ ] T026 [US3] Enable rule (a) of T006 in `pages.rules.test.ts` and make it pass
+- [x] T020 [P] [US3] Write failing tests in `components/BuildingCatalog/BuildingCatalog.test.tsx` for both lists: `list` role with accessible name ("Gebäude", "Stockwerke von {Gebäude}"), `listitem` per record, empty text; existing action tests untouched
+- [x] T021 [P] [US3] Write failing tests in `components/EquipmentCatalog/EquipmentCatalog.test.tsx` and `components/ConnectionCatalog/ConnectionCatalog.test.tsx`: `list` with accessible name, empty text
+- [x] T022 [P] [US3] Write failing tests in `pages/UserRoleListPage.test.tsx` (role users list) and `pages/AdminOccupancyPage.test.tsx` (running bookings list, hour detail lists): `list` with accessible name, empty text
+- [x] T023 [US3] Convert `components/BuildingCatalog/BuildingCatalog.tsx` (lines ~124 and ~209) to `DataList`, keep buttons, confirmation and layout classes; adapt `BuildingCatalog.css` if panel spacing changes
+- [x] T024 [P] [US3] Convert `components/EquipmentCatalog/EquipmentCatalog.tsx` and `components/ConnectionCatalog/ConnectionCatalog.tsx` to `DataList`
+- [x] T025 [P] [US3] Convert the `role-users` list in `pages/UserRoleListPage.tsx` and the `<ul>` lists in `pages/AdminOccupancyPage.tsx` (lines ~74, ~243) to `DataList`; leave `Navigation`, `UnplacedRoomList`, `RoomDeviceIcons`, `ConnectionLayer` as they are (research R6)
+- [x] T026 [US3] Enable rule (a) of T006 in `pages.rules.test.ts` and make it pass
 
 **Checkpoint**: US3 independently shippable.
 

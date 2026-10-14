@@ -269,8 +269,9 @@ describe('AdminOccupancyPage – day forecast', () => {
     expect(detail).toHaveAttribute('aria-modal', 'true')
     const groups = within(detail).getAllByRole('heading', { level: 3 }).map(h => h.textContent)
     expect(groups).toEqual(['MCI III · 1. OG – 12 Personen', 'MCI IV · EG – 7 Personen', 'MCI III · EG – 5 Personen'])
-    expect(within(detail).getByText(/R2 · 10:00–12:00 · 12 Personen · eingecheckt/)).toBeInTheDocument()
-    expect(within(detail).getByText(/R3 · 10:00–11:00 · 7 Personen · reserviert/)).toBeInTheDocument()
+    const lines = within(detail).getAllByRole('listitem').map(item => item.textContent)
+    expect(lines).toContainEqual('R2 · 10:00–12:00 · 12 Personen · eingecheckt seit 09:55')
+    expect(lines).toContainEqual('R3 · 10:00–11:00 · 7 Personen · reserviert')
 
     await user.click(within(detail).getByRole('button', { name: 'Zur aktuellen Situation' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -330,6 +331,29 @@ describe('AdminOccupancyPage – running bookings', () => {
     const items = within(list).getAllByRole('listitem')
     expect(items[0]).toHaveTextContent('MCI III · 1. OG · R2 · 10:00–12:00 · 12 Personen · eingecheckt seit 09:55')
     expect(items[1]).toHaveTextContent('MCI IV · EG · R3 · 10:00–12:00 · 6 Personen · noch nicht eingecheckt')
+  })
+
+  it('sets room names in serif and times in mono inside the line without changing its text (feature 020)', async () => {
+    vi.mocked(getOccupancySnapshot).mockResolvedValue(snapshot({ runningBookings: [booking({ checkInStatus: 'CHECKED_IN', checkedInAt: '2026-10-13T07:55:00Z' })] }))
+    render(<AdminOccupancyPage />)
+    const list = await screen.findByRole('list', { name: 'Laufende Buchungen' })
+    const line = within(list).getAllByRole('listitem')[0]
+
+    expect(line.querySelector('.room-name')).toHaveTextContent('R2')
+    expect([...line.querySelectorAll('.mono')].map(n => n.textContent)).toContain('10:00–12:00')
+    expect(line).toHaveTextContent('MCI III · 1. OG · R2 · 10:00–12:00 · 12 Personen · eingecheckt seit 09:55')
+  })
+
+  it('sets room and time in the hour detail lines in serif and mono', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getOccupancyForecast).mockResolvedValue(busyForecast())
+    render(<AdminOccupancyPage />)
+    await user.click(await screen.findByRole('button', { name: '10:00' }))
+
+    const detail = screen.getByRole('dialog', { name: /10:00/ })
+    const line = within(detail).getAllByRole('listitem').find(item => item.textContent?.startsWith('R2 · 10:00–12:00'))!
+    expect(line.querySelector('.room-name')).toHaveTextContent('R2')
+    expect(line.querySelector('.mono')).toHaveTextContent('10:00–12:00')
   })
 
   it('shows an empty state when no booking is running', async () => {
