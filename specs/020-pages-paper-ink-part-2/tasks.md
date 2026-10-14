@@ -99,16 +99,16 @@ description: "Task list for feature 020 – Pages in Papier & Tinte, Part 2"
 
 **Independent Test**: `npx vitest run a11y.test.tsx` green; visual-review checklist ticked.
 
-- [ ] T035 [US5] Write `a11y.test.tsx` in `src/`: render each page in scope with mocked API (home, room list, room detail, check-in, login, help, admin occupancy, statistics, locations, role pages) and run `axe-core` with `color-contrast` disabled (jsdom); assert zero violations for label, list, listitem, table/th, landmark and region rules
-- [ ] T036 [US5] Fix all violations found by T035 in the affected components (no rule suppression without an inline justification)
-- [ ] T037 [US5] Verify `prefers-reduced-motion`: add a rule test that every CSS `transition`/`animation` outside the media query block is covered by the reduced-motion override in `index.css`, and fix gaps
+- [x] T035 [US5] Write `a11y.test.tsx` in `src/`: render each page in scope with mocked API (home, room list, room detail, check-in, login, help, admin occupancy, statistics, locations, role pages) and run `axe-core` with `color-contrast` disabled (jsdom); assert zero violations for label, list, listitem, table/th, landmark and region rules
+- [x] T036 [US5] Fix all violations found by T035 in the affected components (no rule suppression without an inline justification)
+- [x] T037 [US5] Verify `prefers-reduced-motion`: add a rule test that every CSS `transition`/`animation` outside the media query block is covered by the reduced-motion override in `index.css`, and fix gaps
 - [ ] T038 [US5] Browser pass with `docs`-listed checks: navigation in administration mode at 1280 px (record result: one line or controlled wrap), room detail at 1280/360 px, contrast spot checks, Windows high-contrast note if available; tick `specs/020-pages-paper-ink-part-2/checklists/visual-review.md`
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T039 Update `docs/DESIGN-UMSTELLUNG.md`: Schicht 3 Teil 2 erledigt, move done items out of Abschnitt 3, mark B1 and C2 done in Abschnitt 5, record navigation finding, list remaining open points (Standorte-Master-Detail, Studierendenansicht, Raumnummer als Feld)
-- [ ] T040 [P] Update `frontend/src/components/ui/README.md` (Typography blocks, `DataList` adoption) and `specs/020-pages-paper-ink-part-2/quickstart.md` if steps changed
-- [ ] T041 Final run `npx vitest run`, `npx tsc --noEmit`, `npm run lint`; compare pass count with T001; no test removed without replacement (SC-007)
+- [x] T039 Update `docs/DESIGN-UMSTELLUNG.md`: Schicht 3 Teil 2 erledigt, move done items out of Abschnitt 3, mark B1 and C2 done in Abschnitt 5, record navigation finding, list remaining open points (Standorte-Master-Detail, Studierendenansicht, Raumnummer als Feld)
+- [x] T040 [P] Update `frontend/src/components/ui/README.md` (Typography blocks, `DataList` adoption) and `specs/020-pages-paper-ink-part-2/quickstart.md` if steps changed
+- [x] T041 Final run `npx vitest run`, `npx tsc --noEmit`, `npm run lint`; compare pass count with T001; no test removed without replacement (SC-007)
 
 ## Dependencies & Execution Order
 

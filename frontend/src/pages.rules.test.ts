@@ -111,4 +111,17 @@ describe('page rules (feature 020)', () => {
       .map(({ file }) => file)
     expect(bad).toEqual([])
   })
+
+  it('(d) motion is switched off for prefers-reduced-motion and no smooth scrolling is used', () => {
+    const index = readFileSync(join(here, 'index.css'), 'utf8')
+    const block = index.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/)
+    expect(block?.[1]).toMatch(/transition:\s*none\s*!important/)
+    expect(block?.[1]).toMatch(/animation:\s*none\s*!important/)
+
+    const smooth = [
+      ...collectCss(here).filter((path) => /scroll-behavior:\s*smooth/.test(readFileSync(path, 'utf8'))),
+      ...sources.filter(({ text }) => /behavior:\s*['"]smooth['"]/.test(text)).map(({ file }) => file),
+    ]
+    expect(smooth).toEqual([])
+  })
 })
