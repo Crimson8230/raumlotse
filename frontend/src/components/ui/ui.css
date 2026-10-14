@@ -1,0 +1,73 @@
+/* Gemeinsame Regeln der Bausteine (Feature 018). Nur Tokens aus index.css, keine festen Farben.
+   Alle Klassen tragen das Präfix "ui-", damit bestehende Seiten unberührt bleiben. */
+
+.ui-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.ui-focus:focus-visible,
+.ui-target:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ui-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: normal;
+}
+
+/* Muster der Zustandssprache: frei = leer, belegt = Schraffur, meine = volle Tinte,
+   jetzt = Linie, gesperrt = gepunktet. Information steht immer zusätzlich als Wort da. */
+.ui-pattern-empty {
+  background: var(--color-surface);
+}
+
+.ui-pattern-hatch {
+  background: var(--color-surface) var(--hatch);
+}
+
+.ui-pattern-solid {
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.ui-pattern-line {
+  background: var(--color-surface);
+  border-left: 2px solid var(--color-primary);
+}
+
+.ui-pattern-dotted {
+  background: var(--color-surface);
+  background-image: radial-gradient(var(--color-text) 1.2px, transparent 1.6px);
+  background-size: 6px 6px;
+}
+
+.ui-skip-link {
+  position: absolute;
+  top: -80px;
+  left: var(--space-2);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-text);
+  color: var(--color-background);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ui-skip-link:focus {
+  top: var(--space-2);
+}
+
+.ui-empty {
+  padding: var(--space-4) 0;
+  color: var(--color-muted);
+  font-style: italic;
+  text-align: center;
+}
