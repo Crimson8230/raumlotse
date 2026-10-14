@@ -1,6 +1,8 @@
 # Raumlotse – Designumstellung „Papier & Tinte“
 
-Stand: 2026-10-06 · `dev` auf `9e0d6f2` (Feature 013 gemergt, PR #34)
+Stand: 2026-10-14 · `dev` auf `639135d` (Features 012–017 gemergt)
+
+Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und der Systemdokumentation (früher Abschnitt 7) liegen in [`OFFENE-PUNKTE-013.md`](OFFENE-PUNKTE-013.md).
 
 ## 1. Design-Referenz
 
@@ -40,10 +42,10 @@ Reihenfolge-Empfehlung: Schicht 2 → Rest von Schicht 3 → Schicht 4 pro Funkt
 
 | Im Design | Fehlt | Nötig |
 |---|---|---|
-| Veranstaltungstitel (Studierende, Türschild, Etagenanzeige, Buchungsformular „Veranstaltung“) | Feld und öffentliche Anzeige | **Spec-Änderung** (widerspricht Annahme A3 aus Feature 013: Fremde sehen nur Zeitfenster), neues Feld an `Reservation`, Redaktionsregel, Formularfeld mit Hinweis „öffentlich, keine Personennamen“ |
+| Veranstaltungstitel (Studierende, Türschild, Etagenanzeige, Buchungsformular „Veranstaltung“) | Feld und öffentliche Anzeige | **Spec-Änderung** (widerspricht Annahme A3 aus Feature 013: Fremde sehen nur Zeitfenster; **entschieden: E1, öffentlich**), neues Feld an `Reservation`, Redaktionsregel, Formularfeld mit Hinweis „öffentlich, keine Personennamen“ |
 | Stockwerk-Reihenfolge | Positionsfeld pro Stockwerk | neue Spalte + Migration, Verschiebe-Endpunkt, Sortierung überall |
 | Haus-/Stockwerk-Editor | nur Katalog-Komponente | Master-Detail im Frontend (Aufzug und `groundFloor` gibt es bereits) |
-| Etagenanzeige, Türschild | Displays, Einmalcode-Anmeldung (aus Spec 012 verschoben), Richtung/Entfernung/Laufzeit | eigene Features; Entfernungen aus Kartendaten (012) oder manueller Pflege |
+| Etagenanzeige, Türschild | Etagenanzeige und Einmalcode-Anmeldung (aus Spec 012 verschoben), Richtung/Entfernung/Laufzeit. Das Türschild-Display existiert (`/rooms/:roomId/display`, Feature 005) und muss nur umgestellt werden. | eigene Features; Entfernungen aus Kartendaten (012, gemergt) oder manueller Pflege |
 | Studierenden-Suche nach Veranstaltung | Suche über den Titel | hängt am Veranstaltungstitel |
 
 ## 5. Offene Entwurfs- und Barrierefreiheits-Punkte (aus dem Review)
@@ -52,27 +54,27 @@ Zum Stand: Der Review zu WCAG 2.2 wurde teilweise umgesetzt (A1–A10, C1, B3, B
 
 - **B1** Konsistenter Hilfe-/Kontakt-Link im Footer (WCAG 3.2.6).
 - **B2** Anmeldung nach Barrierefreiheits-Regeln entwerfen (Paste erlaubt, Passwortmanager, kein Rätsel; 3.3.8). Hinweis: Das Login existiert, ist aber nicht als Board entworfen.
-- **B4** Karten-Entwurf mit sichtbarer Alternative zum Ziehen (2.5.7); im Frontend gibt es Pfeiltasten.
+- **B4** Karten-Entwurf mit sichtbarer Alternative zum Ziehen (2.5.7); im Frontend gibt es Pfeiltasten. Die Karte (Feature 012) ist gemergt.
 - **C2** 12-px-Beschriftungen in Großbuchstaben mit Sperrung auf ≥ 14 px ohne starke Sperrung.
 - **C3** Schalter „Muster aus / dezent“ gegen Mustermüdigkeit (flächige Alternative).
 - **C4** `prefers-reduced-motion`: im Canvas und in `index.css` dokumentiert/umgesetzt, aber nicht getestet.
 - Wirkung im Windows-Kontrastmodus (`forced-colors`) ist nur theoretisch abgesichert (`.strip`-Klasse), nicht am echten System geprüft.
 
-## 6. Offene fachliche Entscheidungen
+## 6. Fachliche Entscheidungen
 
-1. **Rollen:** Das Design trennt Studierende (ansehen) und Lehrende (buchen). Im Backend wird nur `ADMIN` ausgewertet; alle angemeldeten Nutzer dürfen buchen (Annahme A1/A9 in Feature 013). Entweder gemeinsame Ansicht oder eigene Spec, die Buchen auf Lehrende beschränkt.
-2. **Veranstaltungstitel öffentlich?** (siehe Abschnitt 4) – muss vor dem Umbau der Studierenden-Ansicht entschieden werden.
-3. **Ausstattungsnamen:** „Projector“ und „Whiteboard“ stammen aus der Datenbank (Migration V3) und sind englisch; umbenennen oder Migration ändern.
+Entschieden am 2026-10-14:
+
+1. **Rollen (E2): Buchen nur für Lehrende.** Das Design trennt Studierende (ansehen) und Lehrende (buchen). Bisher darf im Backend jeder angemeldete Nutzer buchen (Annahme A1/A9 in Feature 013). Es braucht daher eine eigene Spec, die Buchen auf Lehrende beschränkt. Zu klären bleibt, wie `ADMIN` und die Rollen aus Feature 015 dazu passen und welche Rolle Lehrende technisch sind.
+2. **Veranstaltungstitel (E1): öffentlich.** Fremde sehen künftig den Titel zusätzlich zum Zeitfenster. Das hebt Annahme A3 aus Feature 013 auf und braucht eine Spec-Änderung samt Redaktionsregel. Das Buchungsformular erhält den Hinweis „öffentlich, keine Personennamen“.
+3. **Ausstattungsnamen (E3): neue Migration.** „Projector“ und „Whiteboard“ stammen aus `V3__create_equipment_type_tables.sql` und sind englisch. `V3` wird nicht geändert, die Umbenennung erfolgt in einer neuen Migration.
+
+Noch offen:
+
 4. **Kurze sichtbare Button-Texte** mit langem `aria-label` wurden in den Katalogen umgesetzt; die Begriffe („Einchecken“, „Verfallen lassen“, …) sind ein Vorschlag und leicht änderbar.
 
-## 7. Offene Punkte aus Feature 013 und Systemdokumentation
+## 7. Altlasten aus Feature 013 und Systemdokumentation
 
-- Spec/Plan/Systemdokument erwähnen die Statistikseite (PR #32) nicht: Routenübersicht, Navigation, Matrix.
-- Nicht umgesetzt: Warnung vor dem Verwerfen eines offenen Admin-Formulars beim Ausschalten des Modus (T044/T048; `BrowserRouter` unterstützt `useBlocker` nicht).
-- Nicht gemessen: optionaler Index auf `reservation.created_by_user_id` (T052).
-- Manuelle Quickstart-Szenarien 1–9 aus `specs/013-user-view-admin-mode/quickstart.md` nicht vollständig durchgespielt (Teile per Screenshot geprüft).
-- `Problem.title` im Backend ist weiterhin englisch (wird nicht angezeigt).
-- Weitere Befunde der Systemdokumentation (`docs/SYSTEMDOKUMENTATION.md`): u. a. S4 (Rollenmodell nur teilweise wirksam, Autorisierung als Pfadfilter), F2 (doppelte Identität in `Reservation` teilweise), F4 (kein DB-Constraint gegen Überschneidungen), F5–F9 (Scheduler/Mail-Retry/Gerätesteuerung), D1–D12 (Stil, Paketstruktur, DTO/Entity, Validierung, Paging, Frontend-Struktur), P1–P5 (**keine wirksame CI**: Workflow liegt in `workflows/` statt `.github/workflows/`; Spec-Nummern inkonsistent; Ruleset-Exporte im Root).
+Ausgelagert nach [`OFFENE-PUNKTE-013.md`](OFFENE-PUNKTE-013.md), weil sie nicht zur Designumstellung gehören.
 
 ## 8. Technische Hinweise zur Umsetzung
 
