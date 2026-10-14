@@ -124,4 +124,14 @@ describe('page rules (feature 020)', () => {
     ]
     expect(smooth).toEqual([])
   })
+
+  it('(e) the footer sticks to the bottom: the app root is a full-height column and the footer pushes itself down', () => {
+    const index = readFileSync(join(here, 'index.css'), 'utf8')
+    const root = index.match(/#root\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(root).toMatch(/min-height:\s*100(d)?vh/)
+    expect(root).toMatch(/display:\s*flex/)
+    expect(root).toMatch(/flex-direction:\s*column/)
+    const footer = readFileSync(join(here, 'components/Footer/Footer.css'), 'utf8')
+    expect(footer).toMatch(/\.app-footer\s*\{[^}]*margin-top:\s*auto/)
+  })
 })

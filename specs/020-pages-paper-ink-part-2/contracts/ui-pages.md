@@ -5,13 +5,12 @@
   - area `mine`: `<section aria-labelledby>` "Meine Buchungen" (cards, own actions, empty text)
   - area `form`: `<section>` "Raum buchen" with `ReservationForm` (only active room + `RESERVE`)
   - area `day`: "Belegungen des Tages": `Strip` + `DataList` (time mono, state word)
-  - area `overview`: "Raum auf einen Blick": `<dl>` Sitzordnungen / Ausstattung / Zugang
-  - admin only: "Weitere Reservierungen" (management cards), "Check-in-Codes"
-- Wide (≥ 64 rem): columns `[mine, day, overview] | [form]`. Narrow: order mine, form, day, overview, rest.
+  - below the grid, in this order: "Weitere Reservierungen" (management cards, only with `OTHER_RESERVATION_MANAGE`), "Check-in-Codes" (administration mode), and last "Raum auf einen Blick": `<dl>` Sitzordnungen / Ausstattung / Zugang
+- Wide (≥ 64 rem): columns `[mine, day] | [form]`. Narrow: order mine, form, day, then the sections below the grid.
 - Query params `start`, `end`, `book` prefill the form; no toggle button.
 
 ## Footer (all frames, login)
-- `<footer>` after `main`: link "Hilfe" → `/hilfe`, identical text and position on all pages.
+- `<footer>` after `main`, pinned to the bottom of the viewport on short pages (`#root` is a full-height flex column, footer `margin-top: auto`): link "Hilfe" → `/hilfe`, identical text and position on all pages.
 
 ## Help (`/hilfe`, public)
 - `SkipLink`, `main#inhalt`, `h1` "Hilfe", fixed sections, contact line from `HELP_CONTACT`.

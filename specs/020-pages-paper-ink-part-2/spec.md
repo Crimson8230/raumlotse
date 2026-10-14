@@ -29,7 +29,7 @@ As a lecturer, I want the room detail page arranged like the "Lektorat" board: t
 **Acceptance Scenarios**:
 
 1. **Given** the room detail page of an active room, **When** it is shown on a wide viewport, **Then** "Meine Buchungen" and the day's occupancy appear in the left column and the booking form in the right column.
-2. **Given** the same page, **When** the left column is read top to bottom, **Then** "Meine Buchungen" comes first, then the day's occupancy, then "Raum auf einen Blick".
+2. **Given** the same page, **When** it is read top to bottom, **Then** "Meine Buchungen" comes first, then the day's occupancy, and "Raum auf einen Blick" is the last section of the page.
 3. **Given** "Raum auf einen Blick", **When** it is shown, **Then** it lists seating arrangements with capacity, equipment, and access information as a labeled definition-style list; a part without data says so in words ("keine Angabe").
 4. **Given** a narrow viewport, **When** the page is shown, **Then** the sections stack in a sensible reading order (form directly after "Meine Buchungen") without horizontal scrolling.
 5. **Given** the user may not reserve, **When** the page is shown, **Then** no form is shown and the overview sections still appear unchanged.
@@ -113,7 +113,8 @@ As the project team, I want an automated accessibility check and a visual review
 
 ### Functional Requirements
 
-- **FR-001**: The room detail page MUST show, in the main column, "Meine Buchungen", the day's occupancy, and "Raum auf einen Blick" in this order, and the booking form in a second column beside them on wide viewports.
+- **FR-001**: The room detail page MUST show, in the main column, "Meine Buchungen" and the day's occupancy in this order, with the booking form in a second column beside them on wide viewports, and "Raum auf einen Blick" as the last section of the page (after any administration sections).
+- **FR-001a**: The application footer MUST sit at the bottom of the viewport on pages with little content (decided 2026-10-14).
 - **FR-002**: "Raum auf einen Blick" MUST present seating arrangements (with maximum capacity), equipment, and access information, each with a visible label; missing data MUST read "keine Angabe".
 - **FR-003**: On narrow viewports the sections MUST stack without horizontal scrolling, with the form directly after "Meine Buchungen".
 - **FR-004**: Bookings in the day's occupancy MUST show time ranges in monospace and state as pattern and word, using the shared strip/chip blocks.

@@ -183,6 +183,19 @@ describe('RoomDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Raum buchen' })).toBeInTheDocument()
   })
 
+  it('places "Raum auf einen Blick" last on the page, after administration sections', async () => {
+    mode.adminMode = true
+    mode.permissions = ['READ', 'RESERVE', 'OTHER_RESERVATION_MANAGE']
+    rooms.getRoom.mockResolvedValue(sampleRoom())
+
+    renderComponent()
+
+    await screen.findByText('Room 101')
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(headings[headings.length - 1]).toBe('Raum auf einen Blick')
+    expect(headings.indexOf('Check-in-Codes')).toBeLessThan(headings.indexOf('Raum auf einen Blick'))
+  })
+
   it('loads the reservations once per load and shares them between the sections', async () => {
     rooms.getRoom.mockResolvedValue(sampleRoom())
 

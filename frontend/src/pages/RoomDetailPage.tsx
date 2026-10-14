@@ -249,10 +249,6 @@ export default function RoomDetailPage() {
         <div className="room-detail-day">
           <RoomDayOccupancy reservations={reservations ?? []} now={now} />
         </div>
-
-        <div className="room-detail-overview">
-          <RoomOverview room={room} equipmentNames={equipmentNames} />
-        </div>
       </div>
 
       {permissions.includes('OTHER_RESERVATION_MANAGE') && (
@@ -292,6 +288,8 @@ export default function RoomDetailPage() {
           />
         </section>
       )}
+
+      <RoomOverview room={room} equipmentNames={equipmentNames} />
     </main>
   )
 }

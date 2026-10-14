@@ -2,8 +2,9 @@
 
 Manual checks from `quickstart.md`. To be performed in a browser (1280 px and 360 px) with backend and DB running.
 
-- [ ] `/rooms/:id` at 1280 px: left "Meine Buchungen", "Belegungen des Tages", "Raum auf einen Blick"; booking form in the right column
-- [ ] `/rooms/:id` at 360 px: order mine, form, day, overview; no horizontal page scroll
+- [ ] `/rooms/:id` at 1280 px: left "Meine Buchungen", "Belegungen des Tages"; booking form in the right column; "Raum auf einen Blick" last on the page
+- [ ] `/rooms/:id` at 360 px: order mine, form, day, then the sections below; no horizontal page scroll
+- [ ] Footer at the bottom edge on a short page (login, help, empty room list) and below the content on a long page
 - [ ] Room without equipment/seating: "keine Angabe" in the overview
 - [ ] Administration mode with `OTHER_RESERVATION_MANAGE`: "Weitere Reservierungen" shows details and actions
 - [ ] `/admin/occupancy`: room names serif, times mono inside the lines
