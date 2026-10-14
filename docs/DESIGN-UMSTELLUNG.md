@@ -1,6 +1,6 @@
 # Raumlotse – Designumstellung „Papier & Tinte“
 
-Stand: 2026-10-14 · `dev` auf `639135d` (Features 012–017 gemergt)
+Stand: 2026-10-14 · `dev` auf `3b9a5e3` (Features 012–019 gemergt)
 
 Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und der Systemdokumentation (früher Abschnitt 7) liegen in [`OFFENE-PUNKTE-013.md`](OFFENE-PUNKTE-013.md).
 
@@ -19,11 +19,11 @@ Entscheidungen E1–E3 stehen in Abschnitt 6. Die Altlasten aus Feature 013 und 
 |---|---|---|
 | **1 – Tokens, Schriften, globale Stile** | Tokens in `src/index.css`, lokale Schriften (`@fontsource`), eckige Elemente, 44-px-Ziele, invertierte Admin-Leiste, Badges als Muster + Wort, Komponenten-CSS ohne feste Farben | **erledigt** (Commit `style(frontend)`), im Browser per Screenshots geprüft |
 | **Übersetzung ins Deutsche** | Frontend-Texte, Statuslabels (`utils/labels.ts`), Backend-Meldungen, Validierungs-Locale | **erledigt** |
-| **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | **erledigt** (Feature 018; Sichtprüfung im Browser offen, siehe `specs/018-shared-ui-building-blocks/checklists/visual-review.md`) |
-| **3 – Seiten umbauen** | siehe Abschnitt 3 | Teil 1 erledigt (Feature 019: Sprunglink, Raumzeile mit Streifen, Fehlermuster, Tabellen, Typografie); Rest siehe Abschnitt 3 |
+| **2 – Gemeinsame Bausteine** | `src/components/ui/`: Strip/StatusDot, Chip, Field, ErrorMessage, SkipLink, DataList, DataTable, Wegweiser, je mit Vitest-Test | **erledigt** (Feature 018; Sichtprüfung im Browser erledigt) |
+| **3 – Seiten umbauen** | siehe Abschnitt 3 | Teil 1 erledigt und gemergt (Feature 019: Sprunglink, Raumzeile mit Streifen, Fehlermuster, Tabellen, Typografie; Sichtprüfung erledigt); Teil 2 (Feature 020) in Arbeit, Rest siehe Abschnitt 3 |
 | **4 – Neue Funktionen** | siehe Abschnitt 4 | offen, je ein eigener Spec-Kit-Durchlauf |
 
-Reihenfolge-Empfehlung: Schicht 2 → Rest von Schicht 3 → Schicht 4 pro Funktion (Veranstaltungstitel und Stockwerk-Reihenfolge zuerst).
+Reihenfolge-Empfehlung: Rest von Schicht 3 (Teil 2) → Schicht 4 pro Funktion (Veranstaltungstitel und Stockwerk-Reihenfolge zuerst).
 
 ## 3. Offene Punkte Schicht 3 (Seiten)
 
@@ -37,7 +37,7 @@ Noch offen:
 - Raumnummer als eigenes Feld der Raumzeile: `Room` hat keine Nummer, der Name trägt sie.
 - Mono für Zeiten in zusammengesetzten Textzeilen (Belegungslisten der Auslastungsseite) und Serif für Raumnamen darin.
 - Navigation: Ob die Leiste im Administrationsmodus bei 1280 px mit allen Rechten in **eine** Zeile passt, ist im Browser zu prüfen (zehn Links plus Indikator und Schalter sind rechnerisch zu breit; der Block bricht kontrolliert in eine zweite Zeile).
-- Barrierefreiheit: axe-Lauf im Browser; Streifen-`aria-label` mit „Jetzt“ ist umgesetzt, Pflichtfeld-Hinweis in allen Formularen.
+- Barrierefreiheit: axe-Lauf im Browser (Sichtprüfung 018/019 ist erledigt); Streifen-`aria-label` mit „Jetzt“ ist umgesetzt, Pflichtfeld-Hinweis in allen Formularen.
 - Echte `ul`/`li`-Listen: bestehende Katalog- und Rollenlisten sind bereits Listen; ein Wechsel auf `DataList` ändert deren Panel-Layout und ist Teil 2.
 
 ## 4. Offene Punkte Schicht 4 (neue Funktionen, noch nicht im Backend/Spec)
