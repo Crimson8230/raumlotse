@@ -1,12 +1,14 @@
+import type { ReactNode } from 'react'
 import { Footer } from '../components/Footer/Footer'
 import { SkipLink } from '../components/ui'
 import { HELP_CONTACT, helpSections } from './helpContent'
 
-/** Statische Hilfeseite (öffentlich, auch vom Login aus erreichbar). */
-export default function HelpPage() {
+/** Statische Hilfeseite (öffentlich, auch vom Login aus erreichbar); Angemeldete bekommen die Navigation übergeben. */
+export default function HelpPage({ navigation }: { navigation?: ReactNode }) {
   return (
     <>
       <SkipLink targetId="inhalt" />
+      {navigation}
       <main id="inhalt" className="help-page">
         <h1>Hilfe</h1>
         {helpSections.map((section) => (

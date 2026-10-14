@@ -39,7 +39,7 @@ Noch offen:
 - Standorte/Admin: Master-Detail (Häuser links, Stockwerke rechts mit Pfeil-Buttons zum Sortieren), Formulare „Haus bearbeiten“ / „Stockwerk bearbeiten“, Spalte „Zugang“ in der Raumtabelle (hängt an Abschnitt 4: Stockwerk-Reihenfolge).
 - Raumnummer als eigenes Feld der Raumzeile: `Room` hat keine Nummer, der Name trägt sie.
 - Zugang als Freitext („Raum auf einen Blick“ zeigt nur Barrierefreiheit, Aufzug, Ebene): braucht ein Feld im Backend.
-- Kontaktadresse der Hilfeseite: Platzhalter `HELP_CONTACT` in `frontend/src/pages/helpContent.ts` vor dem Betrieb setzen; `/hilfe` zeigt für Angemeldete keine Hauptnavigation.
+- Kontaktadresse der Hilfeseite: Platzhalter `HELP_CONTACT` in `frontend/src/pages/helpContent.ts` vor dem Betrieb setzen; `/hilfe` zeigt für Angemeldete die Hauptnavigation, für Anonyme nicht.
 
 ## 4. Offene Punkte Schicht 4 (neue Funktionen, noch nicht im Backend/Spec)
 

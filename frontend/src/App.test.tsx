@@ -76,4 +76,15 @@ describe('Help route (feature 020)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Hilfe' })).toBeInTheDocument()
   })
+
+  it('shows the navigation on the help page for signed-in users', async () => {
+    render(
+      <MemoryRouter initialEntries={['/hilfe']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hilfe' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Räume' })).toBeInTheDocument()
+  })
 })
