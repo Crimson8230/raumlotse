@@ -54,6 +54,18 @@ class MigrationVersionTest {
     }
 
     @Test
+    void themePreferenceMigrationFollowsRoomSearchRanking() throws Exception {
+        var resources = new PathMatchingResourcePatternResolver()
+                .getResources("classpath*:db/migration/V*__*.sql");
+        List<String> orderedNames = java.util.Arrays.stream(resources)
+                .map(resource -> resource.getFilename())
+                .sorted((left, right) -> versionOf(left).compareTo(versionOf(right)))
+                .toList();
+        assertThat(orderedNames).containsSubsequence(
+                "V17__room_search_ranking.sql", "V18__user_theme_preference.sql");
+    }
+
+    @Test
     void packagedMigrationsHaveUniqueFlywayVersions() throws Exception {
         var resources = new PathMatchingResourcePatternResolver()
                 .getResources("classpath*:db/migration/V*__*.sql");

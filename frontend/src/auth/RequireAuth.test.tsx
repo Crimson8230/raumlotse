@@ -2,6 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequireAuth } from './RequireAuth'
+import type { ReactNode } from 'react'
+
+vi.mock('./RequireAppearance', () => ({ RequireAppearance: ({ children }: { children: ReactNode }) => children }))
 
 const auth = vi.hoisted(() => ({ state: 'anonymous' }))
 vi.mock('./useAuth', () => ({ useAuth: () => ({ state: auth.state }) }))

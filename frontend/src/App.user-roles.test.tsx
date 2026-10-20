@@ -9,7 +9,9 @@ import type { PermissionCode } from './types/permission'
 import { permissionCodes } from './test/permissionFixtures'
 import * as equipmentApi from './API/equipmentTypes'
 const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
+const theme = vi.hoisted(() => ({ getThemePreference: vi.fn() }))
 vi.mock('./API/auth', () => ({ authApi: auth }))
+vi.mock('./API/themePreference', () => ({ ...theme }))
 vi.mock('./API/userRoles')
 vi.mock('./API/buildings', () => ({ listBuildings: vi.fn().mockResolvedValue([]), listFloors: vi.fn().mockResolvedValue([]) }))
 vi.mock('./API/equipmentTypes', () => ({ listEquipmentTypes: vi.fn().mockResolvedValue([]) }))
@@ -30,6 +32,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Administration' })
   auth.refreshCsrfToken.mockResolvedValue(undefined)
+  theme.getThemePreference.mockResolvedValue({ effectiveTheme: 'LIGHT', selectedTheme: null, onboardingPending: false })
   vi.mocked(equipmentApi.listEquipmentTypes).mockResolvedValue([])
   vi.mocked(roles.getCurrentRoles).mockResolvedValue({ ...admin, roles: [...admin.roles] })
   vi.mocked(roles.listUsers).mockResolvedValue({ items: [], page: 0, size: 25, totalElements: 0 })

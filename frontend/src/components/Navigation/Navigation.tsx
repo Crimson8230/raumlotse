@@ -19,6 +19,8 @@ const userItems: NavItem[] = [
   { label: 'Karten', path: '/maps', icon: Map },
 ]
 
+const personalSettingsItem: NavItem = { label: 'Persönliche Einstellungen', path: '/settings', icon: Settings }
+
 const adminItems: (NavItem & { rights?: PermissionCode[]; adminOnly?: boolean })[] = [
   { label: 'Standorte', path: '/admin/locations', icon: Building2,
     rights: ['BUILDING_MANAGE', 'FLOOR_MANAGE', 'EQUIPMENT_TYPE_MANAGE'] },
@@ -28,7 +30,7 @@ const adminItems: (NavItem & { rights?: PermissionCode[]; adminOnly?: boolean })
   { label: 'Statistiken', path: '/admin/statistics', icon: BarChart3, rights: ['STATISTICS_READ'] },
   { label: 'Benutzerrollen', path: '/admin/users', icon: Users, adminOnly: true },
   { label: 'Rollenrechte', path: '/admin/roles', icon: ShieldCheck, adminOnly: true },
-  { label: 'Einstellungen', path: '/admin/settings', icon: Settings, adminOnly: true },
+  { label: 'Systemeinstellungen', path: '/admin/settings', icon: Settings, adminOnly: true },
 ]
 
 function Item({ label, path, icon: Icon }: NavItem) {
@@ -57,6 +59,7 @@ export function Navigation() {
       <div className="nav-inner">
       <ul className="nav-list">
         {permissions.includes('READ') && userItems.map((item) => <Item key={item.path} {...item} />)}
+        <Item {...personalSettingsItem} />
         {adminMode && adminItems.filter(item => item.adminOnly ? admin
           : item.rights?.some(right => permissions.includes(right))).map((item) => <Item key={item.path} {...item} />)}
       </ul>

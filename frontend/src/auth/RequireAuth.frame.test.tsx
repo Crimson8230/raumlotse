@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { RequireAuth } from './RequireAuth'
+import type { ReactNode } from 'react'
+
+vi.mock('./RequireAppearance', () => ({ RequireAppearance: ({ children }: { children: ReactNode }) => children }))
 
 const auth = vi.hoisted(() => ({ state: 'authenticated' as string }))
 vi.mock('./useAuth', () => ({ useAuth: () => ({ state: auth.state }) }))

@@ -31,6 +31,12 @@ public class UserAccount {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Column(name = "theme_code", length = 32)
+    private String themeCode;
+
+    @Column(name = "theme_onboarding_completed", nullable = false)
+    private boolean themeOnboardingCompleted;
+
     protected UserAccount() { }
 
     public UserAccount(String email, String displayName, String passwordHash) {
@@ -44,4 +50,11 @@ public class UserAccount {
     public String getDisplayName() { return displayName; }
     public String getPasswordHash() { return passwordHash; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getThemeCode() { return themeCode; }
+    public boolean isThemeOnboardingCompleted() { return themeOnboardingCompleted; }
+    public void selectTheme(String code) {
+        themeCode = code;
+        themeOnboardingCompleted = true;
+    }
+    public void skipThemeOnboarding() { themeOnboardingCompleted = true; }
 }

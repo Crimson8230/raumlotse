@@ -6,7 +6,9 @@ import { ApiError } from './API/client'
 import App from './App'
 
 const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
+const theme = vi.hoisted(() => ({ getThemePreference: vi.fn() }))
 vi.mock('./API/auth', () => ({ authApi: auth }))
+vi.mock('./API/themePreference', () => ({ ...theme }))
 vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 'ok' }) }))
 vi.mock('./API/client', () => ({
   ApiError: class ApiError extends Error { readonly status: number; constructor(status: number) { super(); this.status = status } },
@@ -18,6 +20,7 @@ describe('protected routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     auth.refreshCsrfToken.mockResolvedValue(undefined)
+    theme.getThemePreference.mockResolvedValue({ effectiveTheme: 'LIGHT', selectedTheme: null, onboardingPending: false })
     auth.me.mockRejectedValue(new ApiError(401))
   })
 

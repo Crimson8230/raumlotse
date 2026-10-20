@@ -11,7 +11,9 @@ vi.mock('./API/rooms')
 vi.mock('./API/reservations')
 vi.mock('./API/userRoles')
 const auth = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), refreshCsrfToken: vi.fn() }))
+const theme = vi.hoisted(() => ({ getThemePreference: vi.fn() }))
 vi.mock('./API/auth', () => ({ authApi: auth }))
+vi.mock('./API/themePreference', () => ({ ...theme }))
 vi.mock('./API/health', () => ({ getHealth: vi.fn().mockResolvedValue({ status: 'ok' }) }))
 
 const rooms = vi.mocked(roomsApi)
@@ -34,6 +36,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   auth.me.mockResolvedValue({ userId: 'admin', displayName: 'Administration' })
   auth.refreshCsrfToken.mockResolvedValue(undefined)
+  theme.getThemePreference.mockResolvedValue({ effectiveTheme: 'LIGHT', selectedTheme: null, onboardingPending: false })
   vi.mocked(roleApi.getCurrentRoles).mockResolvedValue({ roles: ['VIEWER'], ready: true, adminMode: false,
     permissions: ['READ'], canUseAdminMode: false })
   rooms.getRoom.mockResolvedValue(sampleRoom)
@@ -42,6 +45,12 @@ beforeEach(() => {
 })
 
 describe('App display routing', () => {
+  it('keeps the room display light even when the account chose dark', async () => {
+    theme.getThemePreference.mockResolvedValue({ effectiveTheme: 'DARK', selectedTheme: 'DARK', onboardingPending: false })
+    render(<MemoryRouter initialEntries={['/rooms/room-1/display']}><App /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
+    expect(document.documentElement).not.toHaveAttribute('data-theme', 'dark')
+  })
   it('renders the room display route without changing the existing app shell', async () => {
     render(
       <MemoryRouter initialEntries={['/rooms/room-1/display']}>

@@ -3,15 +3,15 @@
 .statistics-period label { display: grid; gap: .35rem; font-weight: 600; }
 .statistics-period input { min-height: 2.4rem; padding: .3rem .5rem; }
 .statistics-period button, .statistics-section-heading button { min-height: 2.4rem; padding: .4rem .75rem; cursor: pointer; }
-.statistics-period-note, .statistics-help, .page-intro { color: #52606d; }
+.statistics-period-note, .statistics-help, .page-intro { color: var(--color-muted); }
 .statistics-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .statistics-card { display: grid; gap: .35rem; padding: 1rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: .5rem; }
 .statistics-card h2 { margin: 0; font-size: 1rem; }
 .statistics-card strong { font-size: 1.8rem; }
-.statistics-card span { color: #52606d; }
+.statistics-card span { color: var(--color-muted); }
 .statistics-section { display: grid; gap: .5rem; }
 .statistics-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .statistics-section-heading h2 { margin-bottom: 0; }
-.statistics-status { padding: 1rem; background: #f4f7fa; }
+.statistics-status { padding: 1rem; background: var(--color-surface); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) { .statistics-cards { grid-template-columns: 1fr; } .statistics-section-heading { align-items: start; flex-direction: column; } }
