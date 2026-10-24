@@ -1,7 +1,7 @@
 .check-in-qr-code {
   width: 10rem;
   max-width: 100%;
-  background: #fff;
+  background: var(--color-qr-background);
   line-height: 0;
 }
 

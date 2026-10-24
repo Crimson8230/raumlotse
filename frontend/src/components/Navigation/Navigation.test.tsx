@@ -31,6 +31,11 @@ beforeEach(() => {
 })
 
 describe('Navigation', () => {
+  it('always offers personal settings, including users without READ', () => {
+    mode.permissions = []
+    renderNav('/')
+    expect(screen.getByRole('link', { name: 'Persönliche Einstellungen' })).toHaveAttribute('href', '/settings')
+  })
   it('offers a staff member with one management right only the matching admin area', async () => {
     mode.eligible = true
     mode.permissions = ['READ', 'BUILDING_MANAGE']
@@ -80,7 +85,7 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: 'Karten bearbeiten' })).toHaveAttribute('href', '/admin/maps')
     expect(screen.getByRole('link', { name: 'Belegung' })).toHaveAttribute('href', '/admin/occupancy')
     expect(screen.getByRole('link', { name: 'Benutzerrollen' })).toHaveAttribute('href', '/admin/users')
-    expect(screen.getByRole('link', { name: 'Einstellungen' })).toHaveAttribute('href', '/admin/settings')
+    expect(screen.getByRole('link', { name: 'Systemeinstellungen' })).toHaveAttribute('href', '/admin/settings')
     expect(screen.getByRole('status')).toHaveTextContent('Administrationsmodus aktiv')
     await user.click(screen.getByRole('button', { name: 'Administrationsmodus beenden' }))
 
@@ -134,6 +139,22 @@ describe('Navigation', () => {
 })
 
 describe('Navigation layout (feature 019, FR-015)', () => {
+  it('allows the four user links to wrap at a 320 px viewport', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const style = document.createElement('style')
+    style.textContent = readFileSync(join(__dirname, 'Navigation.css'), 'utf8')
+    document.head.append(style)
+    try {
+      mode.permissions = ['READ']
+      const { container } = renderNav('/settings')
+      const links = container.querySelector('.nav-list') as HTMLElement
+      expect(screen.getByRole('link', { name: 'Persönliche Einstellungen' })).toBeInTheDocument()
+      expect(getComputedStyle(links).flexWrap).toBe('wrap')
+    } finally {
+      style.remove()
+    }
+  })
   it('keeps the administration indicator and switch from wrapping internally', async () => {
     const { readFileSync } = await import('node:fs')
     const { join } = await import('node:path')

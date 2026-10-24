@@ -16,6 +16,7 @@
   /* Tönungen der Belegung: stützen das Muster, tragen nie Text und nie allein die Information. */
   --color-free: #cfe1c6;
   --color-busy: #ebcb92;
+  --color-qr-background: #ffffff;
   --hatch: repeating-linear-gradient(135deg, var(--color-text) 0 1.5px, transparent 1.5px 5px);
 
   /* Veraltete Namen, bis alle Verwendungen umgestellt sind. Nicht für neuen Code. */
@@ -44,6 +45,22 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-background: #17191c;
+  --color-surface: #22262b;
+  --color-hover: #30363d;
+  --color-text: #f3f2ec;
+  --color-muted: #c5c8cc;
+  --color-border: #f3f2ec;
+  --color-hairline: #89919a;
+  --color-primary: #a8c5ff;
+  --color-error: #ffaea4;
+  --color-free: #466349;
+  --color-busy: #59451f;
+  --color-qr-background: #ffffff;
 }
 
 * {

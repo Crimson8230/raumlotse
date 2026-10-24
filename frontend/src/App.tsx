@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
+import { AppearanceProvider } from './auth/AppearanceProvider'
 import { RequireAuth } from './auth/RequireAuth'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
@@ -23,6 +24,7 @@ import HelpPage from './pages/HelpPage'
 import { Navigation } from './components/Navigation/Navigation'
 import { useAuth } from './auth/useAuth'
 import AdminSettingsPage from './pages/AdminSettingsPage'
+import PersonalSettingsPage from './pages/PersonalSettingsPage'
 
 function RoomEditRedirect() {
   const { roomId } = useParams()
@@ -41,12 +43,14 @@ function HelpRoute() {
 function App() {
   return (
     <AuthProvider>
+      <AppearanceProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/hilfe" element={<HelpRoute />} />
 
         <Route element={<RequireAuth />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/settings" element={<PersonalSettingsPage />} />
           <Route element={<RequirePermission any={['READ']} />}>
             <Route path="/maps" element={<MapPage />} />
             <Route path="/maps/:mapId" element={<MapPage />} />
@@ -89,6 +93,7 @@ function App() {
           <Route path="/rooms/:roomId/edit" element={<RoomEditRedirect />} />
         </Route>
       </Routes>
+      </AppearanceProvider>
     </AuthProvider>
   )
 }

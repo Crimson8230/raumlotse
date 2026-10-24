@@ -18,6 +18,9 @@ import * as favoriteRoomsApi from './API/favoriteRooms'
 import * as userRolesApi from './API/userRoles'
 import * as occupancyApi from './API/adminOccupancy'
 import type { Room } from './types/room'
+import AppearanceOnboardingPage from './pages/AppearanceOnboardingPage'
+import PersonalSettingsPage from './pages/PersonalSettingsPage'
+import { AppearanceContext } from './auth/appearanceContext'
 
 // Feature 020 (T035): structure checks with axe-core in jsdom. Colour contrast needs a real browser (visual review).
 vi.mock('./API/rooms')
@@ -72,6 +75,22 @@ beforeEach(() => {
 })
 
 describe('accessibility structure (feature 020)', () => {
+  it('first login theme choice and personal settings have named controls', async () => {
+    const first = render(<AppearanceOnboardingPage onChoose={async () => undefined} onSkip={async () => undefined} />)
+    expect(screen.getByRole('radio', { name: 'Hell' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Dunkel' })).toBeInTheDocument()
+    await expectNoViolations(first.container)
+    first.unmount()
+
+    const settings = render(<AppearanceContext.Provider value={{
+      preference: { effectiveTheme: 'DARK', selectedTheme: 'DARK', onboardingPending: false },
+      loading: false, error: null, retry: () => undefined,
+      choose: async () => undefined, skip: async () => undefined,
+    }}><PersonalSettingsPage /></AppearanceContext.Provider>)
+    expect(screen.getByRole('radio', { name: 'Dunkel' })).toBeChecked()
+    await expectNoViolations(settings.container)
+  })
+
   it('detects a missing label (sanity check of the suite)', async () => {
     const { container } = render(<main id="inhalt"><input type="text" /></main>)
     const result = await axe.run(container, { runOnly: { type: 'rule', values: RULES } })

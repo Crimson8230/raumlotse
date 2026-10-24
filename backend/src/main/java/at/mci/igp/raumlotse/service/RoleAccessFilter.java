@@ -56,6 +56,9 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "GET", "/api/rooms/[^/]+/check-in", IDENTITY);
         add(result, "GET", "/api/rooms/[^/]+/status", PermissionCode.READ);
         add(result, "GET", "/api/me/favorite-rooms", PermissionCode.READ);
+        add(result, "GET", "/api/me/theme-preference", IDENTITY);
+        add(result, "PUT", "/api/me/theme-preference", IDENTITY);
+        add(result, "POST", "/api/me/theme-preference/skip", IDENTITY);
         add(result, "PUT", "/api/me/favorite-rooms/[^/]+", PermissionCode.READ);
         add(result, "DELETE", "/api/me/favorite-rooms/[^/]+", PermissionCode.READ);
         add(result, "POST", "/api/rooms/[^/]+/reservations", PermissionCode.RESERVE);
@@ -137,7 +140,7 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         Rule rule = classify(request.getMethod(), pathOf(request));
         if (rule == null) {
             AccessDeniedLog.refusal(request.getMethod(), pathPattern(request), "unknown_action", 403,
-                    RoleIdentityAdapter.actor(authentication));
+                    logActor(request, authentication));
             deny(response, 403, "PERMISSION_REQUIRED", "Sie dürfen diese Aktion nicht ausführen.");
             return;
         }
@@ -156,16 +159,21 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         } catch (UserRoleException ex) {
             String category = ex.getStatus() == 503 ? "role_storage" : rule.admin() ? "admin" : "permission";
             AccessDeniedLog.refusal(request.getMethod(), pathPattern(request), category, ex.getStatus(),
-                    RoleIdentityAdapter.actor(authentication));
+                    logActor(request, authentication));
             deny(response, ex.getStatus(), ex.getCode(), ex.getMessage());
             return;
         } catch (RuntimeException ex) {
             AccessDeniedLog.refusal(request.getMethod(), pathPattern(request), "role_storage", 503,
-                    RoleIdentityAdapter.actor(authentication));
+                    logActor(request, authentication));
             deny(response, 503, "ROLE_MANAGEMENT_UNAVAILABLE", "Die Rollenverwaltung ist vorübergehend nicht verfügbar.");
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    private static java.util.UUID logActor(HttpServletRequest request, Authentication authentication) {
+        return pathOf(request).startsWith("/api/me/theme-preference")
+                ? null : RoleIdentityAdapter.actor(authentication);
     }
 
     private static boolean isAnonymous(Authentication authentication) {
