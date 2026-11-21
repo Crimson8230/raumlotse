@@ -1,0 +1,295 @@
+openapi: 3.0.3
+info:
+  title: Path Network API
+  version: 1.0.0
+  description: >
+    Walkway network (waypoints, segments), per-map reference segment/scale, and attachments of room
+    placements and connection points. Positions are fractions (0..1) of the map's width/height.
+    All endpoints require a signed-in session (401 otherwise). GET endpoints require permission READ.
+    Write endpoints (PUT/POST/DELETE) require MAP_MANAGE (403 otherwise) and a CSRF token
+    like other mutating endpoints. Errors use the existing Problem format.
+paths:
+  /api/path-network:
+    get:
+      summary: Network of all maps plus connection groups (for routing)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NetworkWide' } } } }
+  /api/maps/{mapId}/path-network:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    get:
+      summary: Network of one map incl. scale, attachments and issues
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MapNetwork' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/waypoints:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    post:
+      summary: Add a waypoint (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Position' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Waypoint' } } } }
+        '400': { description: Coordinates outside [0,1], content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { description: Another waypoint already lies at this position (response carries its id), content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /api/maps/{mapId}/waypoints/{waypointId}:
+    parameters: [{ $ref: '#/components/parameters/mapId' }, { $ref: '#/components/parameters/waypointId' }]
+    put:
+      summary: Move a waypoint (admin); attached segments follow
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Position' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Waypoint' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Delete a waypoint with its segments and attachments (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/segments:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    post:
+      summary: Connect two waypoints of this map (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SegmentRequest' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Segment' } } } }
+        '400': { description: Same waypoint twice, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { description: Segment between these waypoints already exists, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { description: A waypoint belongs to a different map, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /api/maps/{mapId}/segments/{segmentId}:
+    parameters: [{ $ref: '#/components/parameters/mapId' }, { $ref: '#/components/parameters/segmentId' }]
+    delete:
+      summary: Delete a segment (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/segments/{segmentId}/split:
+    parameters: [{ $ref: '#/components/parameters/mapId' }, { $ref: '#/components/parameters/segmentId' }]
+    post:
+      summary: Insert a waypoint on a segment, splitting it in two (admin)
+      description: The position is projected onto the segment.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Position' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/SplitResult' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { description: Projected point coincides with an end waypoint, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /api/maps/{mapId}/reference-segment:
+    parameters: [{ $ref: '#/components/parameters/mapId' }]
+    put:
+      summary: Set or change the reference segment and its real length (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReferenceSegmentRequest' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ReferenceSegment' } } } }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ReferenceSegment' } } } }
+        '400': { description: Length not positive/invalid, endpoints identical or outside [0,1], content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Remove the reference segment (scale becomes missing) (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/room-attachments/{roomId}:
+    parameters: [{ $ref: '#/components/parameters/mapId' }, { $ref: '#/components/parameters/roomId' }]
+    put:
+      summary: Attach (or re-attach) a placed room to a waypoint (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttachmentRequest' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: Replaced, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAttachment' } } } }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAttachment' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { description: Room is not placed on this map or waypoint belongs to another map, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    delete:
+      summary: Remove a room attachment (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/maps/{mapId}/connection-point-attachments/{connectionPointId}:
+    parameters: [{ $ref: '#/components/parameters/mapId' }, { $ref: '#/components/parameters/connectionPointId' }]
+    put:
+      summary: Attach (or re-attach) a connection point to a waypoint (admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttachmentRequest' } } } }
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: Replaced, content: { application/json: { schema: { $ref: '#/components/schemas/ConnectionPointAttachment' } } } }
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ConnectionPointAttachment' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { description: Point is not on this map or waypoint belongs to another map, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    delete:
+      summary: Remove a connection point attachment (admin)
+      responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Problem' }
+components:
+  parameters:
+    mapId: { name: mapId, in: path, required: true, schema: { type: string, format: uuid } }
+    waypointId: { name: waypointId, in: path, required: true, schema: { type: string, format: uuid } }
+    segmentId: { name: segmentId, in: path, required: true, schema: { type: string, format: uuid } }
+    roomId: { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+    connectionPointId: { name: connectionPointId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Unauthorized: { description: Not signed in, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Forbidden: { description: Missing permission, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Problem: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  schemas:
+    Problem:
+      type: object
+      properties: { type: { type: string }, title: { type: string }, status: { type: integer }, detail: { type: string } }
+    Position:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+    Waypoint:
+      type: object
+      required: [id, mapId, x, y]
+      properties:
+        id: { type: string, format: uuid }
+        mapId: { type: string, format: uuid }
+        x: { type: number }
+        y: { type: number }
+    Segment:
+      type: object
+      required: [id, mapId, fromWaypointId, toWaypointId]
+      properties:
+        id: { type: string, format: uuid }
+        mapId: { type: string, format: uuid }
+        fromWaypointId: { type: string, format: uuid }
+        toWaypointId: { type: string, format: uuid }
+        lengthMeters: { type: number, nullable: true, description: "null when the map has no scale" }
+    SegmentRequest:
+      type: object
+      required: [fromWaypointId, toWaypointId]
+      properties:
+        fromWaypointId: { type: string, format: uuid }
+        toWaypointId: { type: string, format: uuid }
+    SplitResult:
+      type: object
+      required: [waypoint, segments]
+      properties:
+        waypoint: { $ref: '#/components/schemas/Waypoint' }
+        segments: { type: array, minItems: 2, maxItems: 2, items: { $ref: '#/components/schemas/Segment' } }
+    ReferenceSegmentRequest:
+      type: object
+      required: [x1, y1, x2, y2, lengthMeters]
+      properties:
+        x1: { type: number, minimum: 0, maximum: 1 }
+        y1: { type: number, minimum: 0, maximum: 1 }
+        x2: { type: number, minimum: 0, maximum: 1 }
+        y2: { type: number, minimum: 0, maximum: 1 }
+        lengthMeters: { type: number, exclusiveMinimum: true, minimum: 0, maximum: 100000 }
+    ReferenceSegment:
+      allOf:
+        - $ref: '#/components/schemas/ReferenceSegmentRequest'
+        - type: object
+          required: [mapId, pixelsPerMeter]
+          properties:
+            mapId: { type: string, format: uuid }
+            pixelsPerMeter: { type: number }
+    AttachmentRequest:
+      type: object
+      required: [waypointId]
+      properties: { waypointId: { type: string, format: uuid } }
+    RoomAttachment:
+      type: object
+      required: [roomId, mapId, waypointId]
+      properties:
+        roomId: { type: string, format: uuid }
+        mapId: { type: string, format: uuid }
+        waypointId: { type: string, format: uuid }
+    ConnectionPointAttachment:
+      type: object
+      required: [connectionPointId, mapId, waypointId]
+      properties:
+        connectionPointId: { type: string, format: uuid }
+        mapId: { type: string, format: uuid }
+        waypointId: { type: string, format: uuid }
+    Scale:
+      type: object
+      required: [available]
+      properties:
+        available: { type: boolean, description: "false = scale missing, no meter values are returned" }
+        pixelsPerMeter: { type: number, nullable: true }
+        widthPx: { type: integer }
+        heightPx: { type: integer }
+    Issues:
+      type: object
+      required: [missingScale, componentCount, unattachedRoomIds, unattachedConnectionPointIds, attachmentsOutsideMainComponent]
+      properties:
+        missingScale: { type: boolean }
+        componentCount: { type: integer, description: "Number of separate network parts (0 when the map has no waypoints)" }
+        components: { type: array, items: { type: array, items: { type: string, format: uuid } }, description: "Waypoint ids per part, largest first" }
+        unattachedRoomIds: { type: array, items: { type: string, format: uuid } }
+        unattachedConnectionPointIds: { type: array, items: { type: string, format: uuid } }
+        attachmentsOutsideMainComponent:
+          type: array
+          items:
+            type: object
+            required: [kind, id]
+            properties:
+              kind: { type: string, enum: [ROOM, CONNECTION_POINT] }
+              id: { type: string, format: uuid }
+    MapNetwork:
+      type: object
+      required: [mapId, scale, waypoints, segments, roomAttachments, connectionPointAttachments, issues]
+      properties:
+        mapId: { type: string, format: uuid }
+        scale: { $ref: '#/components/schemas/Scale' }
+        referenceSegment: { allOf: [{ $ref: '#/components/schemas/ReferenceSegment' }], nullable: true }
+        waypoints: { type: array, items: { $ref: '#/components/schemas/Waypoint' } }
+        segments: { type: array, items: { $ref: '#/components/schemas/Segment' } }
+        roomAttachments: { type: array, items: { $ref: '#/components/schemas/RoomAttachment' } }
+        connectionPointAttachments: { type: array, items: { $ref: '#/components/schemas/ConnectionPointAttachment' } }
+        issues: { $ref: '#/components/schemas/Issues' }
+    ConnectionGroup:
+      type: object
+      required: [connectionId, name, type, fullyAttached, points]
+      properties:
+        connectionId: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, enum: [STAIRS, ELEVATOR] }
+        fullyAttached: { type: boolean }
+        points:
+          type: array
+          items:
+            type: object
+            required: [connectionPointId, mapId]
+            properties:
+              connectionPointId: { type: string, format: uuid }
+              mapId: { type: string, format: uuid }
+              waypointId: { type: string, format: uuid, nullable: true }
+    NetworkWide:
+      type: object
+      required: [maps, connectionGroups]
+      properties:
+        maps: { type: array, items: { $ref: '#/components/schemas/MapNetwork' } }
+        connectionGroups: { type: array, items: { $ref: '#/components/schemas/ConnectionGroup' } }

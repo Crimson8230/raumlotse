@@ -32,6 +32,7 @@ export interface Placement extends Position {
 }
 
 export interface ConnectionPoint extends Position {
+  id: string
   mapId: string
 }
 

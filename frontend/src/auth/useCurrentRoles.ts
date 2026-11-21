@@ -47,6 +47,11 @@ export function useCurrentRoles(enabled = true) {
     adminMode: enabled && settled !== null && settled.ready && settled.canUseAdminMode && settled.adminMode,
     canUseAdminMode: Boolean(enabled && settled !== null && settled.ready && settled.canUseAdminMode),
     permissions: enabled && settled !== null && settled.ready ? settled.permissions : [],
+    /**
+     * Permissions of the last granted snapshot, kept while a re-check is in flight. Only for keeping already
+     * mounted UI (e.g. a half-filled upload form) alive during the re-check; never use it to authorize an action.
+     */
+    lastKnownPermissions: enabled && result?.key === key && result.ready && !result.failed ? result.permissions : [],
     failed: enabled && settled !== null && settled.failed,
   }
 }

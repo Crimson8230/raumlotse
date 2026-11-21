@@ -162,6 +162,7 @@ Vollständige Liste: `README.md`; Verträge: `specs/*/contracts/`.
 | `RoomDeviceController` | `/api/rooms/{id}/device-controls[/{kind}]` | |
 | `CheckInController`, `RoomStatusController`, `PresenceEventController` | `/api/rooms/{id}/check-in` (GET/POST), `/api/rooms/{id}/status`, `POST /api/admin/rooms/{id}/presence-events` | Feature 014 |
 | `FloorMapController`, `RoomPlacementController`, `ConnectionController` | `/api/maps…`, `/api/connections…`, `PUT /api/floors/{id}/map` | Multipart-Upload, ≤10 MB |
+| `PathNetworkController` | `/api/path-network`, `/api/maps/{id}/path-network`, Wegpunkte, Wege, Referenzstrecke, Anbindungen (Feature 023) | Schreiben mit `MAP_MANAGE`, Lesen mit `READ`; Länge in Metern aus Referenzstrecke abgeleitet |
 | `HealthController` | `/api/health` | |
 
 Fehlerabbildung zentral: `GlobalExceptionHandler` (Validation → 400 mit `errors[]`, `NotFoundException` → 404, `ConflictException` → 409, Device → 403/503, Map-Fehler), `UserRoleExceptionHandler` für Rollen.

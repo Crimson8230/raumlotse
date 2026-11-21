@@ -166,6 +166,6 @@ As an administrator, I want to define stairs and elevators as named connections 
 - The map is an uploaded floor plan image, not a geographic/GPS map.
 - Only administrators manage maps, placements, and connections; all other authenticated sessions may view them. Anonymous access is not supported.
 - The one-time-code sign-in for displays is a separate dependency and not delivered here; this feature only guarantees that any authenticated non-admin session can read.
-- Placing **displays** on the map and calculating or showing **routes** are separate, later features and out of scope here; this feature only stores room positions so they can be reused.
+- The walkway network (paths) is delivered by [feature 023](../023-path-network/spec.md). Placing **displays** on the map and calculating or showing **routes** are separate, later features and out of scope here; this feature only stores room positions so they can be reused.
 - Supported map image formats are PNG and JPEG (SVG is excluded because it can carry active content) with a reasonable size limit (e.g. 10 MB).
 - The feature builds on the existing room management and role/permission capabilities.

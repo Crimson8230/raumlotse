@@ -11,7 +11,7 @@ const api = vi.mocked(mapsApi)
 
 const elevator: Connection = {
   id: 'c1', name: 'Aufzug A', type: 'ELEVATOR', incomplete: false,
-  points: [{ mapId: 'm0', x: 0.2, y: 0.3 }, { mapId: 'm1', x: 0.6, y: 0.7 }],
+  points: [{ id: 'p0', mapId: 'm0', x: 0.2, y: 0.3 }, { id: 'p1', mapId: 'm1', x: 0.6, y: 0.7 }],
 }
 const stairs: Connection = { id: 'c2', name: 'Treppe Nord', type: 'STAIRS', incomplete: true, points: [] }
 
@@ -37,6 +37,16 @@ describe('ConnectionCatalog', () => {
     setup()
     expect(screen.getByText('Aufzug A')).toBeInTheDocument()
     expect(screen.getAllByText(/unvollständig/i)).toHaveLength(1)
+  })
+
+  it('flags connections whose points are not all attached to the path network, in words', () => {
+    setup({ fullyAttached: { c1: false } })
+    expect(screen.getAllByText(/nicht vollständig angebunden/i)).toHaveLength(1)
+  })
+
+  it('shows no attachment flag when everything is attached or unknown', () => {
+    setup({ fullyAttached: { c1: true } })
+    expect(screen.queryByText(/nicht vollständig angebunden/i)).not.toBeInTheDocument()
   })
 
   it('lets an admin create a connection', async () => {

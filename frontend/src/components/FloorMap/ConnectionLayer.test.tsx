@@ -11,10 +11,10 @@ const maps: MapSummary[] = [
 ]
 const elevator: Connection = {
   id: 'c1', name: 'Aufzug A', type: 'ELEVATOR', incomplete: false,
-  points: [{ mapId: 'm0', x: 0.2, y: 0.3 }, { mapId: 'm1', x: 0.6, y: 0.7 }, { mapId: 'm2', x: 0.1, y: 0.1 }],
+  points: [{ id: 'p0', mapId: 'm0', x: 0.2, y: 0.3 }, { id: 'p1', mapId: 'm1', x: 0.6, y: 0.7 }, { id: 'p2', mapId: 'm2', x: 0.1, y: 0.1 }],
 }
 const stairs: Connection = {
-  id: 'c2', name: 'Treppe Nord', type: 'STAIRS', incomplete: true, points: [{ mapId: 'm0', x: 0.9, y: 0.5 }],
+  id: 'c2', name: 'Treppe Nord', type: 'STAIRS', incomplete: true, points: [{ id: 'p3', mapId: 'm0', x: 0.9, y: 0.5 }],
 }
 
 describe('ConnectionLayer', () => {

@@ -60,7 +60,7 @@ export function MapUploadControl({ map, existingMaps, onSaved }: Props) {
     try {
       const saved = await uploadMapImage(targetFloorId, file)
       if (saved.aspectRatioChanged) {
-        setNotice('Das Seitenverhältnis des Bildes hat sich geändert; vorhandene Positionen passen eventuell nicht mehr zum Grundriss.')
+        setNotice('Das Seitenverhältnis des Bildes hat sich geändert; vorhandene Positionen, das Wegenetz und die Referenzstrecke passen eventuell nicht mehr zum Grundriss.')
       }
       setFile(null)
       onSaved(saved)
