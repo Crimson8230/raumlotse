@@ -57,6 +57,8 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "GET", "/api/reservations/(my-upcoming|[^/]+)", PermissionCode.READ);
         add(result, "GET", "/api/rooms/[^/]+/check-in", IDENTITY);
         add(result, "GET", "/api/rooms/[^/]+/status", PermissionCode.READ);
+        add(result, "GET", "/api/rooms/[^/]+/neighbors", PermissionCode.READ);
+        add(result, "GET", "/api/routes", PermissionCode.READ);
         add(result, "GET", "/api/me/favorite-rooms", PermissionCode.READ);
         add(result, "GET", "/api/me/theme-preference", IDENTITY);
         add(result, "PUT", "/api/me/theme-preference", IDENTITY);
@@ -77,6 +79,7 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "POST", "/api/buildings/[^/]+/(deactivate|reactivate)", PermissionCode.BUILDING_MANAGE);
         add(result, "DELETE", "/api/buildings/[^/]+", PermissionCode.BUILDING_MANAGE);
         add(result, "POST", "/api/buildings/[^/]+/floors", PermissionCode.FLOOR_MANAGE);
+        add(result, "PUT", "/api/buildings/[^/]+/floors/order", PermissionCode.FLOOR_MANAGE);
         add(result, "PUT", "/api/floors/[^/]+", PermissionCode.FLOOR_MANAGE);
         add(result, "POST", "/api/floors/[^/]+/(deactivate|reactivate)", PermissionCode.FLOOR_MANAGE);
         add(result, "DELETE", "/api/floors/[^/]+", PermissionCode.FLOOR_MANAGE);

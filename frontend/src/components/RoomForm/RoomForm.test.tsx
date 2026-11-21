@@ -24,7 +24,7 @@ function building(overrides: Partial<Building> = {}): Building {
 }
 
 function floor(overrides: Partial<Floor> = {}): Floor {
-  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false, ...overrides }
+  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false, position: 0, ...overrides }
 }
 
 function equipmentType(overrides: Partial<EquipmentType> = {}): EquipmentType {

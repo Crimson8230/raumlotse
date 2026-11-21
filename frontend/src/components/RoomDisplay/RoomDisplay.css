@@ -175,3 +175,29 @@
   margin: 0;
   font-weight: 600;
 }
+
+.room-display-neighbors h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.room-display-neighbor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-display-neighbor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.room-display-neighbor-status {
+  font-weight: 600;
+}

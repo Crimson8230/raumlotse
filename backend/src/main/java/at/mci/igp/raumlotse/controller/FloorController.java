@@ -1,5 +1,6 @@
 package at.mci.igp.raumlotse.controller;
 
+import at.mci.igp.raumlotse.dto.FloorOrderRequest;
 import at.mci.igp.raumlotse.dto.FloorRequest;
 import at.mci.igp.raumlotse.dto.FloorResponse;
 import at.mci.igp.raumlotse.service.FloorService;
@@ -32,6 +33,11 @@ public class FloorController {
         return floorService.listByBuilding(buildingId, StatusFilter.parse(status)).stream()
                 .map(FloorResponse::from)
                 .toList();
+    }
+
+    @PutMapping("/api/buildings/{buildingId}/floors/order")
+    public List<FloorResponse> reorder(@PathVariable UUID buildingId, @Valid @RequestBody FloorOrderRequest request) {
+        return floorService.reorder(buildingId, request.floorIds()).stream().map(FloorResponse::from).toList();
     }
 
     @PostMapping("/api/buildings/{buildingId}/floors")

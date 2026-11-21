@@ -15,12 +15,22 @@ import {
   listFloors,
   reactivateFloor,
   renameFloor,
-  updateFloor,
+  reorderFloors,
 } from '../../API/floors'
 import { formatApiError } from '../../API/client'
 import type { Building, Floor } from '../../types/room'
 import { entityStatusLabel } from '../../utils/labels'
 import { DataList, ErrorMessage, Field } from '../../components/ui'
+
+/** Floor ids with one floor moved one step up (+1) or down (-1); ascending order, ground floor first. */
+function moved(floors: Floor[], id: string, delta: 1 | -1): string[] {
+  const ids = floors.map((f) => f.id)
+  const i = ids.indexOf(id)
+  const j = i + delta
+  if (i < 0 || j < 0 || j >= ids.length) return ids
+  ;[ids[i], ids[j]] = [ids[j], ids[i]]
+  return ids
+}
 
 export interface BuildingCatalogProps {
   /** Called whenever a building/floor is created, so an embedding form can refresh its pickers. */
@@ -37,7 +47,6 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
   const [newBuildingHasElevator, setNewBuildingHasElevator] = useState(false)
   const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({})
   const [newFloorNames, setNewFloorNames] = useState<Record<string, string>>({})
-  const [newFloorGround, setNewFloorGround] = useState<Record<string, boolean>>({})
   const [floorRenameDrafts, setFloorRenameDrafts] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
@@ -125,7 +134,8 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
         itemKey={(building) => building.id}
         emptyText="Noch keine Gebäude."
         renderItem={(building) => {
-          const floors = floorsByBuilding[building.id] ?? []
+          const floorsAscending = [...(floorsByBuilding[building.id] ?? [])].sort((a, b) => a.position - b.position)
+          const floorsDescending = [...floorsAscending].reverse()
           const renameId = `rename-building-${building.id}`
           return (
             <div className="panel ui-data-list__body">
@@ -177,9 +187,8 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                 onSubmit={(e) => {
                   e.preventDefault()
                   guarded(async () => {
-                    await createFloor(building.id, newFloorNames[building.id] ?? '', newFloorGround[building.id] ?? false)
+                    await createFloor(building.id, newFloorNames[building.id] ?? '')
                     setNewFloorNames((prev) => ({ ...prev, [building.id]: '' }))
-                    setNewFloorGround((prev) => ({ ...prev, [building.id]: false }))
                   })
                 }}
               >
@@ -195,26 +204,19 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                     />
                   )}
                 </Field>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={newFloorGround[building.id] ?? false}
-                    onChange={(e) => setNewFloorGround((prev) => ({ ...prev, [building.id]: e.target.checked }))}
-                  />
-                  Erdgeschoss (stufenloser Zugang)
-                </label>
                 <button type="submit" className="btn-primary" aria-label={`Stockwerk zu ${building.name} hinzufügen`}>Hinzufügen</button>
               </form>}
 
               <DataList
                 aria-label={`Stockwerke von ${building.name}`}
-                items={floors}
+                items={floorsDescending}
                 itemKey={(floor) => floor.id}
                 emptyText="Noch keine Stockwerke."
                 renderItem={(floor) => {
+                  const floorIndex = floorsDescending.indexOf(floor)
                   const floorRenameId = `rename-floor-${floor.id}`
                   return (
-                    <div className="ui-data-list__body">
+                    <div className="ui-data-list__body catalog-floor-row">
                       <span className="catalog-name catalog-name-floor">{floor.name}</span>{' '}
                       <span className={floor.status === 'ACTIVE' ? 'status-active' : 'status-deactivated'}>
                         ({entityStatusLabel(floor.status)})
@@ -226,14 +228,24 @@ export function BuildingCatalog({ onCatalogChanged, canManageBuildings = true,
                         </>
                       )}
 
-                      {canManageFloors && <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={floor.groundFloor}
-                          onChange={() => guarded(() => updateFloor(floor.id, floor.name, !floor.groundFloor))}
-                        />
-                        Erdgeschoss<span className="sr-only">: {floor.name}</span>
-                      </label>}
+                      {canManageFloors && <div className="actions">
+                        <button
+                          type="button"
+                          disabled={floorIndex === 0}
+                          onClick={() => guarded(() => reorderFloors(building.id, moved(floorsAscending, floor.id, 1)))}
+                          aria-label={`Stockwerk ${floor.name} nach oben`}
+                        >
+                          Nach oben
+                        </button>
+                        <button
+                          type="button"
+                          disabled={floorIndex === floorsDescending.length - 1}
+                          onClick={() => guarded(() => reorderFloors(building.id, moved(floorsAscending, floor.id, -1)))}
+                          aria-label={`Stockwerk ${floor.name} nach unten`}
+                        >
+                          Nach unten
+                        </button>
+                      </div>}
 
                       {canManageFloors && <div className="inline-form">
                         <div>

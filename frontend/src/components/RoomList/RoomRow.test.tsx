@@ -21,7 +21,7 @@ function room(overrides: Partial<Room> = {}): Room {
     id: 'r1',
     name: 'Raum 2.14',
     building: { id: 'b1', name: 'Haus A', status: 'ACTIVE', hasElevator: true },
-    floor: { id: 'f1', buildingId: 'b1', name: '2. OG', status: 'ACTIVE', groundFloor: false },
+    floor: { id: 'f1', buildingId: 'b1', name: '2. OG', status: 'ACTIVE', groundFloor: false, position: 0 },
     status: 'ACTIVE',
     version: 0,
     seatingArrangements: [{ id: 's1', name: 'Reihen', maxCapacity: 40 }],

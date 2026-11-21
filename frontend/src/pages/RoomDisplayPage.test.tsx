@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as roomsApi from '../API/rooms'
 import * as reservationsApi from '../API/reservations'
 import * as roomStatusApi from '../API/roomStatus'
+import * as routingApi from '../API/routing'
 import type { Room } from '../types/room'
 import RoomDisplayPage from './RoomDisplayPage'
 
 vi.mock('../API/rooms')
 vi.mock('../API/reservations')
 vi.mock('../API/roomStatus')
+vi.mock('../API/routing')
 const mode = vi.hoisted(() => ({ adminMode: false }))
 vi.mock('../auth/useAdminMode', () => ({
   useAdminMode: () => ({ loading: false, failed: false, admin: mode.adminMode, adminMode: mode.adminMode, setMode: vi.fn() }),
@@ -18,12 +20,13 @@ vi.mock('../auth/useAdminMode', () => ({
 const rooms = vi.mocked(roomsApi)
 const reservations = vi.mocked(reservationsApi)
 const roomStatus = vi.mocked(roomStatusApi)
+const routing = vi.mocked(routingApi)
 
 const sampleRoom: Room = {
   id: 'room-1',
   name: 'Room 101',
   building: { id: 'b1', name: 'Main Building', status: 'ACTIVE', hasElevator: false },
-  floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false },
+  floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false, position: 0 },
   status: 'ACTIVE',
   version: 0,
   seatingArrangements: [{ id: 'seat-1', name: 'Theater', maxCapacity: 40 }],
@@ -37,6 +40,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-09-20T10:00:00.000Z'))
   mode.adminMode = false
+  routing.getRoomNeighbors.mockResolvedValue({ roomId: 'room-1', available: false, reason: 'ROOM_NOT_ATTACHED', entries: [] })
   roomStatus.getRoomStatus.mockResolvedValue({
     roomId: 'room-1', status: 'AVAILABLE', devices: { lighting: false, ventilation: false, door: 'LOCKED' }, lastPresenceAt: null,
   })
@@ -257,5 +261,59 @@ describe('RoomDisplayPage', () => {
     expect(back.closest('main')).toHaveClass('room-display')
     expect(back).toHaveAttribute('href', '/rooms/room-1')
     expect(back.parentElement).toHaveClass('page-back')
+  })
+})
+
+describe('RoomDisplayPage neighbors (feature 024)', () => {
+  const neighbors = {
+    roomId: 'room-1',
+    available: true,
+    reason: null,
+    entries: [
+      {
+        direction: 'LEFT' as const,
+        kind: 'ROOM' as const,
+        roomId: 'room-2',
+        connectionId: null,
+        name: 'Room 102',
+        targetFloorName: null,
+        distanceMeters: 7,
+        walkingSeconds: 6,
+        status: 'OCCUPIED' as const,
+      },
+    ],
+  }
+
+  it('shows the neighbors next to the room data', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom)
+    reservations.listRoomReservations.mockResolvedValue([])
+    routing.getRoomNeighbors.mockResolvedValue(neighbors)
+
+    renderPage()
+
+    const section = await screen.findByRole('region', { name: 'Nachbarräume' })
+    expect(section).toHaveTextContent('Room 102 · links · ca. 7 m (6 s)')
+    expect(routing.getRoomNeighbors).toHaveBeenCalledWith('room-1')
+  })
+
+  it('still renders the display when the neighbors request fails', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom)
+    reservations.listRoomReservations.mockResolvedValue([])
+    routing.getRoomNeighbors.mockRejectedValue(new Error('boom'))
+
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Nachbarräume' })).not.toBeInTheDocument()
+  })
+
+  it('omits the neighbor area when none can be shown', async () => {
+    rooms.getRoom.mockResolvedValue(sampleRoom)
+    reservations.listRoomReservations.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Room 101' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Nachbarräume' })).not.toBeInTheDocument()
   })
 })

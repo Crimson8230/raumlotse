@@ -162,28 +162,34 @@ class CatalogRepositoryIntegrationTest extends AbstractIntegrationTest {
         buildingRepository.flush();
 
         assertThat(column("building", "has_elevator", building.getId())).isFalse();
-        assertThat(column("floor", "ground_floor", floor.getId())).isFalse();
+        // Feature 024: the first (lowest) floor of a building is the ground floor automatically.
+        assertThat(column("floor", "ground_floor", floor.getId())).isTrue();
         assertThat(column("room", "not_barrier_free", room.getId())).isFalse();
     }
 
     @Test
-    void barrierFreeAttributesRoundTripAndNullKeepsTheCurrentValue() {
+    void elevatorFlagRoundTripsAndTheGroundFloorFollowsTheFloorOrder() {
         var building = buildingService.create("Aufzug " + UUID.randomUUID(), true);
-        var floor = floorService.create(building.getId(), "EG", true);
+        var ground = floorService.create(building.getId(), "EG", false);
+        var upper = floorService.create(building.getId(), "1. OG", true);
         buildingRepository.flush();
         assertThat(column("building", "has_elevator", building.getId())).isTrue();
-        assertThat(column("floor", "ground_floor", floor.getId())).isTrue();
+        assertThat(column("floor", "ground_floor", ground.getId())).isTrue();
+        assertThat(column("floor", "ground_floor", upper.getId())).isFalse();
 
         buildingService.update(building.getId(), building.getName() + " neu", null);
-        floorService.update(floor.getId(), "Erdgeschoss", null);
+        floorService.update(upper.getId(), "Obergeschoss", true);
         buildingRepository.flush();
         assertThat(column("building", "has_elevator", building.getId())).isTrue();
-        assertThat(column("floor", "ground_floor", floor.getId())).isTrue();
+        assertThat(column("floor", "ground_floor", upper.getId())).isFalse();
+
+        floorService.reorder(building.getId(), List.of(upper.getId(), ground.getId()));
+        buildingRepository.flush();
+        assertThat(column("floor", "ground_floor", upper.getId())).isTrue();
+        assertThat(column("floor", "ground_floor", ground.getId())).isFalse();
 
         buildingService.update(building.getId(), building.getName(), false);
-        floorService.update(floor.getId(), "Erdgeschoss", false);
         buildingRepository.flush();
         assertThat(column("building", "has_elevator", building.getId())).isFalse();
-        assertThat(column("floor", "ground_floor", floor.getId())).isFalse();
     }
 }

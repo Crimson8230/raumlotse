@@ -350,6 +350,24 @@ p {
   vertical-align: top;
 }
 
+/* Stockwerkzeile: Name, Reihenfolge-Buttons, Umbenennen und Aktionen stehen auf einer Linie mit gleichem Abstand. */
+.catalog-floor-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.catalog-floor-row > .inline-form,
+.catalog-floor-row > .actions {
+  margin: 0;
+  align-items: center;
+}
+
+.catalog-floor-row .inline-form > div {
+  display: flex;
+}
+
 /* "Zurück" link below a page's content (feature 014): centred, drawn like a button so it reads as an action. */
 .page-back {
   display: flex;

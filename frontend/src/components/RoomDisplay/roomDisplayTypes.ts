@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { DeviceStates } from '../../types/checkIn'
 import type { Reservation } from '../../types/reservation'
+import type { Neighbors } from '../../types/routing'
 
 export type RoomDisplayStatus = 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'UNAVAILABLE'
 
@@ -28,6 +29,8 @@ export interface RoomDisplayProps {
   checkInLink?: string
   /** Simulated device states from the room status (feature 014). */
   devices?: DeviceStates | null
+  /** Neighboring rooms and ways up/down (feature 024); the area is omitted without usable neighbors. */
+  neighbors?: Neighbors | null
   /** Administration-only controls such as the simulated motion sensor (feature 014). */
   adminControls?: ReactNode
   /** Navigation shown centred below the display, e.g. back to the room page. */

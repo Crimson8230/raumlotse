@@ -44,7 +44,7 @@ function sampleRoom(): Room {
     id: 'room-1',
     name: 'Room 101',
     building: { id: 'b1', name: 'Main Building', status: 'ACTIVE', hasElevator: false },
-    floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false },
+    floor: { id: 'f1', buildingId: 'b1', name: '1st Floor', status: 'ACTIVE', groundFloor: false, position: 0 },
     status: 'ACTIVE',
     version: 0,
     seatingArrangements: [{ id: SEATING_ID, name: 'Theater', maxCapacity: 40 }],

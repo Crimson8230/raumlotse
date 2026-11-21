@@ -17,7 +17,7 @@ function building(overrides: Partial<Building> = {}): Building {
 }
 
 function floor(overrides: Partial<Floor> = {}): Floor {
-  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false, ...overrides }
+  return { id: 'f1', buildingId: 'b1', name: '1', status: 'ACTIVE', groundFloor: false, position: 0, ...overrides }
 }
 
 beforeEach(() => {
@@ -45,7 +45,7 @@ describe('BuildingCatalog', () => {
     await user.type(screen.getByLabelText(/name des neuen stockwerks/i), '1')
     await user.click(screen.getByRole('button', { name: /stockwerk zu main hinzufügen/i }))
 
-    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1', false))
+    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1'))
   })
 
   it('renames a building and a floor', async () => {
@@ -128,24 +128,48 @@ describe('BuildingCatalog', () => {
     await waitFor(() => expect(buildings.updateBuilding).toHaveBeenCalledWith('b1', 'Main', true))
   })
 
-  it('creates a ground floor and toggles the ground-floor mark of a floor', async () => {
+  it('has no ground-floor checkbox; the lowest floor is marked as ground floor automatically', async () => {
     const user = userEvent.setup()
     buildings.listBuildings.mockResolvedValue([building()])
     floors.listFloors.mockResolvedValue([floor({ name: 'EG', groundFloor: true })])
     floors.createFloor.mockResolvedValue(floor())
-    floors.updateFloor.mockResolvedValue(floor({ name: 'EG', groundFloor: false }))
 
     render(<BuildingCatalog />)
     await screen.findByText('Main')
 
     expect(screen.getByText('Erdgeschoss', { selector: '.catalog-tag' })).toBeInTheDocument()
-    await user.type(screen.getByLabelText(/name des neuen stockwerks/i), '1. OG')
-    await user.click(screen.getByLabelText('Erdgeschoss (stufenloser Zugang)'))
-    await user.click(screen.getByRole('button', { name: /stockwerk zu main hinzufügen/i }))
-    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1. OG', true))
+    expect(screen.queryByLabelText(/erdgeschoss \(stufenloser zugang\)/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: /erdgeschoss/i })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('checkbox', { name: /erdgeschoss\s*:\s*eg/i }))
-    await waitFor(() => expect(floors.updateFloor).toHaveBeenCalledWith('f1', 'EG', false))
+    await user.type(screen.getByLabelText(/name des neuen stockwerks/i), '1. OG')
+    await user.click(screen.getByRole('button', { name: /stockwerk zu main hinzufügen/i }))
+    await waitFor(() => expect(floors.createFloor).toHaveBeenCalledWith('b1', '1. OG'))
+  })
+
+  it('shows the highest floor on top and reorders with up/down buttons', async () => {
+    const user = userEvent.setup()
+    buildings.listBuildings.mockResolvedValue([building()])
+    floors.listFloors.mockResolvedValue([
+      floor({ id: 'f0', name: 'EG', groundFloor: true, position: 0 }),
+      floor({ id: 'f1', name: '1. OG', position: 1 }),
+      floor({ id: 'f2', name: '2. OG', position: 2 }),
+    ])
+    floors.reorderFloors.mockResolvedValue([])
+
+    render(<BuildingCatalog />)
+    await screen.findByText('Main')
+
+    const names = screen.getAllByText(/^(EG|1\. OG|2\. OG)$/, { selector: '.catalog-name-floor' }).map((e) => e.textContent)
+    expect(names).toEqual(['2. OG', '1. OG', 'EG'])
+
+    expect(screen.getByRole('button', { name: 'Stockwerk 2. OG nach oben' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Stockwerk EG nach unten' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Stockwerk 1. OG nach oben' }))
+    await waitFor(() => expect(floors.reorderFloors).toHaveBeenCalledWith('b1', ['f0', 'f2', 'f1']))
+
+    await user.click(screen.getByRole('button', { name: 'Stockwerk 1. OG nach unten' }))
+    await waitFor(() => expect(floors.reorderFloors).toHaveBeenCalledWith('b1', ['f1', 'f0', 'f2']))
   })
 })
 

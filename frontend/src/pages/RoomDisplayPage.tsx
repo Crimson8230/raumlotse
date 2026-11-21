@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getRoom } from '../API/rooms'
 import { listRoomReservations } from '../API/reservations'
 import { getRoomStatus } from '../API/roomStatus'
+import { getRoomNeighbors } from '../API/routing'
 import { RoomDisplay } from '../components/RoomDisplay/RoomDisplay'
 import { PresenceSimulateButton } from '../components/PresenceSimulateButton/PresenceSimulateButton'
 import {
@@ -12,6 +13,7 @@ import {
 } from '../components/RoomDisplay/roomDisplayLogic'
 import type { Reservation } from '../types/reservation'
 import type { RoomStatus } from '../types/roomStatus'
+import type { Neighbors } from '../types/routing'
 import type { Room } from '../types/room'
 import { checkInLink } from '../utils/checkInLink'
 
@@ -22,8 +24,9 @@ export default function RoomDisplayPage() {
     room: Room | null
     reservations: Reservation[]
     roomStatus: RoomStatus | null
+    neighbors: Neighbors | null
     errorMessage: string | null
-  }>({ roomId: null, room: null, reservations: [], roomStatus: null, errorMessage: null })
+  }>({ roomId: null, room: null, reservations: [], roomStatus: null, neighbors: null, errorMessage: null })
   const [currentDateTime, setCurrentDateTime] = useState(() => new Date())
 
   useEffect(() => {
@@ -39,14 +42,21 @@ export default function RoomDisplayPage() {
     let ignore = false
     const loadRoomData = () => {
       // Device icons are optional: a failing status request must not take the whole display down (feature 014).
-      Promise.all([getRoom(roomId), listRoomReservations(roomId), getRoomStatus(roomId).catch(() => null)]).then(
-        ([loadedRoom, loadedReservations, loadedStatus]) => {
+      // Neighbors are optional as well (feature 024): without them the sign simply has no neighbor area.
+      Promise.all([
+        getRoom(roomId),
+        listRoomReservations(roomId),
+        getRoomStatus(roomId).catch(() => null),
+        getRoomNeighbors(roomId).catch(() => null),
+      ]).then(
+        ([loadedRoom, loadedReservations, loadedStatus, loadedNeighbors]) => {
           if (!ignore) {
             setRequestState({
               roomId,
               room: loadedRoom,
               reservations: loadedReservations,
               roomStatus: loadedStatus,
+              neighbors: loadedNeighbors,
               errorMessage: null,
             })
           }
@@ -58,6 +68,7 @@ export default function RoomDisplayPage() {
               room: null,
               reservations: [],
               roomStatus: null,
+              neighbors: null,
               errorMessage: 'Rauminformationen sind nicht verfügbar.',
             })
           }
@@ -134,6 +145,7 @@ if (loading) {
       errorMessage={errorMessage ?? undefined}
       checkInLink={checkInLink(roomId, 'qr')}
       devices={requestMatchesRoom ? requestState.roomStatus?.devices : null}
+      neighbors={requestMatchesRoom ? requestState.neighbors : null}
       adminControls={
         <PresenceSimulateButton
           roomId={roomId}

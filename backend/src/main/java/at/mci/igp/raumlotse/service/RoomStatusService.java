@@ -13,7 +13,10 @@ import at.mci.igp.raumlotse.repository.RoomDeviceStateRepository;
 import at.mci.igp.raumlotse.repository.RoomRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -52,6 +55,16 @@ public class RoomStatusService {
                 .filter(Objects::nonNull)
                 .findFirst().orElse(null) : null;
         return new RoomStatusResponse(roomId, statusOf(covering), devicesFor(roomId), lastPresenceAt);
+    }
+
+    /** Status (AVAILABLE, RESERVED, OCCUPIED) of several rooms by the same rule as {@link #status}; for neighbor lists. */
+    public Map<UUID, String> statusOf(Collection<UUID> roomIds) {
+        Instant now = clock.instant();
+        Map<UUID, String> result = new HashMap<>();
+        for (UUID roomId : roomIds) {
+            result.put(roomId, statusOf(reservations.findCovering(roomId, now)));
+        }
+        return result;
     }
 
     public DeviceStatesResponse devicesFor(UUID roomId) {
