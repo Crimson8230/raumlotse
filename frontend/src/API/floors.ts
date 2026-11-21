@@ -5,20 +5,24 @@ export function listFloors(buildingId: string, status: StatusFilter = 'all'): Pr
   return apiRequest<Floor[]>(`/api/buildings/${buildingId}/floors?status=${status}`)
 }
 
-export function createFloor(buildingId: string, name: string, groundFloor = false): Promise<Floor> {
+/** A new floor is appended on top of the building; the lowest floor is the ground floor automatically. */
+export function createFloor(buildingId: string, name: string): Promise<Floor> {
   return apiRequest<Floor>(`/api/buildings/${buildingId}/floors`, {
     method: 'POST',
-    body: JSON.stringify({ name, groundFloor }),
+    body: JSON.stringify({ name }),
   })
 }
 
-/** Renames the floor; omitting `groundFloor` keeps its current value. */
-export function updateFloor(id: string, name: string, groundFloor?: boolean): Promise<Floor> {
-  return apiRequest<Floor>(`/api/floors/${id}`, { method: 'PUT', body: JSON.stringify({ name, groundFloor }) })
+export function renameFloor(id: string, name: string): Promise<Floor> {
+  return apiRequest<Floor>(`/api/floors/${id}`, { method: 'PUT', body: JSON.stringify({ name }) })
 }
 
-export function renameFloor(id: string, name: string): Promise<Floor> {
-  return updateFloor(id, name)
+/** Sets the order of all floors of a building: first entry is the ground floor, last the top floor. */
+export function reorderFloors(buildingId: string, floorIds: string[]): Promise<Floor[]> {
+  return apiRequest<Floor[]>(`/api/buildings/${buildingId}/floors/order`, {
+    method: 'PUT',
+    body: JSON.stringify({ floorIds }),
+  })
 }
 
 export function deactivateFloor(id: string): Promise<Floor> {

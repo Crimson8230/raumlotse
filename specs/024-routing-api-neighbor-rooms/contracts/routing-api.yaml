@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: Routing API
+  version: 1.0.0
+  description: >
+    Read-only routes and neighbor rooms over the path network (Feature 023). All endpoints require a
+    signed-in session or authenticated display (401 otherwise) and permission READ (403 otherwise).
+    Nothing here changes data. Errors use the existing Problem format with a `code`.
+paths:
+  /api/rooms/{roomId}/neighbors:
+    get:
+      summary: Nearest neighbors of a room on the same floor, plus stairs/elevators up and down
+      parameters:
+        - { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: >
+            Always 200 for a known room. `available=false` with a `reason` means no estimate can be made
+            (the door sign then omits the neighbor area).
+          content: { application/json: { schema: { $ref: '#/components/schemas/Neighbors' } } }
+        '401': { description: Not signed in }
+        '403': { description: Missing permission }
+        '404': { description: Room not found }
+  /api/routes:
+    get:
+      summary: Shortest route and estimated walking time between two rooms
+      parameters:
+        - { name: fromRoomId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: toRoomId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: accessibleOnly, in: query, required: false, schema: { type: boolean, default: false } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Route' } } } }
+        '400': { description: Missing or invalid parameter }
+        '401': { description: Not signed in }
+        '403': { description: Missing permission }
+        '404': { description: Room not found }
+        '409':
+          description: >
+            No route can be given. Problem `code` is one of ROOM_NOT_ATTACHED, SCALE_MISSING,
+            NOT_CONNECTED, NO_ACCESSIBLE_ROUTE.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+  /api/buildings/{buildingId}/floors/order:
+    put:
+      summary: Set the floor order of a building (first entry = ground floor, last = top floor)
+      description: Requires the existing floor-management permission and a CSRF token.
+      parameters:
+        - { name: buildingId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [floorIds]
+              properties:
+                floorIds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '200': { description: New order, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Floor' } } } } }
+        '400': { description: List does not contain exactly the floors of the building }
+        '401': { description: Not signed in }
+        '403': { description: Missing permission }
+        '404': { description: Building not found }
+components:
+  schemas:
+    Neighbors:
+      type: object
+      required: [roomId, available, entries]
+      properties:
+        roomId: { type: string, format: uuid }
+        available: { type: boolean }
+        reason: { type: string, enum: [ROOM_NOT_ATTACHED, SCALE_MISSING, NO_ORIENTATION, NO_NEIGHBORS], nullable: true }
+        entries: { type: array, items: { $ref: '#/components/schemas/NeighborEntry' } }
+    NeighborEntry:
+      type: object
+      required: [direction, kind, name, distanceMeters, walkingSeconds]
+      properties:
+        direction: { type: string, enum: [LEFT, RIGHT, STRAIGHT, UP, DOWN] }
+        kind: { type: string, enum: [ROOM, STAIRS, ELEVATOR] }
+        roomId: { type: string, format: uuid, nullable: true }
+        connectionId: { type: string, format: uuid, nullable: true }
+        name: { type: string }
+        targetFloorName: { type: string, nullable: true }
+        distanceMeters: { type: number }
+        walkingSeconds: { type: integer }
+        status: { type: string, enum: [AVAILABLE, RESERVED, OCCUPIED], nullable: true }
+    Route:
+      type: object
+      required: [fromRoomId, toRoomId, accessibleOnly, distanceMeters, walkingSeconds, steps]
+      properties:
+        fromRoomId: { type: string, format: uuid }
+        toRoomId: { type: string, format: uuid }
+        accessibleOnly: { type: boolean }
+        distanceMeters: { type: number }
+        walkingSeconds: { type: integer }
+        steps: { type: array, items: { $ref: '#/components/schemas/RouteStep' } }
+    RouteStep:
+      type: object
+      required: [mapId, floorName, waypointId, x, y]
+      properties:
+        mapId: { type: string, format: uuid }
+        floorName: { type: string }
+        waypointId: { type: string, format: uuid }
+        x: { type: number }
+        y: { type: number }
+        floorChange:
+          description: Set on the step that is reached through stairs or an elevator.
+          nullable: true
+          type: object
+          properties:
+            connectionId: { type: string, format: uuid }
+            connectionName: { type: string }
+            type: { type: string, enum: [STAIRS, ELEVATOR] }
+            fromFloorName: { type: string }
+            toFloorName: { type: string }
+    Floor:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string }
+        groundFloor: { type: boolean, description: Derived; true for the first entry of the order }
+        position: { type: integer }
+    Problem:
+      type: object
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string }

@@ -34,6 +34,10 @@ public class Floor {
     @Column(name = "ground_floor", nullable = false)
     private boolean groundFloor;
 
+    /** Order within the building: 0 is the ground floor, higher values lie above (feature 024). */
+    @Column(name = "position", nullable = false)
+    private int position;
+
     protected Floor() {
     }
 
@@ -72,6 +76,14 @@ public class Floor {
 
     public void setGroundFloor(boolean groundFloor) {
         this.groundFloor = groundFloor;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
     }
 
     public boolean isSelectable() {

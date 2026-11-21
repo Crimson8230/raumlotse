@@ -1,6 +1,7 @@
 import { formatDate, formatTime } from '../../utils/date'
 import { CheckInQrCode } from '../CheckInQrCode/CheckInQrCode'
 import { RoomDeviceIcons } from '../RoomDeviceIcons/RoomDeviceIcons'
+import { NeighborSection } from './NeighborSection'
 import { getNotePreview } from './roomDisplayLogic'
 import type { RoomDisplayProps, RoomDisplayStatus } from './roomDisplayTypes'
 import './RoomDisplay.css'
@@ -22,6 +23,7 @@ export function RoomDisplay({
   errorMessage,
   checkInLink,
   devices,
+  neighbors,
   adminControls,
   footer,
 }: RoomDisplayProps) {
@@ -113,6 +115,7 @@ export function RoomDisplay({
           <p>Zum Einchecken scannen</p>
         </section>
       )}
+      {state !== 'unavailable' && <NeighborSection neighbors={neighbors ?? null} />}
       {footer}
     </main>
   )

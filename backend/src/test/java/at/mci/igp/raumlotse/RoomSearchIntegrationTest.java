@@ -325,11 +325,12 @@ class RoomSearchIntegrationTest extends AbstractIntegrationTest {
         String suffix = UUID.randomUUID().toString();
         Building withElevator = buildingService.create("BF Haus 1 " + suffix, true);
         Building withoutElevator = buildingService.create("BF Haus 2 " + suffix, false);
-        Floor h1Og = floorService.create(withElevator.getId(), "1. OG", false);
-        Floor h1Eg = floorService.create(withElevator.getId(), "EG", true);
-        Floor h2Og = floorService.create(withoutElevator.getId(), "1. OG", false);
-        Floor h2Eg = floorService.create(withoutElevator.getId(), "EG", true);
-        Floor h2EgNord = floorService.create(withoutElevator.getId(), "EG Nord", true);
+        // Feature 024: the first (lowest) floor of a building is its only ground floor.
+        Floor h1Eg = floorService.create(withElevator.getId(), "EG", null);
+        Floor h1Og = floorService.create(withElevator.getId(), "1. OG", null);
+        Floor h2Eg = floorService.create(withoutElevator.getId(), "EG", null);
+        Floor h2Og = floorService.create(withoutElevator.getId(), "1. OG", null);
+        Floor h2EgNord = floorService.create(withoutElevator.getId(), "EG Nord", null);
         Room a = createRoom(h1Og, "A", 60);
         Room b = createRoom(h2Og, "B", 15);
         Room c = roomService.create(new RoomCreateRequest("C", h1Eg.getId(),
@@ -340,11 +341,11 @@ class RoomSearchIntegrationTest extends AbstractIntegrationTest {
         RoomSearchCriteria barrierFree = new RoomSearchCriteria(null, null, null, null, Set.of(), true);
 
         assertThat(resultIds(barrierFree, own))
-                .containsExactlyInAnyOrder(a.getId(), d.getId(), e.getId());
+                .containsExactlyInAnyOrder(a.getId(), d.getId());
 
         buildingService.update(withElevator.getId(), withElevator.getName(), false);
 
-        assertThat(resultIds(barrierFree, own)).containsExactlyInAnyOrder(d.getId(), e.getId());
+        assertThat(resultIds(barrierFree, own)).containsExactlyInAnyOrder(d.getId());
     }
 
     @Test

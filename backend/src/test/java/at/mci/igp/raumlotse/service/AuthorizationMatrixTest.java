@@ -17,6 +17,13 @@ class AuthorizationMatrixTest {
         assertThat(RoleAccessFilter.classify("POST", "/api/reservations/expire-unattended").permission())
                 .isEqualTo(RESERVATION_MAINTENANCE);
         assertThat(RoleAccessFilter.classify("PUT", "/api/admin/roles/ADMIN/permissions").admin()).isTrue();
+        assertThat(RoleAccessFilter.classify("PUT", "/api/buildings/x/floors/order").permission()).isEqualTo(FLOOR_MANAGE);
+        assertThat(RoleAccessFilter.classify("GET", "/api/rooms/x/neighbors").permission()).isEqualTo(READ);
+        assertThat(RoleAccessFilter.classify("GET", "/api/routes").permission()).isEqualTo(READ);
+        // Routing is read-only: no write method is registered.
+        assertThat(RoleAccessFilter.classify("POST", "/api/routes")).isNull();
+        assertThat(RoleAccessFilter.classify("PUT", "/api/rooms/x/neighbors")).isNull();
+        assertThat(RoleAccessFilter.classify("DELETE", "/api/rooms/x/neighbors")).isNull();
         assertThat(RoleAccessFilter.classify("POST", "/api/unknown")).isNull();
     }
 }

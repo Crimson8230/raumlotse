@@ -25,8 +25,8 @@ beforeEach(() => {
   vi.resetAllMocks()
   buildings.listBuildings.mockResolvedValue([{ id: 'b1', name: 'Haus A', status: 'ACTIVE', hasElevator: false }])
   floors.listFloors.mockResolvedValue([
-    { id: 'f1', buildingId: 'b1', name: 'EG', status: 'ACTIVE', groundFloor: true },
-    { id: 'f2', buildingId: 'b1', name: '1. OG', status: 'ACTIVE', groundFloor: false },
+    { id: 'f1', buildingId: 'b1', name: 'EG', status: 'ACTIVE', groundFloor: true, position: 0 },
+    { id: 'f2', buildingId: 'b1', name: '1. OG', status: 'ACTIVE', groundFloor: false, position: 0 },
   ])
 })
 

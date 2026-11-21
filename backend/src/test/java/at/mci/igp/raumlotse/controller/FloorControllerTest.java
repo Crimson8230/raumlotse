@@ -31,7 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(FloorController.class)
 @WithMockAdmin
 @Import(SecurityConfig.class)
-class FloorControllerTest {
+class FloorControllerTest {
+
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private at.mci.igp.raumlotse.service.EffectivePermissionService effectivePermissions;
     // Writes pass through RoleAccessFilter, which asks this (accepting) mock for the administrator check.
@@ -194,5 +195,42 @@ class FloorControllerTest {
                         .content("{\"name\":\"EG\",\"groundFloor\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groundFloor").value(false));
+    }
+
+    @Test
+    void reorderReturnsFloorsInNewOrder() throws Exception {
+        UUID buildingId = UUID.randomUUID();
+        UUID a = UUID.randomUUID();
+        when(floorService.reorder(eq(buildingId), eq(java.util.List.of(a))))
+                .thenReturn(java.util.List.of(floorOf(new Building("Main"), "EG")));
+
+        mockMvc.perform(put("/api/buildings/" + buildingId + "/floors/order").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"floorIds\":[\"" + a + "\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("EG"));
+    }
+
+    @Test
+    void reorderWithMismatchingListReturns400() throws Exception {
+        UUID buildingId = UUID.randomUUID();
+        when(floorService.reorder(eq(buildingId), any())).thenThrow(new IllegalArgumentException("Die Liste muss genau die Stockwerke des Gebäudes enthalten."));
+
+        mockMvc.perform(put("/api/buildings/" + buildingId + "/floors/order").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"floorIds\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reorderOfUnknownBuildingReturns404() throws Exception {
+        UUID buildingId = UUID.randomUUID();
+        when(floorService.reorder(eq(buildingId), any()))
+                .thenThrow(new at.mci.igp.raumlotse.exception.NotFoundException("Gebäude nicht gefunden."));
+
+        mockMvc.perform(put("/api/buildings/" + buildingId + "/floors/order").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"floorIds\":[]}"))
+                .andExpect(status().isNotFound());
     }
 }

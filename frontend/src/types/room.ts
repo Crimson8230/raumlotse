@@ -14,6 +14,8 @@ export interface Floor {
   status: EntityStatus
   /** Step-free entrance level (feature 008). */
   groundFloor: boolean
+  /** Order within the building: 0 is the ground floor, higher values lie above. */
+  position: number
 }
 
 export interface EquipmentType {
