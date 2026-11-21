@@ -67,4 +67,22 @@ class MapLoggingPrivacyTest {
         assertThat(messages()).anyMatch(m -> m.contains("map_request_rejected code=ROOM_FLOOR_MISMATCH status=422"));
         assertThat(messages()).noneMatch(m -> m.contains("Seminarraum"));
     }
+
+    @Test
+    void rejectedPathNetworkWritesLogCodeAndMapIdOnly() {
+        var maps = org.mockito.Mockito.mock(at.mci.igp.raumlotse.repository.FloorMapRepository.class);
+        var references = org.mockito.Mockito.mock(at.mci.igp.raumlotse.repository.MapReferenceSegmentRepository.class);
+        var mapId = java.util.UUID.randomUUID();
+        var floor = new at.mci.igp.raumlotse.domain.Floor(new at.mci.igp.raumlotse.domain.Building("Geheimhaus"), "EG");
+        org.mockito.Mockito.when(maps.findById(mapId)).thenReturn(java.util.Optional.of(
+                new at.mci.igp.raumlotse.domain.FloorMap(floor, "image/png", 200, 100)));
+        try {
+            new at.mci.igp.raumlotse.service.MapScaleService(maps, references).set(mapId,
+                    new at.mci.igp.raumlotse.dto.ReferenceSegmentRequest(0.4, 0.4, 0.4, 0.4, 10.0));
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+        assertThat(messages()).anyMatch(m -> m.contains("path_network_rejected code=REFERENCE_ENDPOINTS_IDENTICAL mapId="));
+        assertThat(messages()).noneMatch(m -> m.contains("Geheimhaus"));
+    }
 }

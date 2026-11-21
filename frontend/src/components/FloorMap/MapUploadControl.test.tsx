@@ -79,5 +79,6 @@ describe('MapUploadControl (replace)', () => {
 
     await waitFor(() => expect(maps.uploadMapImage).toHaveBeenCalledWith('f1', expect.any(File)))
     expect(await screen.findByRole('status')).toHaveTextContent(/seitenverhältnis/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/wegenetz und die referenzstrecke/i)
   })
 })

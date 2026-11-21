@@ -70,6 +70,20 @@ GET    /api/maps/{mapId}/image
 GET    /api/maps/{mapId}/unplaced-rooms
 PUT    /api/maps/{mapId}/placements/{roomId}
 DELETE /api/maps/{mapId}/placements/{roomId}
+GET    /api/path-network                                          # Wegenetz aller Karten + Verbindungsgruppen (für Routing)
+GET    /api/maps/{mapId}/path-network                             # Wegenetz einer Karte mit Maßstab, Anbindungen, Prüfung
+POST   /api/maps/{mapId}/waypoints
+PUT    /api/maps/{mapId}/waypoints/{waypointId}
+DELETE /api/maps/{mapId}/waypoints/{waypointId}
+POST   /api/maps/{mapId}/segments
+DELETE /api/maps/{mapId}/segments/{segmentId}
+POST   /api/maps/{mapId}/segments/{segmentId}/split
+PUT    /api/maps/{mapId}/reference-segment
+DELETE /api/maps/{mapId}/reference-segment
+PUT    /api/maps/{mapId}/room-attachments/{roomId}
+DELETE /api/maps/{mapId}/room-attachments/{roomId}
+PUT    /api/maps/{mapId}/connection-point-attachments/{connectionPointId}
+DELETE /api/maps/{mapId}/connection-point-attachments/{connectionPointId}
 PUT    /api/floors/{floorId}/map
 
 GET    /api/connections

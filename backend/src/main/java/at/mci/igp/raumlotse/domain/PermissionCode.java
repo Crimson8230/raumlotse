@@ -13,7 +13,7 @@ public enum PermissionCode {
     FLOOR_MANAGE("Stockwerke verwalten", "Stockwerke pflegen"),
     EQUIPMENT_TYPE_MANAGE("Ausstattungsarten verwalten", "Ausstattungsarten pflegen"),
     ROOM_MANAGE("Räume verwalten", "Räume pflegen"),
-    MAP_MANAGE("Karten verwalten", "Karten hochladen, ersetzen und entfernen"),
+    MAP_MANAGE("Karten verwalten", "Karten hochladen, ersetzen und entfernen sowie das Wegenetz pflegen"),
     ROOM_PLACEMENT_MANAGE("Raumpositionen verwalten", "Räume auf Karten platzieren"),
     CONNECTION_MANAGE("Verbindungen verwalten", "Kartenverbindungen pflegen"),
     STATISTICS_READ("Statistiken lesen", "Verwaltungsstatistiken ansehen"),

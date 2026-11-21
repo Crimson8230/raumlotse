@@ -51,6 +51,8 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "GET", "/api/equipment-types", PermissionCode.READ);
         add(result, "GET", "/api/maps(?:/[^/]+(?:/image)?)?", PermissionCode.READ);
         add(result, "GET", "/api/connections", PermissionCode.READ);
+        add(result, "GET", "/api/path-network", PermissionCode.READ);
+        add(result, "GET", "/api/maps/[^/]+/path-network", PermissionCode.READ);
         add(result, "GET", "/api/rooms/[^/]+/(available-equipment|reservations)", PermissionCode.READ);
         add(result, "GET", "/api/reservations/(my-upcoming|[^/]+)", PermissionCode.READ);
         add(result, "GET", "/api/rooms/[^/]+/check-in", IDENTITY);
@@ -94,6 +96,18 @@ public class RoleAccessFilter extends OncePerRequestFilter {
         add(result, "POST", "/api/connections", PermissionCode.CONNECTION_MANAGE);
         add(result, "PUT", "/api/connections/[^/]+(?:/points/[^/]+)?", PermissionCode.CONNECTION_MANAGE);
         add(result, "DELETE", "/api/connections/[^/]+(?:/points/[^/]+)?", PermissionCode.CONNECTION_MANAGE);
+        add(result, "POST", "/api/maps/[^/]+/waypoints", PermissionCode.MAP_MANAGE);
+        add(result, "PUT", "/api/maps/[^/]+/waypoints/[^/]+", PermissionCode.MAP_MANAGE);
+        add(result, "DELETE", "/api/maps/[^/]+/waypoints/[^/]+", PermissionCode.MAP_MANAGE);
+        add(result, "POST", "/api/maps/[^/]+/segments", PermissionCode.MAP_MANAGE);
+        add(result, "DELETE", "/api/maps/[^/]+/segments/[^/]+", PermissionCode.MAP_MANAGE);
+        add(result, "POST", "/api/maps/[^/]+/segments/[^/]+/split", PermissionCode.MAP_MANAGE);
+        add(result, "PUT", "/api/maps/[^/]+/reference-segment", PermissionCode.MAP_MANAGE);
+        add(result, "DELETE", "/api/maps/[^/]+/reference-segment", PermissionCode.MAP_MANAGE);
+        add(result, "PUT", "/api/maps/[^/]+/room-attachments/[^/]+", PermissionCode.MAP_MANAGE);
+        add(result, "DELETE", "/api/maps/[^/]+/room-attachments/[^/]+", PermissionCode.MAP_MANAGE);
+        add(result, "PUT", "/api/maps/[^/]+/connection-point-attachments/[^/]+", PermissionCode.MAP_MANAGE);
+        add(result, "DELETE", "/api/maps/[^/]+/connection-point-attachments/[^/]+", PermissionCode.MAP_MANAGE);
         add(result, "POST", "/api/reservations/expire-unattended", PermissionCode.RESERVATION_MAINTENANCE);
         return List.copyOf(result);
     }

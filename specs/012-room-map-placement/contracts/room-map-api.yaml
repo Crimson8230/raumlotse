@@ -176,6 +176,7 @@ components:
     ConnectionPoint:
       type: object
       properties:
+        id: { type: string, format: uuid, description: 'added by feature 023 (path network attachment)' }
         mapId: { type: string, format: uuid }
         x: { type: number }
         y: { type: number }

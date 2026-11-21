@@ -13,6 +13,8 @@ interface Props {
   activeConnectionId: string | undefined
   onSelectForPlacement: (connectionId: string | undefined) => void
   onChanged: () => void
+  /** Per connection id: false while at least one of its points is not attached to the path network. */
+  fullyAttached?: Record<string, boolean>
 }
 
 export function ConnectionCatalog({
@@ -22,6 +24,7 @@ export function ConnectionCatalog({
   activeConnectionId,
   onSelectForPlacement,
   onChanged,
+  fullyAttached,
 }: Props) {
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<ConnectionType>('ELEVATOR')
@@ -108,6 +111,7 @@ export function ConnectionCatalog({
                 <>
                   <span>{connection.name}</span> <span>({CONNECTION_TYPE_LABEL[connection.type]})</span>
                   {connection.incomplete && <strong> unvollständig</strong>}
+                  {fullyAttached?.[connection.id] === false && <strong> nicht vollständig angebunden</strong>}
                   {hasPointHere && <span> · Punkt auf dieser Karte</span>}
                   {admin && (
                     <>
